@@ -1,0 +1,24 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+fastapi = "*"
+uvicorn = "*"
+sqlalchemy = "*"
+psycopg2-binary = "*"
+pydantic = "*"
+python-dotenv = "*"
+passlib = "*"
+bcrypt = "==4.0.1"
+pyjwt = "*"
+alembic = "*"
+
+[dev-packages]
+pytest = "*"
+starlette = "*"
+httpx = "*"
+
+[requires]
+python_version = "3.14"
