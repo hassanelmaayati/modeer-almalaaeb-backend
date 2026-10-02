@@ -1,6 +1,6 @@
 from .base import BaseModel
 from . import tea
 from . import user
-from . import comment
+from . import group
 
 __all__ = ["BaseModel"]
