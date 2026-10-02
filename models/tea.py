@@ -23,4 +23,3 @@ class TeaModel(BaseModel):
     rating = Column(Integer)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     user = relationship("UserModel", back_populates="teas")
-    groups = relationship("GroupModel", back_populates="tea")

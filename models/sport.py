@@ -16,7 +16,6 @@ class SportModel(BaseModel):
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
     photo_url = Column(String, nullable=True)
-    parent_sport_id = Column(Integer, ForeignKey("sports.id"), nullable=True)
 
     # Relationships to other models:
-    members = relationship("UserModel", back_populates="sports")
+    groups = relationship("GroupModel", back_populates="sport")
