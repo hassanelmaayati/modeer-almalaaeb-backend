@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional, List
-from .comment import CommentSchema
+from .group import GroupSchema
 from .user import UserSchema
 
 
@@ -9,7 +9,7 @@ class TeaSchema(BaseModel):
     name: str
     in_stock: bool
     rating: int
-    comments: List[CommentSchema] = []
+    groups: List[GroupSchema] = []
     user: UserSchema
 
     class Config:

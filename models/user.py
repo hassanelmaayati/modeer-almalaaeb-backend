@@ -16,9 +16,10 @@ class UserModel(BaseModel):
     username = Column(String, nullable=False, unique=True)
     email = Column(String, nullable=False, unique=True)
     password = Column(String, nullable=False)
-    teas = relationship("TeaModel", back_populates="user")
-    comments = relationship("CommentModel", back_populates="user")
     role = Column(String, nullable=False, default="user")
+    teas = relationship("TeaModel", back_populates="user")
+    group = relationship("GroupModel", back_populates="members")
+    owned_groups = relationship("GroupModel", back_populates="owner")
 
     def set_password(self, password: str):
         self.password = pwd_context.hash(password)

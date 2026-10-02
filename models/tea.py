@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
 
 from sqlalchemy.orm import relationship
-from .comment import CommentModel
+from .group import GroupModel
 from .user import UserModel
 from .base import BaseModel
 
@@ -23,4 +23,3 @@ class TeaModel(BaseModel):
     rating = Column(Integer)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     user = relationship("UserModel", back_populates="teas")
-    comments = relationship("CommentModel", back_populates="tea")
