@@ -1,0 +1,557 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2040" height="2220" viewBox="0 0 2040 2220" role="img" aria-labelledby="title desc">
+<title id="title">Modeer Almalaaeb — compact React component hierarchy</title>
+<desc id="desc">BrowserRouter, AuthProvider, LiveProvider and App compose AppRouter and authentication/application layouts. Twenty routed page components cover twenty-one URL patterns. Each route card continues its layout PageOutlet, shows route guards and direct children. Room slots and pool controls are inline UI; groups of kind team serve cups; messages need no Conversation model; sports news comes from an external API.</desc>
+<rect x="0" y="0" width="2040" height="2220" fill="#ffffff"/>
+<text x="40" y="52" font-family="DejaVu Sans, Arial, sans-serif" font-size="35" font-weight="700" fill="#17242b" text-anchor="start">React component hierarchy</text>
+<text x="40" y="86" font-family="DejaVu Sans, Arial, sans-serif" font-size="20" font-weight="400" fill="#52636b" text-anchor="start">20 page components · 21 route patterns · seven-model project · React / JavaScript / JSX</text>
+<rect x="40" y="120" width="350" height="58" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="215.0" y="145" font-family="DejaVu Sans, Arial, sans-serif" font-size="21" font-weight="700" fill="#17242b" text-anchor="middle">BrowserRouter</text>
+<rect x="440" y="120" width="350" height="58" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="615.0" y="145" font-family="DejaVu Sans, Arial, sans-serif" font-size="21" font-weight="700" fill="#17242b" text-anchor="middle">AuthProvider</text>
+<polyline points="390,149 440,149" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="432,145 440,149 432,153" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="840" y="120" width="350" height="58" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1015.0" y="145" font-family="DejaVu Sans, Arial, sans-serif" font-size="21" font-weight="700" fill="#17242b" text-anchor="middle">LiveProvider</text>
+<polyline points="790,149 840,149" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="832,145 840,149 832,153" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="1240" y="120" width="350" height="58" rx="5" fill="#ff6b3d" stroke="#52636b" stroke-width="1.4"/>
+<text x="1415.0" y="145" font-family="DejaVu Sans, Arial, sans-serif" font-size="21" font-weight="700" fill="#17242b" text-anchor="middle">App</text>
+<polyline points="1190,149 1240,149" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1232,145 1240,149 1232,153" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="1640" y="120" width="350" height="58" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1815.0" y="145" font-family="DejaVu Sans, Arial, sans-serif" font-size="21" font-weight="700" fill="#17242b" text-anchor="middle">AppRouter</text>
+<polyline points="1590,149 1640,149" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1632,145 1640,149 1632,153" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="220" y="235" width="460" height="58" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="450.0" y="260" font-family="DejaVu Sans, Arial, sans-serif" font-size="18" font-weight="700" fill="#17242b" text-anchor="middle">AuthLayout</text>
+<rect x="1320" y="235" width="460" height="58" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1550.0" y="260" font-family="DejaVu Sans, Arial, sans-serif" font-size="18" font-weight="700" fill="#17242b" text-anchor="middle">AppLayout</text>
+<polyline points="1815,178 1815,209 450,209 450,235" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="446,227 450,235 454,227" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<polyline points="1815,178 1815,209 1550,209 1550,235" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1546,227 1550,235 1554,227" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="300" y="335" width="300" height="58" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="450.0" y="360" font-family="DejaVu Sans, Arial, sans-serif" font-size="18" font-weight="700" fill="#17242b" text-anchor="middle">PageOutlet</text>
+<text x="313" y="383" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#17242b" text-anchor="start">Sign-in and sign-up routes</text>
+<polyline points="450,293 450,335" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="446,327 450,335 454,327" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="1100" y="335" width="300" height="58" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1250.0" y="360" font-family="DejaVu Sans, Arial, sans-serif" font-size="18" font-weight="700" fill="#17242b" text-anchor="middle">MainNavigation</text>
+<text x="1113" y="383" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#17242b" text-anchor="start">Responsive links and account menu</text>
+<rect x="1650" y="335" width="300" height="58" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1800.0" y="360" font-family="DejaVu Sans, Arial, sans-serif" font-size="18" font-weight="700" fill="#17242b" text-anchor="middle">PageOutlet</text>
+<text x="1663" y="383" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#17242b" text-anchor="start">Public and guarded app routes</text>
+<polyline points="1550,293 1550,315 1250,315 1250,335" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1246,327 1250,335 1254,327" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<polyline points="1550,293 1550,315 1800,315 1800,335" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1796,327 1800,335 1804,327" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<text x="40" y="436" font-family="DejaVu Sans, Arial, sans-serif" font-size="18" font-weight="400" fill="#52636b" text-anchor="start">Route branches — each card continues the matching PageOutlet; arrows inside cards show direct children.</text>
+<rect x="30" y="480" width="380" height="365" rx="7" fill="#ffffff" stroke="#d5dde1" stroke-width="1.4"/>
+<text x="44" y="503" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#52636b" text-anchor="start">AuthLayout / PageOutlet</text>
+<text x="44" y="538" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#52636b" text-anchor="start">Public / authorized preview</text>
+<rect x="44" y="566" width="352" height="66" rx="5" fill="#06c879" stroke="#52636b" stroke-width="1.4"/>
+<text x="220.0" y="591" font-family="DejaVu Sans, Arial, sans-serif" font-size="19" font-weight="700" fill="#17242b" text-anchor="middle">SignInPage</text>
+<text x="57" y="614" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="400" fill="#17242b" text-anchor="start">/sign-in</text>
+<line x1="38" y1="595" x2="38" y2="763" stroke="#79848a" stroke-width="1.8"/>
+<polyline points="44,595 38,595" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="46,591 38,595 46,599" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="58" y="656" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="220.0" y="681" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">AuthIntro</text>
+<polyline points="38,673 58,673" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="50,669 58,673 50,677" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="58" y="701" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="220.0" y="726" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">SignInForm</text>
+<polyline points="38,718 58,718" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="50,714 58,718 50,722" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="58" y="746" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="220.0" y="771" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">GoogleSignInButton</text>
+<polyline points="38,763 58,763" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="50,759 58,763 50,767" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="430" y="480" width="380" height="365" rx="7" fill="#ffffff" stroke="#d5dde1" stroke-width="1.4"/>
+<text x="444" y="503" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#52636b" text-anchor="start">AuthLayout / PageOutlet</text>
+<text x="444" y="538" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#52636b" text-anchor="start">Public / authorized preview</text>
+<rect x="444" y="566" width="352" height="66" rx="5" fill="#06c879" stroke="#52636b" stroke-width="1.4"/>
+<text x="620.0" y="591" font-family="DejaVu Sans, Arial, sans-serif" font-size="19" font-weight="700" fill="#17242b" text-anchor="middle">SignUpPage</text>
+<text x="457" y="614" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="400" fill="#17242b" text-anchor="start">/sign-up</text>
+<line x1="438" y1="595" x2="438" y2="763" stroke="#79848a" stroke-width="1.8"/>
+<polyline points="444,595 438,595" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="446,591 438,595 446,599" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="458" y="656" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="620.0" y="681" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">AuthIntro</text>
+<polyline points="438,673 458,673" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="450,669 458,673 450,677" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="458" y="701" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="620.0" y="726" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">SignUpForm</text>
+<polyline points="438,718 458,718" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="450,714 458,718 450,722" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="458" y="746" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="620.0" y="771" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">GoogleSignInButton</text>
+<polyline points="438,763 458,763" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="450,759 458,763 450,767" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="830" y="480" width="380" height="365" rx="7" fill="#ffffff" stroke="#d5dde1" stroke-width="1.4"/>
+<text x="844" y="503" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#52636b" text-anchor="start">AppLayout / PageOutlet</text>
+<text x="844" y="538" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#52636b" text-anchor="start">Public / authorized preview</text>
+<rect x="844" y="566" width="352" height="66" rx="5" fill="#06c879" stroke="#52636b" stroke-width="1.4"/>
+<text x="1020.0" y="591" font-family="DejaVu Sans, Arial, sans-serif" font-size="19" font-weight="700" fill="#17242b" text-anchor="middle">HomePage</text>
+<text x="857" y="614" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="400" fill="#17242b" text-anchor="start">/</text>
+<line x1="838" y1="595" x2="838" y2="763" stroke="#79848a" stroke-width="1.8"/>
+<polyline points="844,595 838,595" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="846,591 838,595 846,599" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="858" y="656" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1020.0" y="681" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">ActivityPicker</text>
+<polyline points="838,673 858,673" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="850,669 858,673 850,677" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="858" y="701" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1020.0" y="726" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">UpcomingRooms</text>
+<polyline points="838,718 858,718" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="850,714 858,718 850,722" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="858" y="746" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1020.0" y="771" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">HowItWorks</text>
+<polyline points="838,763 858,763" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="850,759 858,763 850,767" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="1230" y="480" width="380" height="365" rx="7" fill="#ffffff" stroke="#d5dde1" stroke-width="1.4"/>
+<text x="1244" y="503" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#52636b" text-anchor="start">AppLayout / PageOutlet</text>
+<text x="1244" y="538" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#52636b" text-anchor="start">Public / authorized preview</text>
+<rect x="1244" y="566" width="352" height="66" rx="5" fill="#06c879" stroke="#52636b" stroke-width="1.4"/>
+<text x="1420.0" y="591" font-family="DejaVu Sans, Arial, sans-serif" font-size="19" font-weight="700" fill="#17242b" text-anchor="middle">RoomListPage</text>
+<text x="1257" y="614" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="400" fill="#17242b" text-anchor="start">/rooms</text>
+<line x1="1238" y1="595" x2="1238" y2="763" stroke="#79848a" stroke-width="1.8"/>
+<polyline points="1244,595 1238,595" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1246,591 1238,595 1246,599" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="1258" y="656" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1420.0" y="681" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">ActivityFilters</text>
+<polyline points="1238,673 1258,673" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1250,669 1258,673 1250,677" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="1258" y="701" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1420.0" y="726" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">RoomCardList</text>
+<polyline points="1238,718 1258,718" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1250,714 1258,718 1250,722" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="1258" y="746" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1420.0" y="771" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">ListStatus</text>
+<polyline points="1238,763 1258,763" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1250,759 1258,763 1250,767" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="1630" y="480" width="380" height="365" rx="7" fill="#ffffff" stroke="#d5dde1" stroke-width="1.4"/>
+<text x="1644" y="503" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#52636b" text-anchor="start">AppLayout / PageOutlet</text>
+<text x="1644" y="538" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#52636b" text-anchor="start">Public / authorized preview</text>
+<rect x="1644" y="566" width="352" height="66" rx="5" fill="#06c879" stroke="#52636b" stroke-width="1.4"/>
+<text x="1820.0" y="591" font-family="DejaVu Sans, Arial, sans-serif" font-size="19" font-weight="700" fill="#17242b" text-anchor="middle">NewsPage</text>
+<text x="1657" y="614" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="400" fill="#17242b" text-anchor="start">/news</text>
+<line x1="1638" y1="595" x2="1638" y2="763" stroke="#79848a" stroke-width="1.8"/>
+<polyline points="1644,595 1638,595" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1646,591 1638,595 1646,599" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="1658" y="656" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1820.0" y="681" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">NewsFilters</text>
+<polyline points="1638,673 1658,673" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1650,669 1658,673 1650,677" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="1658" y="701" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1820.0" y="726" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">AttributedNewsCards</text>
+<polyline points="1638,718 1658,718" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1650,714 1658,718 1650,722" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="1658" y="746" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1820.0" y="771" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">ProviderStatus</text>
+<polyline points="1638,763 1658,763" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1650,759 1658,763 1650,767" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<text x="1658" y="816" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#52636b" text-anchor="start">External API; no News entity</text>
+<rect x="30" y="872" width="380" height="365" rx="7" fill="#ffffff" stroke="#d5dde1" stroke-width="1.4"/>
+<text x="44" y="895" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#52636b" text-anchor="start">AppLayout / PageOutlet</text>
+<rect x="130" y="908" width="180" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="220.0" y="933" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="700" fill="#17242b" text-anchor="middle">RequireAuth</text>
+<polyline points="220,942 220,958" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="216,950 220,958 224,950" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="44" y="958" width="352" height="66" rx="5" fill="#06c879" stroke="#52636b" stroke-width="1.4"/>
+<text x="220.0" y="983" font-family="DejaVu Sans, Arial, sans-serif" font-size="19" font-weight="700" fill="#17242b" text-anchor="middle">ProfilePage</text>
+<text x="57" y="1006" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="400" fill="#17242b" text-anchor="start">/users/:userId</text>
+<line x1="38" y1="987" x2="38" y2="1155" stroke="#79848a" stroke-width="1.8"/>
+<polyline points="44,987 38,987" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="46,983 38,987 46,991" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="58" y="1048" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="220.0" y="1073" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">PlayerProfile</text>
+<polyline points="38,1065 58,1065" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="50,1061 58,1065 50,1069" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="58" y="1093" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="220.0" y="1118" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">AttendanceRatingSummary</text>
+<polyline points="38,1110 58,1110" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="50,1106 58,1110 50,1114" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="58" y="1138" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="220.0" y="1163" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">ProfileActions</text>
+<polyline points="38,1155 58,1155" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="50,1151 58,1155 50,1159" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="430" y="872" width="380" height="365" rx="7" fill="#ffffff" stroke="#d5dde1" stroke-width="1.4"/>
+<text x="444" y="895" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#52636b" text-anchor="start">AppLayout / PageOutlet</text>
+<rect x="530" y="908" width="180" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="620.0" y="933" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="700" fill="#17242b" text-anchor="middle">RequireAuth</text>
+<polyline points="620,942 620,958" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="616,950 620,958 624,950" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="444" y="958" width="352" height="66" rx="5" fill="#06c879" stroke="#52636b" stroke-width="1.4"/>
+<text x="620.0" y="983" font-family="DejaVu Sans, Arial, sans-serif" font-size="19" font-weight="700" fill="#17242b" text-anchor="middle">SettingsPage</text>
+<text x="457" y="1006" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="400" fill="#17242b" text-anchor="start">/settings</text>
+<line x1="438" y1="987" x2="438" y2="1155" stroke="#79848a" stroke-width="1.8"/>
+<polyline points="444,987 438,987" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="446,983 438,987 446,991" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="458" y="1048" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="620.0" y="1073" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">ProfileForm</text>
+<polyline points="438,1065 458,1065" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="450,1061 458,1065 450,1069" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="458" y="1093" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="620.0" y="1118" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">GoogleLinkControls</text>
+<polyline points="438,1110 458,1110" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="450,1106 458,1110 450,1114" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="458" y="1138" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="620.0" y="1163" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">PendingMembershipInvites</text>
+<polyline points="438,1155 458,1155" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="450,1151 458,1155 450,1159" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="830" y="872" width="380" height="365" rx="7" fill="#ffffff" stroke="#d5dde1" stroke-width="1.4"/>
+<text x="844" y="895" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#52636b" text-anchor="start">AppLayout / PageOutlet</text>
+<rect x="930" y="908" width="180" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1020.0" y="933" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="700" fill="#17242b" text-anchor="middle">RequireAuth</text>
+<polyline points="1020,942 1020,958" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1016,950 1020,958 1024,950" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="844" y="958" width="352" height="66" rx="5" fill="#06c879" stroke="#52636b" stroke-width="1.4"/>
+<text x="1020.0" y="983" font-family="DejaVu Sans, Arial, sans-serif" font-size="19" font-weight="700" fill="#17242b" text-anchor="middle">MyRoomsPage</text>
+<text x="857" y="1006" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="400" fill="#17242b" text-anchor="start">/my-rooms</text>
+<line x1="838" y1="987" x2="838" y2="1155" stroke="#79848a" stroke-width="1.8"/>
+<polyline points="844,987 838,987" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="846,983 838,987 846,991" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="858" y="1048" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1020.0" y="1073" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">RoomHistoryFilters</text>
+<polyline points="838,1065 858,1065" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="850,1061 858,1065 850,1069" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="858" y="1093" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1020.0" y="1118" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">OwnRoomCards</text>
+<polyline points="838,1110 858,1110" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="850,1106 858,1110 850,1114" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="858" y="1138" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1020.0" y="1163" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">HistoryStatus</text>
+<polyline points="838,1155 858,1155" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="850,1151 858,1155 850,1159" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="1230" y="872" width="380" height="365" rx="7" fill="#ffffff" stroke="#d5dde1" stroke-width="1.4"/>
+<text x="1244" y="895" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#52636b" text-anchor="start">AppLayout / PageOutlet</text>
+<rect x="1330" y="908" width="180" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1420.0" y="933" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="700" fill="#17242b" text-anchor="middle">RequireAuth</text>
+<polyline points="1420,942 1420,958" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1416,950 1420,958 1424,950" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="1244" y="958" width="352" height="66" rx="5" fill="#06c879" stroke="#52636b" stroke-width="1.4"/>
+<text x="1420.0" y="983" font-family="DejaVu Sans, Arial, sans-serif" font-size="19" font-weight="700" fill="#17242b" text-anchor="middle">CreateRoomPage</text>
+<text x="1257" y="1006" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="400" fill="#17242b" text-anchor="start">/rooms/new</text>
+<line x1="1238" y1="987" x2="1238" y2="1155" stroke="#79848a" stroke-width="1.8"/>
+<polyline points="1244,987 1238,987" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1246,983 1238,987 1246,991" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="1258" y="1048" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1420.0" y="1073" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">RoomForm</text>
+<polyline points="1238,1065 1258,1065" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1250,1061 1258,1065 1250,1069" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="1258" y="1093" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1420.0" y="1118" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">SlotLayoutOrPoolEditor</text>
+<polyline points="1238,1110 1258,1110" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1250,1106 1258,1110 1250,1114" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="1258" y="1138" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1420.0" y="1163" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">AudiencePreview</text>
+<polyline points="1238,1155 1258,1155" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1250,1151 1258,1155 1250,1159" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="1630" y="872" width="380" height="365" rx="7" fill="#ffffff" stroke="#d5dde1" stroke-width="1.4"/>
+<text x="1644" y="895" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#52636b" text-anchor="start">AppLayout / PageOutlet</text>
+<text x="1644" y="930" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#52636b" text-anchor="start">Public / authorized preview</text>
+<rect x="1644" y="958" width="352" height="66" rx="5" fill="#06c879" stroke="#52636b" stroke-width="1.4"/>
+<text x="1820.0" y="983" font-family="DejaVu Sans, Arial, sans-serif" font-size="19" font-weight="700" fill="#17242b" text-anchor="middle">RoomPage</text>
+<text x="1657" y="1006" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="400" fill="#17242b" text-anchor="start">/rooms/:roomId</text>
+<rect x="1644" y="1055" width="167" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1727.5" y="1080" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="700" fill="#17242b" text-anchor="middle">RequireRoomMember</text>
+<rect x="1829" y="1055" width="167" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1912.5" y="1080" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="700" fill="#17242b" text-anchor="middle">RequireCurrentHost</text>
+<polyline points="1740,1024 1740,1055" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1736,1047 1740,1055 1744,1047" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<polyline points="1910,1024 1910,1055" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1906,1047 1910,1055 1914,1047" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="1650" y="1108" width="161" height="29" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1730.5" y="1133" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="700" fill="#17242b" text-anchor="middle">SlotGrid (team layout)</text>
+<polyline points="1644,1072 1637,1072 1637,1122 1650,1122" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1642,1118 1650,1122 1642,1126" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="1650" y="1143" width="161" height="29" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1730.5" y="1168" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="700" fill="#17242b" text-anchor="middle">ParticipantPool (outings)</text>
+<polyline points="1644,1072 1637,1072 1637,1157 1650,1157" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1642,1153 1650,1157 1642,1161" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="1650" y="1178" width="161" height="29" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1730.5" y="1203" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="700" fill="#17242b" text-anchor="middle">RoomChat</text>
+<polyline points="1644,1072 1637,1072 1637,1192 1650,1192" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1642,1188 1650,1192 1642,1196" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="1835" y="1108" width="155" height="46" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1912.5" y="1133" font-family="DejaVu Sans, Arial, sans-serif" font-size="14" font-weight="700" fill="#17242b" text-anchor="middle">HostControls</text>
+<polyline points="1912,1089 1912,1108" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1908,1100 1912,1108 1916,1100" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<text x="1835" y="1171" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="400" fill="#52636b" text-anchor="start">Approve / move / remove</text>
+<text x="1835" y="1189" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="400" fill="#52636b" text-anchor="start">Lock / transfer</text>
+<text x="1835" y="1207" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="400" fill="#52636b" text-anchor="start">Current host only</text>
+<rect x="30" y="1264" width="380" height="365" rx="7" fill="#ffffff" stroke="#d5dde1" stroke-width="1.4"/>
+<text x="44" y="1287" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#52636b" text-anchor="start">AppLayout / PageOutlet</text>
+<rect x="130" y="1300" width="180" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="220.0" y="1325" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="700" fill="#17242b" text-anchor="middle">RequireAuth</text>
+<polyline points="220,1334 220,1350" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="216,1342 220,1350 224,1342" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="44" y="1350" width="352" height="66" rx="5" fill="#06c879" stroke="#52636b" stroke-width="1.4"/>
+<text x="220.0" y="1375" font-family="DejaVu Sans, Arial, sans-serif" font-size="19" font-weight="700" fill="#17242b" text-anchor="middle">FriendsPage</text>
+<text x="57" y="1398" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="400" fill="#17242b" text-anchor="start">/friends</text>
+<line x1="38" y1="1379" x2="38" y2="1547" stroke="#79848a" stroke-width="1.8"/>
+<polyline points="44,1379 38,1379" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="46,1375 38,1379 46,1383" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="58" y="1440" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="220.0" y="1465" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">FriendRequests</text>
+<polyline points="38,1457 58,1457" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="50,1453 58,1457 50,1461" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="58" y="1485" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="220.0" y="1510" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">AcceptedConnections</text>
+<polyline points="38,1502 58,1502" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="50,1498 58,1502 50,1506" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="58" y="1530" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="220.0" y="1555" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">BlockControls</text>
+<polyline points="38,1547 58,1547" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="50,1543 58,1547 50,1551" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<text x="58" y="1600" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#52636b" text-anchor="start">Friend pairs use Membership</text>
+<rect x="430" y="1264" width="380" height="365" rx="7" fill="#ffffff" stroke="#d5dde1" stroke-width="1.4"/>
+<text x="444" y="1287" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#52636b" text-anchor="start">AppLayout / PageOutlet</text>
+<rect x="530" y="1300" width="180" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="620.0" y="1325" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="700" fill="#17242b" text-anchor="middle">RequireAuth</text>
+<polyline points="620,1334 620,1350" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="616,1342 620,1350 624,1342" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="444" y="1350" width="352" height="86" rx="5" fill="#06c879" stroke="#52636b" stroke-width="1.4"/>
+<text x="620.0" y="1375" font-family="DejaVu Sans, Arial, sans-serif" font-size="19" font-weight="700" fill="#17242b" text-anchor="middle">MessagesPage</text>
+<text x="457" y="1398" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="400" fill="#17242b" text-anchor="start">/messages</text>
+<text x="457" y="1418" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="400" fill="#17242b" text-anchor="start">/messages/:userId</text>
+<line x1="438" y1="1379" x2="438" y2="1567" stroke="#79848a" stroke-width="1.8"/>
+<polyline points="444,1379 438,1379" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="446,1375 438,1379 446,1383" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="458" y="1460" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="620.0" y="1485" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">FriendPicker</text>
+<polyline points="438,1477 458,1477" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="450,1473 458,1477 450,1481" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="458" y="1505" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="620.0" y="1530" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">MessageTimeline</text>
+<polyline points="438,1522 458,1522" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="450,1518 458,1522 450,1526" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="458" y="1550" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="620.0" y="1575" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">MessageComposer</text>
+<polyline points="438,1567 458,1567" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="450,1563 458,1567 450,1571" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<text x="458" y="1600" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="400" fill="#52636b" text-anchor="start">Direct messages; no Conversation model</text>
+<rect x="830" y="1264" width="380" height="365" rx="7" fill="#ffffff" stroke="#d5dde1" stroke-width="1.4"/>
+<text x="844" y="1287" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#52636b" text-anchor="start">AppLayout / PageOutlet</text>
+<rect x="930" y="1300" width="180" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1020.0" y="1325" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="700" fill="#17242b" text-anchor="middle">RequireAuth</text>
+<polyline points="1020,1334 1020,1350" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1016,1342 1020,1350 1024,1342" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="844" y="1350" width="352" height="66" rx="5" fill="#06c879" stroke="#52636b" stroke-width="1.4"/>
+<text x="1020.0" y="1375" font-family="DejaVu Sans, Arial, sans-serif" font-size="19" font-weight="700" fill="#17242b" text-anchor="middle">GroupsPage</text>
+<text x="857" y="1398" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="400" fill="#17242b" text-anchor="start">/groups</text>
+<line x1="838" y1="1379" x2="838" y2="1547" stroke="#79848a" stroke-width="1.8"/>
+<polyline points="844,1379 838,1379" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="846,1375 838,1379 846,1383" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="858" y="1440" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1020.0" y="1465" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">GroupCards</text>
+<polyline points="838,1457 858,1457" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="850,1453 858,1457 850,1461" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="858" y="1485" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1020.0" y="1510" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">MembershipInviteList</text>
+<polyline points="838,1502 858,1502" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="850,1498 858,1502 850,1506" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="858" y="1530" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1020.0" y="1555" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">CreateGroupAction</text>
+<polyline points="838,1547 858,1547" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="850,1543 858,1547 850,1551" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="1230" y="1264" width="380" height="365" rx="7" fill="#ffffff" stroke="#d5dde1" stroke-width="1.4"/>
+<text x="1244" y="1287" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#52636b" text-anchor="start">AppLayout / PageOutlet</text>
+<rect x="1330" y="1300" width="180" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1420.0" y="1325" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="700" fill="#17242b" text-anchor="middle">RequireAuth</text>
+<polyline points="1420,1334 1420,1350" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1416,1342 1420,1350 1424,1342" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="1244" y="1350" width="352" height="66" rx="5" fill="#06c879" stroke="#52636b" stroke-width="1.4"/>
+<text x="1420.0" y="1375" font-family="DejaVu Sans, Arial, sans-serif" font-size="19" font-weight="700" fill="#17242b" text-anchor="middle">CreateGroupPage</text>
+<text x="1257" y="1398" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="400" fill="#17242b" text-anchor="start">/groups/new</text>
+<line x1="1238" y1="1379" x2="1238" y2="1547" stroke="#79848a" stroke-width="1.8"/>
+<polyline points="1244,1379 1238,1379" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1246,1375 1238,1379 1246,1383" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="1258" y="1440" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1420.0" y="1465" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">GroupForm</text>
+<polyline points="1238,1457 1258,1457" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1250,1453 1258,1457 1250,1461" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="1258" y="1485" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1420.0" y="1510" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">SocialOrTeamKindPicker</text>
+<polyline points="1238,1502 1258,1502" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1250,1498 1258,1502 1250,1506" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="1258" y="1530" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1420.0" y="1555" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">MemberInvitePicker</text>
+<polyline points="1238,1547 1258,1547" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1250,1543 1258,1547 1250,1551" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<text x="1258" y="1600" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="400" fill="#52636b" text-anchor="start">kind = social or team; one Group model</text>
+<rect x="1630" y="1264" width="380" height="365" rx="7" fill="#ffffff" stroke="#d5dde1" stroke-width="1.4"/>
+<text x="1644" y="1287" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#52636b" text-anchor="start">AppLayout / PageOutlet</text>
+<rect x="1644" y="1300" width="162" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1725.0" y="1325" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="700" fill="#17242b" text-anchor="middle">RequireAuth</text>
+<rect x="1834" y="1300" width="162" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1915.0" y="1325" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="700" fill="#17242b" text-anchor="middle">RequireGroupMember</text>
+<polyline points="1806,1317 1834,1317" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1826,1313 1834,1317 1826,1321" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<polyline points="1915,1334 1915,1342 1820,1342 1820,1350" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1816,1342 1820,1350 1824,1342" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="1644" y="1350" width="352" height="66" rx="5" fill="#06c879" stroke="#52636b" stroke-width="1.4"/>
+<text x="1820.0" y="1375" font-family="DejaVu Sans, Arial, sans-serif" font-size="19" font-weight="700" fill="#17242b" text-anchor="middle">GroupPage</text>
+<text x="1657" y="1398" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="400" fill="#17242b" text-anchor="start">/groups/:groupId</text>
+<rect x="1658" y="1452" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1820.0" y="1477" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">GroupMembers</text>
+<polyline points="1820,1416 1820,1452" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1816,1444 1820,1452 1824,1444" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="1644" y="1507" width="167" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1727.5" y="1532" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="700" fill="#17242b" text-anchor="middle">RequireGroupOwner</text>
+<rect x="1829" y="1507" width="167" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1912.5" y="1532" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="700" fill="#17242b" text-anchor="middle">RoomAndCupLinks</text>
+<polyline points="1644,1380 1637,1380 1637,1524 1644,1524" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1636,1520 1644,1524 1636,1528" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<polyline points="1996,1380 2003,1380 2003,1524 1996,1524" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="2004,1520 1996,1524 2004,1528" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="1650" y="1565" width="161" height="29" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1730.5" y="1590" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="700" fill="#17242b" text-anchor="middle">GroupOwnerControls</text>
+<polyline points="1728,1541 1728,1565" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1724,1557 1728,1565 1732,1557" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<text x="1829" y="1578" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="400" fill="#52636b" text-anchor="start">Team kind → cup roster</text>
+<rect x="30" y="1656" width="380" height="365" rx="7" fill="#ffffff" stroke="#d5dde1" stroke-width="1.4"/>
+<text x="44" y="1679" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#52636b" text-anchor="start">AppLayout / PageOutlet</text>
+<rect x="44" y="1692" width="162" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="125.0" y="1717" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="700" fill="#17242b" text-anchor="middle">RequireAuth</text>
+<rect x="234" y="1692" width="162" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="315.0" y="1717" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="700" fill="#17242b" text-anchor="middle">RequireRoomHistory</text>
+<polyline points="206,1709 234,1709" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="226,1705 234,1709 226,1713" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<polyline points="315,1726 315,1734 220,1734 220,1742" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="216,1734 220,1742 224,1734" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="44" y="1742" width="352" height="66" rx="5" fill="#06c879" stroke="#52636b" stroke-width="1.4"/>
+<text x="220.0" y="1767" font-family="DejaVu Sans, Arial, sans-serif" font-size="19" font-weight="700" fill="#17242b" text-anchor="middle">AfterGamePage</text>
+<text x="57" y="1790" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="400" fill="#17242b" text-anchor="start">/rooms/:roomId/after-game</text>
+<rect x="58" y="1844" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="220.0" y="1869" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">AttendanceRatingSummary</text>
+<polyline points="220,1808 220,1844" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="216,1836 220,1844 224,1836" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="58" y="1898" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="220.0" y="1923" font-family="DejaVu Sans, Arial, sans-serif" font-size="14" font-weight="700" fill="#17242b" text-anchor="middle">RequireCompletionHost</text>
+<polyline points="44,1772 37,1772 37,1915 58,1915" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="50,1911 58,1915 50,1919" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="50" y="1956" width="161" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="130.5" y="1981" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="700" fill="#17242b" text-anchor="middle">AttendanceRatingForm</text>
+<rect x="229" y="1956" width="161" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="309.5" y="1981" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="700" fill="#17242b" text-anchor="middle">RegroupActions</text>
+<polyline points="220,1932 220,1945 130,1945 130,1956" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="126,1948 130,1956 134,1948" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<polyline points="220,1932 220,1945 310,1945 310,1956" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="306,1948 310,1956 314,1948" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="430" y="1656" width="380" height="365" rx="7" fill="#ffffff" stroke="#d5dde1" stroke-width="1.4"/>
+<text x="444" y="1679" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#52636b" text-anchor="start">AppLayout / PageOutlet</text>
+<text x="444" y="1714" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#52636b" text-anchor="start">Public / authorized preview</text>
+<rect x="444" y="1742" width="352" height="66" rx="5" fill="#06c879" stroke="#52636b" stroke-width="1.4"/>
+<text x="620.0" y="1767" font-family="DejaVu Sans, Arial, sans-serif" font-size="19" font-weight="700" fill="#17242b" text-anchor="middle">CupsPage</text>
+<text x="457" y="1790" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="400" fill="#17242b" text-anchor="start">/cups</text>
+<line x1="438" y1="1771" x2="438" y2="1939" stroke="#79848a" stroke-width="1.8"/>
+<polyline points="444,1771 438,1771" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="446,1767 438,1771 446,1775" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="458" y="1832" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="620.0" y="1857" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">CupCardList</text>
+<polyline points="438,1849 458,1849" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="450,1845 458,1849 450,1853" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="458" y="1877" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="620.0" y="1902" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">CupStatusFilters</text>
+<polyline points="438,1894 458,1894" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="450,1890 458,1894 450,1898" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="458" y="1922" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="620.0" y="1947" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">CreateCupAction</text>
+<polyline points="438,1939 458,1939" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="450,1935 458,1939 450,1943" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="830" y="1656" width="380" height="365" rx="7" fill="#ffffff" stroke="#d5dde1" stroke-width="1.4"/>
+<text x="844" y="1679" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#52636b" text-anchor="start">AppLayout / PageOutlet</text>
+<rect x="844" y="1692" width="162" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="925.0" y="1717" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="700" fill="#17242b" text-anchor="middle">RequireAuth</text>
+<rect x="1034" y="1692" width="162" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1115.0" y="1717" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="700" fill="#17242b" text-anchor="middle">RequireOrganizer</text>
+<polyline points="1006,1709 1034,1709" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1026,1705 1034,1709 1026,1713" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<polyline points="1115,1726 1115,1734 1020,1734 1020,1742" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1016,1734 1020,1742 1024,1734" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="844" y="1742" width="352" height="66" rx="5" fill="#06c879" stroke="#52636b" stroke-width="1.4"/>
+<text x="1020.0" y="1767" font-family="DejaVu Sans, Arial, sans-serif" font-size="19" font-weight="700" fill="#17242b" text-anchor="middle">CreateCupPage</text>
+<text x="857" y="1790" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="400" fill="#17242b" text-anchor="start">/cups/new</text>
+<line x1="838" y1="1771" x2="838" y2="1939" stroke="#79848a" stroke-width="1.8"/>
+<polyline points="844,1771 838,1771" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="846,1767 838,1771 846,1775" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="858" y="1832" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1020.0" y="1857" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">CupForm</text>
+<polyline points="838,1849 858,1849" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="850,1845 858,1849 850,1853" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="858" y="1877" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1020.0" y="1902" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">TeamCountAndRules</text>
+<polyline points="838,1894 858,1894" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="850,1890 858,1894 850,1898" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="858" y="1922" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1020.0" y="1947" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">RegistrationDeadline</text>
+<polyline points="838,1939 858,1939" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="850,1935 858,1939 850,1943" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="1230" y="1656" width="380" height="365" rx="7" fill="#ffffff" stroke="#d5dde1" stroke-width="1.4"/>
+<text x="1244" y="1679" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#52636b" text-anchor="start">AppLayout / PageOutlet</text>
+<text x="1244" y="1714" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#52636b" text-anchor="start">Public / authorized preview</text>
+<rect x="1244" y="1742" width="352" height="66" rx="5" fill="#06c879" stroke="#52636b" stroke-width="1.4"/>
+<text x="1420.0" y="1767" font-family="DejaVu Sans, Arial, sans-serif" font-size="19" font-weight="700" fill="#17242b" text-anchor="middle">CupPage</text>
+<text x="1257" y="1790" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="400" fill="#17242b" text-anchor="start">/cups/:cupId</text>
+<rect x="1258" y="1844" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1420.0" y="1869" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">KnockoutBracket</text>
+<polyline points="1420,1808 1420,1844" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1416,1836 1420,1844 1424,1836" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="1244" y="1900" width="167" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1327.5" y="1925" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="700" fill="#17242b" text-anchor="middle">RequireGroupOwner</text>
+<rect x="1429" y="1900" width="167" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1512.5" y="1925" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="700" fill="#17242b" text-anchor="middle">RequireCupOrganizer</text>
+<polyline points="1244,1772 1237,1772 1237,1917 1244,1917" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1236,1913 1244,1917 1236,1921" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<polyline points="1596,1772 1603,1772 1603,1917 1596,1917" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1604,1913 1596,1917 1604,1921" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="1250" y="1957" width="161" height="29" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1330.5" y="1982" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="700" fill="#17242b" text-anchor="middle">EntryRosterControls</text>
+<rect x="1435" y="1957" width="155" height="29" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1512.5" y="1982" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="700" fill="#17242b" text-anchor="middle">FixtureResultControls</text>
+<polyline points="1328,1934 1328,1957" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1324,1949 1328,1957 1332,1949" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<polyline points="1512,1934 1512,1957" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1508,1949 1512,1957 1516,1949" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<text x="1254" y="2004" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="400" fill="#52636b" text-anchor="start">Entries / fixtures are embedded Cup data</text>
+<rect x="1630" y="1656" width="380" height="365" rx="7" fill="#ffffff" stroke="#d5dde1" stroke-width="1.4"/>
+<text x="1644" y="1679" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#52636b" text-anchor="start">AppLayout / PageOutlet</text>
+<rect x="1644" y="1692" width="162" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1725.0" y="1717" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" font-weight="700" fill="#17242b" text-anchor="middle">RequireAuth</text>
+<rect x="1834" y="1692" width="162" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1915.0" y="1717" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="700" fill="#17242b" text-anchor="middle">RequireAdmin</text>
+<polyline points="1806,1709 1834,1709" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1826,1705 1834,1709 1826,1713" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<polyline points="1915,1726 1915,1734 1820,1734 1820,1742" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1816,1734 1820,1742 1824,1734" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="1644" y="1742" width="352" height="66" rx="5" fill="#06c879" stroke="#52636b" stroke-width="1.4"/>
+<text x="1820.0" y="1767" font-family="DejaVu Sans, Arial, sans-serif" font-size="19" font-weight="700" fill="#17242b" text-anchor="middle">AdminUsersPage</text>
+<text x="1657" y="1790" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="400" fill="#17242b" text-anchor="start">/admin/users</text>
+<line x1="1638" y1="1771" x2="1638" y2="1939" stroke="#79848a" stroke-width="1.8"/>
+<polyline points="1644,1771 1638,1771" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1646,1767 1638,1771 1646,1775" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="1658" y="1832" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1820.0" y="1857" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">UserTable</text>
+<polyline points="1638,1849 1658,1849" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1650,1845 1658,1849 1650,1853" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="1658" y="1877" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1820.0" y="1902" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">RoleStatusControls</text>
+<polyline points="1638,1894 1658,1894" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1650,1890 1658,1894 1650,1898" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<rect x="1658" y="1922" width="324" height="34" rx="5" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="1820.0" y="1947" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#17242b" text-anchor="middle">ActionStatus</text>
+<polyline points="1638,1939 1658,1939" fill="none" stroke="#79848a" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="1650,1935 1658,1939 1650,1943" fill="none" stroke="#79848a" stroke-width="1.8"/>
+<text x="40" y="2088" font-family="DejaVu Sans, Arial, sans-serif" font-size="17" font-weight="400" fill="#52636b" text-anchor="start">Guards use current API-authorized state. Room history uses kickoff membership; attendance uses the fixed completion host.</text>
+<text x="40" y="2118" font-family="DejaVu Sans, Arial, sans-serif" font-size="17" font-weight="400" fill="#52636b" text-anchor="start">Group(kind=team) supplies cup teams. Slots are inline Room data; friendship and cup consent use Membership; chat uses Message.</text>
+<line x1="40" y1="2145" x2="2000" y2="2145" stroke="#c8d2d7"/>
+<rect x="40" y="2165" width="20" height="20" rx="2" fill="#ff6b3d" stroke="#52636b" stroke-width="1.4"/>
+<text x="70" y="2182" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="400" fill="#17242b" text-anchor="start">App</text>
+<rect x="280" y="2165" width="20" height="20" rx="2" fill="#06c879" stroke="#52636b" stroke-width="1.4"/>
+<text x="310" y="2182" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="400" fill="#17242b" text-anchor="start">Routed page</text>
+<rect x="700" y="2165" width="20" height="20" rx="2" fill="#ffd342" stroke="#52636b" stroke-width="1.4"/>
+<text x="730" y="2182" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="400" fill="#17242b" text-anchor="start">Provider / layout / guard / child</text>
+<text x="1995" y="2182" font-family="DejaVu Sans, Arial, sans-serif" font-size="14" font-weight="400" fill="#52636b" text-anchor="end">MODEER ALMALAAEB · COMPACT PLAN</text>
+</svg>

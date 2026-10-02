@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from controllers.teas import router as TeasRouter
 from controllers.groups import router as GroupsRouter
 from controllers.user import router as UsersRouter
+from controllers.sports import router as SportsRouter
 
 tags = [
     {
@@ -23,13 +24,19 @@ tags = [
         "name": "Users Management",
         "description": "Operations related to users",
     },
+    {
+        "name": "Sports Management",
+        "description": "Operations related to sports",
+    },
 ]
 app = FastAPI(
     title="Tea API", description="API for managing teas and groups", openapi_tags=tags
 )
+app.include_router(UsersRouter, prefix="/api/v1")
 app.include_router(TeasRouter, prefix="/api/v1")
 app.include_router(GroupsRouter, prefix="/api/v1")
-app.include_router(UsersRouter, prefix="/api/v1")
+app.include_router(SportsRouter, prefix="/api/v1")
+
 
 origins = [
     origin.strip()
