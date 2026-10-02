@@ -6,7 +6,6 @@ class UserRegistrationSchema(BaseModel):
     username: str
     email: str
     password: str
-    role: str
 
 
 class UserLoginSchema(BaseModel):
@@ -18,7 +17,6 @@ class UserLoginSchema(BaseModel):
 class UserSchema(BaseModel):
     username: str
     email: str
-    role: str
 
     class Config:
         orm_mode = True

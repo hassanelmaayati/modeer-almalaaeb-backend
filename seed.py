@@ -1,6 +1,8 @@
 # seed.py
 from sqlalchemy.orm import Session, sessionmaker
 from data.sports_data import sports_list
+from data.groups_data import groups_list
+from data.users_data import user_list
 from config.environment import DATABASE_URL
 from sqlalchemy import create_engine
 from models.base import Base  # import base model
@@ -17,7 +19,17 @@ try:
     print("Seeding the database...")
     db = SessionLocal()
 
+    # Hash passwords before adding users to the database
+    for user in user_list:
+        user.set_password(user.password)
+
+    db.add_all(user_list)
+    db.commit()
+
     db.add_all(sports_list)
+    db.commit()
+
+    db.add_all(groups_list)
     db.commit()
 
     db.close()

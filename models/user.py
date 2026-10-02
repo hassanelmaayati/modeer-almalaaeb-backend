@@ -16,7 +16,8 @@ class UserModel(BaseModel):
     username = Column(String, nullable=False, unique=True)
     email = Column(String, nullable=False, unique=True)
     password = Column(String, nullable=False)
-    role = Column(String, nullable=False, default="user")
+
+    # Relationships with other models
     teas = relationship("TeaModel", back_populates="user")
     group = relationship("GroupModel", back_populates="members")
     owned_groups = relationship("GroupModel", back_populates="owner")
@@ -32,7 +33,6 @@ class UserModel(BaseModel):
             "exp": datetime.now(timezone.utc) + timedelta(days=1),
             "iat": datetime.now(timezone.utc),
             "sub": str(self.id),
-            "role": self.role,
         }
 
         token = jwt.encode(payload, JWT_SECRET, algorithm="HS256")
