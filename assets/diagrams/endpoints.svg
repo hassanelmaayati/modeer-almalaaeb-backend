@@ -1,0 +1,230 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="2575" viewBox="0 0 1800 2575" role="img">
+<title>Modeer Almalaaeb compact routes and endpoints</title>
+<desc>Routes for six core models plus Cup. Membership routes cover room players, groups, friends and cup rosters; Message covers room chat and direct messages. News uses an external API and no database model. Exact requests and permission rules are recorded in interfaces.json.</desc>
+<rect width="100%" height="100%" fill="#f7f9fc"/>
+<text x="42" y="52" fill="#25313d" font-size="30" font-family="Arial,Helvetica,sans-serif" font-weight="bold">Modeer Almalaaeb — compact route map</text>
+<text x="42" y="88" fill="#25313d" font-size="19" font-family="Arial,Helvetica,sans-serif" font-weight="normal">Six core models + Cup · 42 HTTP operations · one authenticated WebSocket</text>
+<text x="42" y="118" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="normal">News is external. Room slots and cup fixtures are embedded data; they have no separate endpoints.</text>
+<rect x="40" y="136" width="1720" height="36" rx="5" fill="#e6edf6" stroke="#bdc8d5"/>
+<text x="55" y="161" fill="#25313d" font-size="17" font-family="Arial,Helvetica,sans-serif" font-weight="bold">Model / feature</text>
+<text x="280" y="161" fill="#25313d" font-size="17" font-family="Arial,Helvetica,sans-serif" font-weight="bold">Frontend routes</text>
+<text x="665" y="161" fill="#25313d" font-size="17" font-family="Arial,Helvetica,sans-serif" font-weight="bold">HTTP method, FastAPI path and success status</text>
+<rect x="40" y="178" width="1720" height="458" rx="5" fill="#ffffff" stroke="#bdc8d5"/>
+<text x="55" y="210" fill="#25313d" font-size="18" font-family="Arial,Helvetica,sans-serif" font-weight="bold">User</text>
+<text x="55" y="263" fill="#596777" font-size="14" font-family="Arial,Helvetica,sans-serif" font-weight="normal">users</text>
+<text x="280" y="209" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/sign-in</text>
+<text x="280" y="239" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/sign-up</text>
+<text x="280" y="269" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/users/:userId</text>
+<text x="280" y="299" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/settings</text>
+<text x="280" y="329" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/admin/users</text>
+<text x="665" y="209" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="bold">POST</text>
+<text x="748" y="209" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/api/v1/auth/signup</text>
+<text x="1675" y="209" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">201</text>
+<text x="748" y="226" fill="#596777" font-size="12" font-family="Arial,Helvetica,sans-serif" font-weight="normal">Create password account</text>
+<text x="665" y="252" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="bold">POST</text>
+<text x="748" y="252" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/api/v1/auth/login</text>
+<text x="1675" y="252" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">200</text>
+<text x="748" y="269" fill="#596777" font-size="12" font-family="Arial,Helvetica,sans-serif" font-weight="normal">Sign in</text>
+<text x="665" y="295" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="bold">POST</text>
+<text x="748" y="295" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/api/v1/auth/google</text>
+<text x="1675" y="295" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">200</text>
+<text x="748" y="312" fill="#596777" font-size="12" font-family="Arial,Helvetica,sans-serif" font-weight="normal">Verify Google and sign in</text>
+<text x="665" y="338" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="bold">POST</text>
+<text x="748" y="338" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/api/v1/auth/google/link</text>
+<text x="1675" y="338" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">200</text>
+<text x="748" y="355" fill="#596777" font-size="12" font-family="Arial,Helvetica,sans-serif" font-weight="normal">Link Google to existing account</text>
+<text x="665" y="381" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="bold">GET</text>
+<text x="748" y="381" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/api/v1/users/me</text>
+<text x="1675" y="381" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">200</text>
+<text x="748" y="398" fill="#596777" font-size="12" font-family="Arial,Helvetica,sans-serif" font-weight="normal">Own profile and pending invitations</text>
+<text x="665" y="424" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="bold">PATCH</text>
+<text x="748" y="424" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/api/v1/users/me</text>
+<text x="1675" y="424" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">200</text>
+<text x="748" y="441" fill="#596777" font-size="12" font-family="Arial,Helvetica,sans-serif" font-weight="normal">Edit own profile</text>
+<text x="665" y="467" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="bold">GET</text>
+<text x="748" y="467" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/api/v1/users/{user_id}</text>
+<text x="1675" y="467" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">200</text>
+<text x="748" y="484" fill="#596777" font-size="12" font-family="Arial,Helvetica,sans-serif" font-weight="normal">View safe player profile</text>
+<text x="665" y="510" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="bold">PATCH</text>
+<text x="748" y="510" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/api/v1/users/{user_id}</text>
+<text x="1675" y="510" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">200</text>
+<text x="748" y="527" fill="#596777" font-size="12" font-family="Arial,Helvetica,sans-serif" font-weight="normal">Change user role/status</text>
+<text x="665" y="553" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="bold">POST</text>
+<text x="748" y="553" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/api/v1/auth/logout</text>
+<text x="1675" y="553" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">204</text>
+<text x="748" y="570" fill="#596777" font-size="12" font-family="Arial,Helvetica,sans-serif" font-weight="normal">Sign out all devices</text>
+<text x="665" y="596" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="bold">GET</text>
+<text x="748" y="596" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/api/v1/users</text>
+<text x="1675" y="596" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">200</text>
+<text x="748" y="613" fill="#596777" font-size="12" font-family="Arial,Helvetica,sans-serif" font-weight="normal">Search safe player profiles for friends/invites</text>
+<rect x="40" y="648" width="1720" height="130" rx="5" fill="#ffffff" stroke="#bdc8d5"/>
+<text x="55" y="680" fill="#25313d" font-size="18" font-family="Arial,Helvetica,sans-serif" font-weight="bold">Sport</text>
+<text x="55" y="733" fill="#596777" font-size="14" font-family="Arial,Helvetica,sans-serif" font-weight="normal">sports</text>
+<text x="280" y="679" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/</text>
+<text x="280" y="709" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/rooms</text>
+<text x="665" y="679" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="bold">GET</text>
+<text x="748" y="679" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/api/v1/sports</text>
+<text x="1675" y="679" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">200</text>
+<text x="748" y="696" fill="#596777" font-size="12" font-family="Arial,Helvetica,sans-serif" font-weight="normal">List nine activities and format presets</text>
+<rect x="40" y="790" width="1720" height="243" rx="5" fill="#ffffff" stroke="#bdc8d5"/>
+<text x="55" y="822" fill="#25313d" font-size="18" font-family="Arial,Helvetica,sans-serif" font-weight="bold">Room</text>
+<text x="55" y="875" fill="#596777" font-size="14" font-family="Arial,Helvetica,sans-serif" font-weight="normal">rooms</text>
+<text x="280" y="821" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/rooms</text>
+<text x="280" y="851" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/rooms/new</text>
+<text x="280" y="881" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/rooms/:roomId</text>
+<text x="280" y="911" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/my-rooms</text>
+<text x="665" y="821" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="bold">GET</text>
+<text x="748" y="821" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/api/v1/rooms</text>
+<text x="1675" y="821" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">200</text>
+<text x="748" y="838" fill="#596777" font-size="12" font-family="Arial,Helvetica,sans-serif" font-weight="normal">Discover rooms or own rooms</text>
+<text x="665" y="864" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="bold">POST</text>
+<text x="748" y="864" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/api/v1/rooms</text>
+<text x="1675" y="864" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">201</text>
+<text x="748" y="881" fill="#596777" font-size="12" font-family="Arial,Helvetica,sans-serif" font-weight="normal">Create and open a scheduled room</text>
+<text x="665" y="907" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="bold">GET</text>
+<text x="748" y="907" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/api/v1/rooms/{room_id}</text>
+<text x="1675" y="907" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">200</text>
+<text x="748" y="924" fill="#596777" font-size="12" font-family="Arial,Helvetica,sans-serif" font-weight="normal">Read authorized preview or full room</text>
+<text x="665" y="950" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="bold">PATCH</text>
+<text x="748" y="950" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/api/v1/rooms/{room_id}</text>
+<text x="1675" y="950" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">200</text>
+<text x="748" y="967" fill="#596777" font-size="12" font-family="Arial,Helvetica,sans-serif" font-weight="normal">Edit, lock admission or transfer host</text>
+<text x="665" y="993" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="bold">POST</text>
+<text x="748" y="993" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/api/v1/rooms/{room_id}/cancel</text>
+<text x="1675" y="993" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">200</text>
+<text x="748" y="1010" fill="#596777" font-size="12" font-family="Arial,Helvetica,sans-serif" font-weight="normal">Cancel normally or in an emergency</text>
+<rect x="40" y="1045" width="1720" height="544" rx="5" fill="#ffffff" stroke="#bdc8d5"/>
+<text x="55" y="1077" fill="#25313d" font-size="18" font-family="Arial,Helvetica,sans-serif" font-weight="bold">Membership</text>
+<text x="55" y="1130" fill="#596777" font-size="14" font-family="Arial,Helvetica,sans-serif" font-weight="normal">memberships</text>
+<text x="280" y="1076" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/rooms/:roomId</text>
+<text x="280" y="1106" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/rooms/:roomId/after-game</text>
+<text x="280" y="1136" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/groups/:groupId</text>
+<text x="280" y="1166" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/friends</text>
+<text x="280" y="1196" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/cups/:cupId</text>
+<text x="665" y="1076" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="bold">GET</text>
+<text x="748" y="1076" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/api/v1/rooms/{room_id}/members</text>
+<text x="1675" y="1076" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">200</text>
+<text x="748" y="1093" fill="#596777" font-size="12" font-family="Arial,Helvetica,sans-serif" font-weight="normal">Read roster and permitted requests</text>
+<text x="665" y="1119" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="bold">POST</text>
+<text x="748" y="1119" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/api/v1/rooms/{room_id}/members</text>
+<text x="1675" y="1119" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">201</text>
+<text x="748" y="1136" fill="#596777" font-size="12" font-family="Arial,Helvetica,sans-serif" font-weight="normal">Request or obtain admission</text>
+<text x="665" y="1162" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="bold">PATCH</text>
+<text x="748" y="1162" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/api/v1/rooms/{room_id}/members/{user_id}</text>
+<text x="1675" y="1162" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">200</text>
+<text x="748" y="1179" fill="#596777" font-size="12" font-family="Arial,Helvetica,sans-serif" font-weight="normal">Approve/remove, slot/readiness, attendance or rating</text>
+<text x="665" y="1205" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="bold">DELETE</text>
+<text x="748" y="1205" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/api/v1/rooms/{room_id}/members/me</text>
+<text x="1675" y="1205" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">204</text>
+<text x="748" y="1222" fill="#596777" font-size="12" font-family="Arial,Helvetica,sans-serif" font-weight="normal">Leave and release active slot</text>
+<text x="665" y="1248" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="bold">GET</text>
+<text x="748" y="1248" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/api/v1/friends</text>
+<text x="1675" y="1248" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">200</text>
+<text x="748" y="1265" fill="#596777" font-size="12" font-family="Arial,Helvetica,sans-serif" font-weight="normal">Read own friend requests/connections</text>
+<text x="665" y="1291" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="bold">POST</text>
+<text x="748" y="1291" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/api/v1/friends</text>
+<text x="1675" y="1291" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">201</text>
+<text x="748" y="1308" fill="#596777" font-size="12" font-family="Arial,Helvetica,sans-serif" font-weight="normal">Send friend request</text>
+<text x="665" y="1334" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="bold">PATCH</text>
+<text x="748" y="1334" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/api/v1/friends/{user_id}</text>
+<text x="1675" y="1334" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">200</text>
+<text x="748" y="1351" fill="#596777" font-size="12" font-family="Arial,Helvetica,sans-serif" font-weight="normal">Accept/decline/unfriend/block/unblock</text>
+<text x="665" y="1377" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="bold">GET</text>
+<text x="748" y="1377" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/api/v1/groups/{group_id}/members</text>
+<text x="1675" y="1377" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">200</text>
+<text x="748" y="1394" fill="#596777" font-size="12" font-family="Arial,Helvetica,sans-serif" font-weight="normal">Read permitted group members/invitations</text>
+<text x="665" y="1420" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="bold">POST</text>
+<text x="748" y="1420" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/api/v1/groups/{group_id}/members</text>
+<text x="1675" y="1420" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">201</text>
+<text x="748" y="1437" fill="#596777" font-size="12" font-family="Arial,Helvetica,sans-serif" font-weight="normal">Invite a user to group membership</text>
+<text x="665" y="1463" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="bold">PATCH</text>
+<text x="748" y="1463" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/api/v1/groups/{group_id}/members/{user_id}</text>
+<text x="1675" y="1463" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">200</text>
+<text x="748" y="1480" fill="#596777" font-size="12" font-family="Arial,Helvetica,sans-serif" font-weight="normal">Accept/decline, leave or remove group member</text>
+<text x="665" y="1506" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="bold">POST</text>
+<text x="748" y="1506" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/api/v1/cups/{cup_id}/roster</text>
+<text x="1675" y="1506" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">201</text>
+<text x="748" y="1523" fill="#596777" font-size="12" font-family="Arial,Helvetica,sans-serif" font-weight="normal">Invite accepted team members to cup roster</text>
+<text x="665" y="1549" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="bold">PATCH</text>
+<text x="748" y="1549" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/api/v1/cups/{cup_id}/roster/{user_id}</text>
+<text x="1675" y="1549" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">200</text>
+<text x="748" y="1566" fill="#596777" font-size="12" font-family="Arial,Helvetica,sans-serif" font-weight="normal">Accept/decline or remove/leave cup roster</text>
+<rect x="40" y="1601" width="1720" height="160" rx="5" fill="#ffffff" stroke="#bdc8d5"/>
+<text x="55" y="1633" fill="#25313d" font-size="18" font-family="Arial,Helvetica,sans-serif" font-weight="bold">Message</text>
+<text x="55" y="1686" fill="#596777" font-size="14" font-family="Arial,Helvetica,sans-serif" font-weight="normal">messages</text>
+<text x="280" y="1632" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/rooms/:roomId</text>
+<text x="280" y="1662" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/messages</text>
+<text x="280" y="1692" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/messages/:userId</text>
+<text x="665" y="1632" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="bold">GET</text>
+<text x="748" y="1632" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/api/v1/messages</text>
+<text x="1675" y="1632" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">200</text>
+<text x="748" y="1649" fill="#596777" font-size="12" font-family="Arial,Helvetica,sans-serif" font-weight="normal">Read room/DM history or own DM inbox</text>
+<text x="665" y="1675" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="bold">POST</text>
+<text x="748" y="1675" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/api/v1/messages</text>
+<text x="1675" y="1675" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">201</text>
+<text x="748" y="1692" fill="#596777" font-size="12" font-family="Arial,Helvetica,sans-serif" font-weight="normal">Send room chat or direct message</text>
+<rect x="40" y="1773" width="1720" height="200" rx="5" fill="#ffffff" stroke="#bdc8d5"/>
+<text x="55" y="1805" fill="#25313d" font-size="18" font-family="Arial,Helvetica,sans-serif" font-weight="bold">Group</text>
+<text x="55" y="1858" fill="#596777" font-size="14" font-family="Arial,Helvetica,sans-serif" font-weight="normal">groups</text>
+<text x="280" y="1804" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/groups</text>
+<text x="280" y="1834" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/groups/new</text>
+<text x="280" y="1864" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/groups/:groupId</text>
+<text x="665" y="1804" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="bold">GET</text>
+<text x="748" y="1804" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/api/v1/groups</text>
+<text x="1675" y="1804" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">200</text>
+<text x="748" y="1821" fill="#596777" font-size="12" font-family="Arial,Helvetica,sans-serif" font-weight="normal">List own groups</text>
+<text x="665" y="1847" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="bold">POST</text>
+<text x="748" y="1847" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/api/v1/groups</text>
+<text x="1675" y="1847" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">201</text>
+<text x="748" y="1864" fill="#596777" font-size="12" font-family="Arial,Helvetica,sans-serif" font-weight="normal">Create social group or persistent team</text>
+<text x="665" y="1890" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="bold">GET</text>
+<text x="748" y="1890" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/api/v1/groups/{group_id}</text>
+<text x="1675" y="1890" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">200</text>
+<text x="748" y="1907" fill="#596777" font-size="12" font-family="Arial,Helvetica,sans-serif" font-weight="normal">Read group/team details</text>
+<text x="665" y="1933" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="bold">PATCH</text>
+<text x="748" y="1933" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/api/v1/groups/{group_id}</text>
+<text x="1675" y="1933" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">200</text>
+<text x="748" y="1950" fill="#596777" font-size="12" font-family="Arial,Helvetica,sans-serif" font-weight="normal">Edit/archive group or transfer ownership</text>
+<rect x="40" y="1985" width="1720" height="286" rx="5" fill="#ffffff" stroke="#bdc8d5"/>
+<text x="55" y="2017" fill="#25313d" font-size="18" font-family="Arial,Helvetica,sans-serif" font-weight="bold">Cup / seventh model</text>
+<text x="55" y="2070" fill="#596777" font-size="14" font-family="Arial,Helvetica,sans-serif" font-weight="normal">cups</text>
+<text x="280" y="2016" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/cups</text>
+<text x="280" y="2046" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/cups/new</text>
+<text x="280" y="2076" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/cups/:cupId</text>
+<text x="665" y="2016" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="bold">GET</text>
+<text x="748" y="2016" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/api/v1/cups</text>
+<text x="1675" y="2016" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">200</text>
+<text x="748" y="2033" fill="#596777" font-size="12" font-family="Arial,Helvetica,sans-serif" font-weight="normal">List published football cups</text>
+<text x="665" y="2059" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="bold">POST</text>
+<text x="748" y="2059" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/api/v1/cups</text>
+<text x="1675" y="2059" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">201</text>
+<text x="748" y="2076" fill="#596777" font-size="12" font-family="Arial,Helvetica,sans-serif" font-weight="normal">Create a football cup</text>
+<text x="665" y="2102" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="bold">GET</text>
+<text x="748" y="2102" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/api/v1/cups/{cup_id}</text>
+<text x="1675" y="2102" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">200</text>
+<text x="748" y="2119" fill="#596777" font-size="12" font-family="Arial,Helvetica,sans-serif" font-weight="normal">Read cup/bracket and permitted roster</text>
+<text x="665" y="2145" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="bold">PATCH</text>
+<text x="748" y="2145" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/api/v1/cups/{cup_id}</text>
+<text x="1675" y="2145" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">200</text>
+<text x="748" y="2162" fill="#596777" font-size="12" font-family="Arial,Helvetica,sans-serif" font-weight="normal">Open registration, publish bracket, schedule/result or cancel</text>
+<text x="665" y="2188" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="bold">POST</text>
+<text x="748" y="2188" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/api/v1/cups/{cup_id}/entries</text>
+<text x="1675" y="2188" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">201</text>
+<text x="748" y="2205" fill="#596777" font-size="12" font-family="Arial,Helvetica,sans-serif" font-weight="normal">Register own persistent team</text>
+<text x="665" y="2231" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="bold">PUT</text>
+<text x="748" y="2231" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/api/v1/cups/{cup_id}/entries/{group_id}</text>
+<text x="1675" y="2231" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">200</text>
+<text x="748" y="2248" fill="#596777" font-size="12" font-family="Arial,Helvetica,sans-serif" font-weight="normal">Approve/decline entry or withdraw team</text>
+<rect x="40" y="2283" width="1720" height="100" rx="5" fill="#ffffff" stroke="#bdc8d5"/>
+<text x="55" y="2315" fill="#25313d" font-size="18" font-family="Arial,Helvetica,sans-serif" font-weight="bold">News / external API</text>
+<text x="55" y="2368" fill="#596777" font-size="14" font-family="Arial,Helvetica,sans-serif" font-weight="normal">No SQL model</text>
+<text x="280" y="2314" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/news</text>
+<text x="665" y="2314" fill="#25313d" font-size="16" font-family="Arial,Helvetica,sans-serif" font-weight="bold">GET</text>
+<text x="748" y="2314" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">/api/v1/news</text>
+<text x="1675" y="2314" fill="#25313d" font-size="15" font-family="DejaVu Sans Mono,monospace" font-weight="normal">200</text>
+<text x="748" y="2331" fill="#596777" font-size="12" font-family="Arial,Helvetica,sans-serif" font-weight="normal">Fetch attributed sports news through server adapter</text>
+<text x="42" y="2415" fill="#25313d" font-size="18" font-family="Arial,Helvetica,sans-serif" font-weight="bold">Shared authentication / live helper routes</text>
+<text x="42" y="2445" fill="#25313d" font-size="15" font-family="Arial,Helvetica,sans-serif" font-weight="normal">POST /api/v1/socket-ticket — Issue one-use 30-second WebSocket ticket</text>
+<text x="42" y="2471" fill="#25313d" font-size="15" font-family="Arial,Helvetica,sans-serif" font-weight="normal">WS /api/v1/ws — Authorized room, DM and friend/group/cup invalidations</text>
+<text x="42" y="2515" fill="#25313d" font-size="15" font-family="Arial,Helvetica,sans-serif" font-weight="normal">Create rooms directly. Scheduled start/end are automatic. Controllers share typed, authorized transactional services.</text>
+</svg>

@@ -1,0 +1,300 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="2221" viewBox="0 0 1600 2221" role="img" aria-labelledby="title desc">
+<title id="title">Modeer Almalaaeb — Six core models + Cup</title>
+<desc id="desc">Seven editable entity cards: User, Sport, Room, Membership, Message, Group and Cup. Thirteen lettered relationship groups show foreign-key references; several letters group multiple user references. Room slot layouts and cup fixtures are embedded JSON data, not additional models. Sports news comes from an external API, with no News model.</desc>
+<rect width="1600" height="2221" fill="#f6f8fa"/>
+<path d="M500 277 H580" fill="none" stroke="#3b6d9c" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1100 346 H1020" fill="none" stroke="#32816a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M500 841 H530 V416 H580" fill="none" stroke="#a27435" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M500 493 H557 V1050 H580" fill="none" stroke="#3b6d9c" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M790 759 V940" fill="none" stroke="#2c746f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M500 980 H580" fill="none" stroke="#a27435" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M500 1337 H580" fill="none" stroke="#80565a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M418 180 V156 H1066 V744 H1100" fill="none" stroke="#8561a0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1020 693 H1042 V838 H1100" fill="none" stroke="#8561a0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M228 582 V730" fill="none" stroke="#3b6d9c" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1100 436 H1086 V139 H18 V878 H60" fill="none" stroke="#32816a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M60 490 H40 V1427 H60" fill="none" stroke="#3b6d9c" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1540 326 H1574 V1794 H280 V1739" fill="none" stroke="#32816a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1057 346 H1095" fill="none" stroke="#f6f8fa" stroke-width="7"/>
+<path d="M1057 346 H1095" fill="none" stroke="#32816a" stroke-width="2.2"/>
+<path d="M520 493 H540" fill="none" stroke="#f6f8fa" stroke-width="7"/>
+<path d="M520 493 H540" fill="none" stroke="#3b6d9c" stroke-width="2.2"/>
+<path d="M548 980 H566" fill="none" stroke="#f6f8fa" stroke-width="7"/>
+<path d="M548 980 H566" fill="none" stroke="#a27435" stroke-width="2.2"/>
+<path d="M40 869 V887" fill="none" stroke="#f6f8fa" stroke-width="7"/>
+<path d="M40 869 V887" fill="none" stroke="#3b6d9c" stroke-width="2.2"/>
+<circle cx="540" cy="277" r="13" fill="#f6f8fa" stroke="#3b6d9c" stroke-width="2"/>
+<text x="540" y="282" fill="#3b6d9c" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" text-anchor="middle">A</text>
+<circle cx="1060" cy="346" r="13" fill="#f6f8fa" stroke="#32816a" stroke-width="2"/>
+<text x="1060" y="351" fill="#32816a" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" text-anchor="middle">B</text>
+<circle cx="530" cy="675" r="13" fill="#f6f8fa" stroke="#a27435" stroke-width="2"/>
+<text x="530" y="680" fill="#a27435" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" text-anchor="middle">C</text>
+<circle cx="557" cy="883" r="13" fill="#f6f8fa" stroke="#3b6d9c" stroke-width="2"/>
+<text x="557" y="888" fill="#3b6d9c" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" text-anchor="middle">D</text>
+<circle cx="790" cy="866" r="13" fill="#f6f8fa" stroke="#2c746f" stroke-width="2"/>
+<text x="790" y="871" fill="#2c746f" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" text-anchor="middle">E</text>
+<circle cx="540" cy="980" r="13" fill="#f6f8fa" stroke="#a27435" stroke-width="2"/>
+<text x="540" y="985" fill="#a27435" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" text-anchor="middle">F</text>
+<circle cx="540" cy="1337" r="13" fill="#f6f8fa" stroke="#80565a" stroke-width="2"/>
+<text x="540" y="1342" fill="#80565a" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" text-anchor="middle">G</text>
+<circle cx="1066" cy="572" r="13" fill="#f6f8fa" stroke="#8561a0" stroke-width="2"/>
+<text x="1066" y="577" fill="#8561a0" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" text-anchor="middle">H</text>
+<circle cx="1042" cy="815" r="13" fill="#f6f8fa" stroke="#8561a0" stroke-width="2"/>
+<text x="1042" y="820" fill="#8561a0" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" text-anchor="middle">I</text>
+<circle cx="228" cy="655" r="13" fill="#f6f8fa" stroke="#3b6d9c" stroke-width="2"/>
+<text x="228" y="660" fill="#3b6d9c" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" text-anchor="middle">J</text>
+<circle cx="18" cy="705" r="13" fill="#f6f8fa" stroke="#32816a" stroke-width="2"/>
+<text x="18" y="710" fill="#32816a" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" text-anchor="middle">K</text>
+<circle cx="40" cy="1150" r="13" fill="#f6f8fa" stroke="#3b6d9c" stroke-width="2"/>
+<text x="40" y="1155" fill="#3b6d9c" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" text-anchor="middle">L</text>
+<circle cx="1574" cy="1190" r="13" fill="#f6f8fa" stroke="#32816a" stroke-width="2"/>
+<text x="1574" y="1195" fill="#32816a" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" text-anchor="middle">M</text>
+<text x="60" y="60" fill="#24333e" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="700" text-anchor="start">Modeer Almalaaeb</text>
+<text x="60" y="97" fill="#415664" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="600" text-anchor="start">Six core models + Cup</text>
+<text x="60" y="125" fill="#61737e" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" text-anchor="start">PK = primary key · FK = foreign key · NULL = optional parent · each referenced parent may have many records.</text>
+<g id="model-users"><rect x="60" y="180" width="440" height="402" rx="12" fill="white" stroke="#cbd5dc" stroke-width="1.5"/>
+<path d="M72 180 H488 Q500 180 500 192 V247 H60 V192 Q60 180 72 180" fill="#3b6d9c"/>
+<text x="78" y="210" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" text-anchor="start">User</text>
+<text x="78" y="233" fill="#f2f7fa" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">Accounts, profiles and application roles</text>
+<rect x="61" y="251" width="438" height="40" fill="#f5f7f9"/>
+<text x="76" y="266" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" text-anchor="start">id</text>
+<text x="76" y="284" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">PK · integer</text>
+<text x="76" y="306" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" text-anchor="start">display_name / handle</text>
+<text x="76" y="324" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">Player name · unique handle</text>
+<rect x="61" y="331" width="438" height="40" fill="#f5f7f9"/>
+<text x="76" y="346" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="600" text-anchor="start">email / password_hash / google_subject</text>
+<text x="76" y="364" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">Private login fields · optional login methods</text>
+<text x="76" y="386" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" text-anchor="start">avatar_url / bio</text>
+<text x="76" y="404" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">Optional player profile</text>
+<rect x="61" y="411" width="438" height="40" fill="#f5f7f9"/>
+<text x="76" y="426" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" text-anchor="start">role / status</text>
+<text x="76" y="444" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">player, organizer or admin · active or suspended</text>
+<text x="76" y="466" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" text-anchor="start">token_version</text>
+<text x="76" y="484" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">Revoke older signed tokens</text>
+<line x1="76" x2="484" y1="496" y2="496" stroke="#d7dfe5"/>
+<text x="76" y="516" fill="#526471" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" text-anchor="start">At least one login method; sign in before linking Google.</text>
+<text x="76" y="535" fill="#526471" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" text-anchor="start">Unique email and Google identity; publish safe profile</text>
+<text x="76" y="554" fill="#526471" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" text-anchor="start">fields only.</text>
+</g>
+<g id="model-sports"><rect x="1100" y="180" width="440" height="303" rx="12" fill="white" stroke="#cbd5dc" stroke-width="1.5"/>
+<path d="M1112 180 H1528 Q1540 180 1540 192 V247 H1100 V192 Q1100 180 1112 180" fill="#32816a"/>
+<text x="1118" y="210" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" text-anchor="start">Sport</text>
+<text x="1118" y="233" fill="#f2f7fa" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">Nine activities and format presets</text>
+<rect x="1101" y="251" width="438" height="40" fill="#f5f7f9"/>
+<text x="1116" y="266" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" text-anchor="start">id</text>
+<text x="1116" y="284" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">PK · integer</text>
+<text x="1116" y="306" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" text-anchor="start">slug / name</text>
+<text x="1116" y="324" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">Unique activity key · display name</text>
+<rect x="1101" y="331" width="438" height="40" fill="#f5f7f9"/>
+<text x="1116" y="346" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" text-anchor="start">roster_mode</text>
+<text x="1116" y="364" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">teams or pool</text>
+<text x="1116" y="386" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" text-anchor="start">formats</text>
+<text x="1116" y="404" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">JSONB · presets and slot defaults</text>
+<line x1="1116" x2="1524" y1="416" y2="416" stroke="#d7dfe5"/>
+<text x="1116" y="436" fill="#526471" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" text-anchor="start">Nine activities; walking, running and cycling use pools.</text>
+<text x="1116" y="455" fill="#526471" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" text-anchor="start">Formats are configuration, not extra models.</text>
+</g>
+<g id="model-rooms"><rect x="580" y="180" width="440" height="579" rx="12" fill="white" stroke="#cbd5dc" stroke-width="1.5"/>
+<path d="M592 180 H1008 Q1020 180 1020 192 V247 H580 V192 Q580 180 592 180" fill="#2c746f"/>
+<text x="598" y="210" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" text-anchor="start">Room</text>
+<text x="598" y="233" fill="#f2f7fa" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">Schedule, slots, venue privacy and room ownership</text>
+<rect x="581" y="251" width="438" height="40" fill="#f5f7f9"/>
+<text x="596" y="266" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" text-anchor="start">id</text>
+<text x="596" y="284" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">PK · integer</text>
+<text x="596" y="306" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" text-anchor="start">host_user_id / completion_host_id</text>
+<text x="596" y="324" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">FK → User [A] · completion host optional</text>
+<rect x="581" y="331" width="438" height="40" fill="#f5f7f9"/>
+<text x="596" y="346" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" text-anchor="start">sport_id / group_id</text>
+<text x="596" y="364" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">FK → Sport [B] · optional FK → Group [C]</text>
+<text x="596" y="386" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" text-anchor="start">title / format_key</text>
+<text x="596" y="404" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">Room title · validated activity preset</text>
+<rect x="581" y="411" width="438" height="40" fill="#f5f7f9"/>
+<text x="596" y="426" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" text-anchor="start">starts_at / ends_at</text>
+<text x="596" y="444" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">UTC timestamps · end must follow start</text>
+<text x="596" y="466" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" text-anchor="start">capacity / slot_layout</text>
+<text x="596" y="484" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">Host included · JSONB team positions or pool places</text>
+<rect x="581" y="491" width="438" height="40" fill="#f5f7f9"/>
+<text x="596" y="506" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="600" text-anchor="start">status / visibility / admission_policy</text>
+<text x="596" y="524" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">Automatic lifecycle · public, private or group-only</text>
+<text x="596" y="546" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" text-anchor="start">public_area / venue_details</text>
+<text x="596" y="564" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">Public area · protected exact location and booking</text>
+<rect x="581" y="571" width="438" height="40" fill="#f5f7f9"/>
+<text x="596" y="586" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="600" text-anchor="start">distance_km / pace_notes / route_notes</text>
+<text x="596" y="604" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">Optional walking, running and cycling details</text>
+<line x1="596" x2="1004" y1="616" y2="616" stroke="#d7dfe5"/>
+<text x="596" y="636" fill="#526471" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" text-anchor="start">Create 1 hour–7 days ahead; joins close 15 min before</text>
+<text x="596" y="655" fill="#526471" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" text-anchor="start">start.</text>
+<text x="596" y="674" fill="#526471" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" text-anchor="start">Validate slot layout under room lock; no RoomSlot model.</text>
+<text x="596" y="693" fill="#526471" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" text-anchor="start">Worker starts/completes due rooms; protect private</text>
+<text x="596" y="712" fill="#526471" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" text-anchor="start">venue/code.</text>
+<text x="596" y="731" fill="#526471" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" text-anchor="start">host_generation / revision reject stale commands.</text>
+</g>
+<g id="model-groups"><rect x="60" y="730" width="440" height="362" rx="12" fill="white" stroke="#cbd5dc" stroke-width="1.5"/>
+<path d="M72 730 H488 Q500 730 500 742 V797 H60 V742 Q60 730 72 730" fill="#a27435"/>
+<text x="78" y="760" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" text-anchor="start">Group</text>
+<text x="78" y="783" fill="#f2f7fa" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">Persistent social groups and cup teams</text>
+<rect x="61" y="801" width="438" height="40" fill="#f5f7f9"/>
+<text x="76" y="816" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" text-anchor="start">id</text>
+<text x="76" y="834" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">PK · integer</text>
+<text x="76" y="856" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" text-anchor="start">owner_user_id / sport_id</text>
+<text x="76" y="874" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">FK → User [J] · optional FK → Sport [K]</text>
+<rect x="61" y="881" width="438" height="40" fill="#f5f7f9"/>
+<text x="76" y="896" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" text-anchor="start">kind / name</text>
+<text x="76" y="914" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">social group or cup team · required name</text>
+<text x="76" y="936" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" text-anchor="start">description / photo_url</text>
+<text x="76" y="954" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">Optional group details</text>
+<rect x="61" y="961" width="438" height="40" fill="#f5f7f9"/>
+<text x="76" y="976" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" text-anchor="start">archived_at</text>
+<text x="76" y="994" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">Preserve historical references</text>
+<line x1="76" x2="484" y1="1006" y2="1006" stroke="#d7dfe5"/>
+<text x="76" y="1026" fill="#526471" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" text-anchor="start">Creator has accepted group membership; invitations need</text>
+<text x="76" y="1045" fill="#526471" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" text-anchor="start">consent.</text>
+<text x="76" y="1064" fill="#526471" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" text-anchor="start">A team group is distinct from a room slot team label.</text>
+</g>
+<g id="model-memberships"><rect x="580" y="940" width="440" height="598" rx="12" fill="white" stroke="#cbd5dc" stroke-width="1.5"/>
+<path d="M592 940 H1008 Q1020 940 1020 952 V1007 H580 V952 Q580 940 592 940" fill="#3b6d9c"/>
+<text x="598" y="970" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" text-anchor="start">Membership</text>
+<text x="598" y="993" fill="#f2f7fa" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">Room/group membership, friendships and cup rosters</text>
+<rect x="581" y="1011" width="438" height="40" fill="#f5f7f9"/>
+<text x="596" y="1026" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" text-anchor="start">id / kind</text>
+<text x="596" y="1044" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">PK · room, group, friend or cup</text>
+<text x="596" y="1066" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="600" text-anchor="start">user_id / other_user_id / requested_by_id</text>
+<text x="596" y="1084" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">FK → User [D] · friend target optional</text>
+<rect x="581" y="1091" width="438" height="40" fill="#f5f7f9"/>
+<text x="596" y="1106" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" text-anchor="start">room_id / group_id / cup_id</text>
+<text x="596" y="1124" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">Typed nullable FKs → Room [E], Group [F], Cup [G]</text>
+<text x="596" y="1146" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" text-anchor="start">status / role</text>
+<text x="596" y="1164" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">pending, accepted, declined, left or removed</text>
+<rect x="581" y="1171" width="438" height="40" fill="#f5f7f9"/>
+<text x="596" y="1186" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" text-anchor="start">requested_at / accepted_at</text>
+<text x="596" y="1204" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">Acceptance time NULL while pending</text>
+<text x="596" y="1226" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="600" text-anchor="start">slot_ordinal / kickoff_slot_ordinal</text>
+<text x="596" y="1244" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">Room-only · layout position and retained snapshot</text>
+<rect x="581" y="1251" width="438" height="40" fill="#f5f7f9"/>
+<text x="596" y="1266" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" text-anchor="start">ready / attendance</text>
+<text x="596" y="1284" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">Room-only · unknown, present, no_show or excused</text>
+<text x="596" y="1306" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" text-anchor="start">rating_score / rating_comment</text>
+<text x="596" y="1324" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">Room-only · optional 1–5 host rating</text>
+<rect x="581" y="1331" width="438" height="40" fill="#f5f7f9"/>
+<text x="596" y="1346" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="600" text-anchor="start">user_blocked_other / other_blocked_user</text>
+<text x="596" y="1364" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">Friend-only · each user controls own block flag</text>
+<line x1="596" x2="1004" y1="1376" y2="1376" stroke="#d7dfe5"/>
+<text x="596" y="1396" fill="#526471" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" text-anchor="start">room: room_id only; group: group_id only.</text>
+<text x="596" y="1415" fill="#526471" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" text-anchor="start">friend: other_user_id only; store canonical user pair.</text>
+<text x="596" y="1434" fill="#526471" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" text-anchor="start">cup: cup_id + group_id; other target IDs NULL.</text>
+<text x="596" y="1453" fill="#526471" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" text-anchor="start">Unique room/user, group/user, friend pair and cup/user.</text>
+<text x="596" y="1472" fill="#526471" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" text-anchor="start">Unique accepted room/slot; pending reserves no capacity.</text>
+<text x="596" y="1491" fill="#526471" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" text-anchor="start">Friendship and invitations require target-user consent.</text>
+<text x="596" y="1510" fill="#526471" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" text-anchor="start">Host records attendance; rate present players, never self.</text>
+</g>
+<g id="model-messages"><rect x="1100" y="650" width="440" height="421" rx="12" fill="white" stroke="#cbd5dc" stroke-width="1.5"/>
+<path d="M1112 650 H1528 Q1540 650 1540 662 V717 H1100 V662 Q1100 650 1112 650" fill="#8561a0"/>
+<text x="1118" y="680" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" text-anchor="start">Message</text>
+<text x="1118" y="703" fill="#f2f7fa" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">Persistent room chat and direct messages</text>
+<rect x="1101" y="721" width="438" height="40" fill="#f5f7f9"/>
+<text x="1116" y="736" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" text-anchor="start">id</text>
+<text x="1116" y="754" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">PK · integer</text>
+<text x="1116" y="776" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" text-anchor="start">sender_user_id / recipient_user_id</text>
+<text x="1116" y="794" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">FK → User [H] · recipient for direct messages</text>
+<rect x="1101" y="801" width="438" height="40" fill="#f5f7f9"/>
+<text x="1116" y="816" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" text-anchor="start">room_id</text>
+<text x="1116" y="834" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">Optional FK → Room [I] · room chat or system notice</text>
+<text x="1116" y="856" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" text-anchor="start">kind / body</text>
+<text x="1116" y="874" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">room, direct or system · required text</text>
+<rect x="1101" y="881" width="438" height="40" fill="#f5f7f9"/>
+<text x="1116" y="896" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" text-anchor="start">client_request_id</text>
+<text x="1116" y="914" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">UUID · deduplicate client retries</text>
+<text x="1116" y="936" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" text-anchor="start">created_at</text>
+<text x="1116" y="954" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">UTC timestamp</text>
+<line x1="1116" x2="1524" y1="966" y2="966" stroke="#d7dfe5"/>
+<text x="1116" y="986" fill="#526471" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" text-anchor="start">Exactly one target: room OR direct recipient.</text>
+<text x="1116" y="1005" fill="#526471" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" text-anchor="start">Unique sender/client_request_id for retries.</text>
+<text x="1116" y="1024" fill="#526471" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" text-anchor="start">Direct sending needs an accepted, unblocked friendship.</text>
+<text x="1116" y="1043" fill="#526471" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" text-anchor="start">Keep old DM history after unfriend/block.</text>
+</g>
+<g id="model-cups"><rect x="60" y="1240" width="440" height="499" rx="12" fill="white" stroke="#cbd5dc" stroke-width="1.5"/>
+<path d="M72 1240 H488 Q500 1240 500 1252 V1307 H60 V1252 Q60 1240 72 1240" fill="#80565a"/>
+<text x="78" y="1270" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" text-anchor="start">Cup</text>
+<text x="78" y="1293" fill="#f2f7fa" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">Football cup, accepted teams, bracket and fixtures</text>
+<rect x="61" y="1311" width="438" height="40" fill="#f5f7f9"/>
+<text x="76" y="1326" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" text-anchor="start">id</text>
+<text x="76" y="1344" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">PK · integer</text>
+<text x="76" y="1366" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" text-anchor="start">organizer_user_id / sport_id</text>
+<text x="76" y="1384" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">FK → User [L] · FK → Sport [M], football only</text>
+<rect x="61" y="1391" width="438" height="40" fill="#f5f7f9"/>
+<text x="76" y="1406" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" text-anchor="start">name / rules</text>
+<text x="76" y="1424" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">Required cup details</text>
+<text x="76" y="1446" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" text-anchor="start">team_count / roster_limit</text>
+<text x="76" y="1464" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">4, 8 or 16 teams · positive roster limit</text>
+<rect x="61" y="1471" width="438" height="40" fill="#f5f7f9"/>
+<text x="76" y="1486" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" text-anchor="start">status / registration_closes_at</text>
+<text x="76" y="1504" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">Draft → registration → published → completed</text>
+<text x="76" y="1526" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" text-anchor="start">entries / fixtures</text>
+<text x="76" y="1544" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">JSONB · team snapshots, bracket, schedule and scores</text>
+<rect x="61" y="1551" width="438" height="40" fill="#f5f7f9"/>
+<text x="76" y="1566" fill="#273c48" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" text-anchor="start">rosters_locked_at / revision</text>
+<text x="76" y="1584" fill="#64727e" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">Roster locks at bracket publication</text>
+<line x1="76" x2="484" y1="1596" y2="1596" stroke="#d7dfe5"/>
+<text x="76" y="1616" fill="#526471" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" text-anchor="start">Entries refer to team groups; validate JSON IDs under cup</text>
+<text x="76" y="1635" fill="#526471" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" text-anchor="start">lock.</text>
+<text x="76" y="1654" fill="#526471" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" text-anchor="start">Cup memberships store user/team/cup roster links.</text>
+<text x="76" y="1673" fill="#526471" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" text-anchor="start">One accepted team per player/cup; roster locks at</text>
+<text x="76" y="1692" fill="#526471" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" text-anchor="start">publication.</text>
+<text x="76" y="1711" fill="#526471" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" text-anchor="start">Fixtures are embedded data, not extra models.</text>
+</g>
+<text x="60" y="1871" fill="#283d48" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" text-anchor="start">Relationships</text>
+<text x="60" y="1900" fill="#5d707b" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="start">Each required FK has one parent; optional FKs have zero or one. Every parent can have zero or many child records.</text>
+<circle cx="73" cy="1930" r="13" fill="#f6f8fa" stroke="#3b6d9c" stroke-width="2"/>
+<text x="73" y="1935" fill="#3b6d9c" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" text-anchor="middle">A</text>
+<text x="96" y="1931" fill="#334b58" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" text-anchor="start">User → Room</text>
+<text x="96" y="1948" fill="#5b6c77" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">Host required; completion host NULL until end.</text>
+<circle cx="73" cy="1964" r="13" fill="#f6f8fa" stroke="#32816a" stroke-width="2"/>
+<text x="73" y="1969" fill="#32816a" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" text-anchor="middle">B</text>
+<text x="96" y="1965" fill="#334b58" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" text-anchor="start">Sport → Room</text>
+<text x="96" y="1982" fill="#5b6c77" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">One required activity per room.</text>
+<circle cx="73" cy="1998" r="13" fill="#f6f8fa" stroke="#a27435" stroke-width="2"/>
+<text x="73" y="2003" fill="#a27435" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" text-anchor="middle">C</text>
+<text x="96" y="1999" fill="#334b58" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" text-anchor="start">Group → Room</text>
+<text x="96" y="2016" fill="#5b6c77" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">Optional; used for group-only rooms.</text>
+<circle cx="73" cy="2032" r="13" fill="#f6f8fa" stroke="#3b6d9c" stroke-width="2"/>
+<text x="73" y="2037" fill="#3b6d9c" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" text-anchor="middle">D</text>
+<text x="96" y="2033" fill="#334b58" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" text-anchor="start">User → Membership</text>
+<text x="96" y="2050" fill="#5b6c77" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">User and requester required; friend partner optional.</text>
+<circle cx="73" cy="2066" r="13" fill="#f6f8fa" stroke="#2c746f" stroke-width="2"/>
+<text x="73" y="2071" fill="#2c746f" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" text-anchor="middle">E</text>
+<text x="96" y="2067" fill="#334b58" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" text-anchor="start">Room → Membership</text>
+<text x="96" y="2084" fill="#5b6c77" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">One room for kind=room; NULL for other kinds.</text>
+<circle cx="73" cy="2100" r="13" fill="#f6f8fa" stroke="#a27435" stroke-width="2"/>
+<text x="73" y="2105" fill="#a27435" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" text-anchor="middle">F</text>
+<text x="96" y="2101" fill="#334b58" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" text-anchor="start">Group → Membership</text>
+<text x="96" y="2118" fill="#5b6c77" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">Required for kind=group and kind=cup.</text>
+<circle cx="73" cy="2134" r="13" fill="#f6f8fa" stroke="#80565a" stroke-width="2"/>
+<text x="73" y="2139" fill="#80565a" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" text-anchor="middle">G</text>
+<text x="96" y="2135" fill="#334b58" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" text-anchor="start">Cup → Membership</text>
+<text x="96" y="2152" fill="#5b6c77" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">One cup for kind=cup; NULL for other kinds.</text>
+<circle cx="853" cy="1930" r="13" fill="#f6f8fa" stroke="#8561a0" stroke-width="2"/>
+<text x="853" y="1935" fill="#8561a0" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" text-anchor="middle">H</text>
+<text x="876" y="1931" fill="#334b58" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" text-anchor="start">User → Message</text>
+<text x="876" y="1948" fill="#5b6c77" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">Sender required except system; recipient for DM only.</text>
+<circle cx="853" cy="1964" r="13" fill="#f6f8fa" stroke="#8561a0" stroke-width="2"/>
+<text x="853" y="1969" fill="#8561a0" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" text-anchor="middle">I</text>
+<text x="876" y="1965" fill="#334b58" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" text-anchor="start">Room → Message</text>
+<text x="876" y="1982" fill="#5b6c77" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">Required for room/system; NULL for direct message.</text>
+<circle cx="853" cy="1998" r="13" fill="#f6f8fa" stroke="#3b6d9c" stroke-width="2"/>
+<text x="853" y="2003" fill="#3b6d9c" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" text-anchor="middle">J</text>
+<text x="876" y="1999" fill="#334b58" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" text-anchor="start">User → Group</text>
+<text x="876" y="2016" fill="#5b6c77" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">One required owner per group.</text>
+<circle cx="853" cy="2032" r="13" fill="#f6f8fa" stroke="#32816a" stroke-width="2"/>
+<text x="853" y="2037" fill="#32816a" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" text-anchor="middle">K</text>
+<text x="876" y="2033" fill="#334b58" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" text-anchor="start">Sport → Group</text>
+<text x="876" y="2050" fill="#5b6c77" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">Optional activity per social group or team.</text>
+<circle cx="853" cy="2066" r="13" fill="#f6f8fa" stroke="#3b6d9c" stroke-width="2"/>
+<text x="853" y="2071" fill="#3b6d9c" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" text-anchor="middle">L</text>
+<text x="876" y="2067" fill="#334b58" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" text-anchor="start">User → Cup</text>
+<text x="876" y="2084" fill="#5b6c77" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">One required organizer per cup.</text>
+<circle cx="853" cy="2100" r="13" fill="#f6f8fa" stroke="#32816a" stroke-width="2"/>
+<text x="853" y="2105" fill="#32816a" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" text-anchor="middle">M</text>
+<text x="876" y="2101" fill="#334b58" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" text-anchor="start">Sport → Cup</text>
+<text x="876" y="2118" fill="#5b6c77" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start">One required activity per cup; football only.</text>
+<text x="60" y="2199" fill="#5d707b" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="start">Embedded JSON references are service-validated, not SQL FKs. News uses an external API — no News model.</text>
+</svg>
