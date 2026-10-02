@@ -27,9 +27,9 @@ tags = [
 app = FastAPI(
     title="Tea API", description="API for managing teas and groups", openapi_tags=tags
 )
-app.include_router(TeasRouter, prefix="/api")
-app.include_router(GroupsRouter, prefix="/api")
-app.include_router(UsersRouter, prefix="/api")
+app.include_router(TeasRouter, prefix="/api/v1")
+app.include_router(GroupsRouter, prefix="/api/v1")
+app.include_router(UsersRouter, prefix="/api/v1")
 
 origins = [
     origin.strip()
