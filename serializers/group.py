@@ -14,7 +14,6 @@ class GroupSchema(BaseModel):
 
 
 class CreateGroupSchema(BaseModel):
-    owner_id: int
     name: str
     description: str
     photo_url: str
@@ -22,7 +21,6 @@ class CreateGroupSchema(BaseModel):
 
 
 class UpdateGroupSchema(BaseModel):
-    owner_id: int
     name: str
     description: str
     photo_url: str
