@@ -24,4 +24,3 @@ class UpdateGroupSchema(BaseModel):
     name: str
     description: str
     photo_url: str
-    sports_id: int
