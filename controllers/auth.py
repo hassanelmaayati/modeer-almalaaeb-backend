@@ -2,14 +2,14 @@ from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 
 from models.user import UserModel
-from serializers.user import UserSignupSchema, UserLoginSchema, UserSchema
+from serializers.user import UserSignupSchema, UserLoginSchema, UserTokenSchema
 from database import get_db
 from dependencies.get_current_user import get_current_user
 
 router = APIRouter(tags=["Auth"])
 
 
-@router.post("/auth/signup", response_model=UserSchema, status_code=201)
+@router.post("/auth/signup", response_model=UserTokenSchema, status_code=201)
 def signup(user: UserSignupSchema, db: Session = Depends(get_db)):
 
     if db.query(UserModel).filter(UserModel.user_name == user.user_name).first():
@@ -32,7 +32,7 @@ def signup(user: UserSignupSchema, db: Session = Depends(get_db)):
     return {"token": token, "msg": "User registered successfully", "user": new_user}
 
 
-@router.post("/auth/login", response_model=UserSchema)
+@router.post("/auth/login", response_model=UserTokenSchema)
 def login(user: UserLoginSchema, db: Session = Depends(get_db)):
 
     db_user = db.query(UserModel).filter(UserModel.email == user.email).first()
