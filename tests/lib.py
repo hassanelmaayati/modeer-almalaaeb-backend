@@ -6,8 +6,6 @@ from data.groups_data import groups_list
 
 def seed_db(db):
     db.commit()
-    for user in user_list:
-        user.set_password(user.password)
     db.add_all(user_list)
     db.commit()
     db.add_all(sports_list)
@@ -16,13 +14,13 @@ def seed_db(db):
     db.commit()
 
 
-def login(test_app: TestClient, username: str, password: str):
-    # Log in using an existing mock user
+def login(test_app: TestClient, identifier: str, password: str):
+    # Log in using an existing mock user (handle or email)
     response = test_app.post(
-        "/api/v1/login", json={"username": username, "password": password}
+        "/api/v1/auth/login", json={"identifier": identifier, "password": password}
     )
 
-    if response.status_code != 201:
+    if response.status_code != 200:
         raise Exception(
             f"Login failed: {response.json().get('detail', 'Unknown error')}"
         )

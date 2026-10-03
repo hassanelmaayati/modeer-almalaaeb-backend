@@ -6,23 +6,23 @@ load_dotenv()
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from controllers.teas import router as TeasRouter
 from controllers.groups import router as GroupsRouter
-from controllers.user import router as UsersRouter
+from controllers.auth import router as AuthRouter
+from controllers.users import router as UsersRouter
 from controllers.sports import router as SportsRouter
 
 tags = [
     {
         "name": "Groups Management",
-        "description": "Operations related to groups for teas",
+        "description": "Operations related to social groups and teams",
     },
     {
-        "name": "Teas Management",
-        "description": "Operations related to teas",
+        "name": "Auth",
+        "description": "Sign up, sign in and sign out",
     },
     {
         "name": "Users Management",
-        "description": "Operations related to users",
+        "description": "Profiles and player search",
     },
     {
         "name": "Sports Management",
@@ -30,10 +30,12 @@ tags = [
     },
 ]
 app = FastAPI(
-    title="Tea API", description="API for managing teas and groups", openapi_tags=tags
+    title="Modeer Almalaaeb API",
+    description="API for organizing activities, groups and cups in Bahrain",
+    openapi_tags=tags,
 )
+app.include_router(AuthRouter, prefix="/api/v1")
 app.include_router(UsersRouter, prefix="/api/v1")
-app.include_router(TeasRouter, prefix="/api/v1")
 app.include_router(GroupsRouter, prefix="/api/v1")
 app.include_router(SportsRouter, prefix="/api/v1")
 
