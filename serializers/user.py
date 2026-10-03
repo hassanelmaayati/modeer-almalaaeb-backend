@@ -17,6 +17,12 @@ class UserSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class UserTokenSchema(BaseModel):
+    token: str
+    msg: str
+    user: UserSchema
+
+
 # Form Schemas
 class UserSignupSchema(BaseModel):
     user_name: str = Field(min_length=3, max_length=60)
@@ -25,16 +31,25 @@ class UserSignupSchema(BaseModel):
     photo_url: str | None = None
     bio: str | None = Field(default=None, max_length=500)
 
-    @field_validator("user_name", "email", mode="before")
+    @field_validator("user_name", mode="before")
     @classmethod
     def normalize(cls, value):
         return value.strip() if isinstance(value, str) else value
 
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_email(cls, value):
+        return value.strip().lower() if isinstance(value, str) else value
+
 
 class UserLoginSchema(BaseModel):
-    # Accepts either the email or the handle
     email: str
     password: str
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_email(cls, value):
+        return value.strip().lower() if isinstance(value, str) else value
 
 
 class UserUpdateSchema(BaseModel):
