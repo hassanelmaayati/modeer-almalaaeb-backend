@@ -19,9 +19,10 @@ class MembershipModel(BaseModel):
 
     # columns of the Memberships Table.
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    room_id = Column(Integer, ForeignKey("rooms.id"), nullable=True)
+    other_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    # room_id = Column(Integer, ForeignKey("rooms.id"), nullable=True)
     group_id = Column(Integer, ForeignKey("groups.id"), nullable=True)
-    cup_id = Column(Integer, ForeignKey("cups.id"), nullable=True)
+    # cup_id = Column(Integer, ForeignKey("cups.id"), nullable=True)
 
     status = Column(String, nullable=False)
     position = Column(String, nullable=True)
@@ -35,7 +36,9 @@ class MembershipModel(BaseModel):
     other_blocked_user = Column(String, nullable=True)
 
     # Relationships to other models:
-    user = relationship("UserModel", back_populates="memberships")
+    user = relationship(
+        "UserModel", back_populates="memberships", foreign_keys=[user_id]
+    )
     # room = relationship("RoomModel", back_populates="memberships")
     # cup = relationship("CupModel", back_populates="memberships")
     group = relationship("GroupModel", back_populates="memberships")

@@ -22,6 +22,6 @@ class GroupModel(BaseModel):
     sports_id = Column(Integer, ForeignKey("sports.id"), nullable=False)
 
     # Relationships to other models:
-    members = relationship("UserModel", back_populates="group")
+    memberships = relationship("MembershipModel", back_populates="group")
     owner = relationship("UserModel", back_populates="owned_groups")
     sport = relationship("SportModel", back_populates="groups")
