@@ -14,10 +14,10 @@ def seed_db(db):
     db.commit()
 
 
-def login(test_app: TestClient, identifier: str, password: str):
-    # Log in using an existing mock user (handle or email)
+def login(test_app: TestClient, email: str, password: str):
+    # Log in using an existing mock user
     response = test_app.post(
-        "/api/v1/auth/login", json={"identifier": identifier, "password": password}
+        "/api/v1/auth/login", json={"email": email, "password": password}
     )
 
     if response.status_code != 200:
