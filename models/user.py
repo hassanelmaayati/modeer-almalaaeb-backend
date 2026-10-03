@@ -32,6 +32,17 @@ class UserModel(BaseModel):
         foreign_keys="MembershipModel.user_id",
     )
     owned_groups = relationship("GroupModel", back_populates="owner")
+    hosted_rooms = relationship(
+        "RoomModel", back_populates="host", foreign_keys="RoomModel.host_id"
+    )
+    sent_messages = relationship(
+        "MessageModel", back_populates="sender", foreign_keys="MessageModel.sender_id"
+    )
+    received_messages = relationship(
+        "MessageModel",
+        back_populates="recipient",
+        foreign_keys="MessageModel.recipient_id",
+    )
 
     def set_password(self, password: str):
         self.password = pwd_context.hash(password)

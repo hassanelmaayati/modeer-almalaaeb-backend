@@ -4,7 +4,7 @@ from sqlalchemy.orm import relationship
 from .base import BaseModel
 from .user import UserModel
 
-# from .room import RoomModel
+from .room import RoomModel
 # from .cup import CupModel
 from .group import GroupModel
 
@@ -20,7 +20,7 @@ class MembershipModel(BaseModel):
     # columns of the Memberships Table.
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     other_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    # room_id = Column(Integer, ForeignKey("rooms.id"), nullable=True)
+    room_id = Column(Integer, ForeignKey("rooms.id"), nullable=True)
     group_id = Column(Integer, ForeignKey("groups.id"), nullable=True)
     # cup_id = Column(Integer, ForeignKey("cups.id"), nullable=True)
 
@@ -39,6 +39,6 @@ class MembershipModel(BaseModel):
     user = relationship(
         "UserModel", back_populates="memberships", foreign_keys=[user_id]
     )
-    # room = relationship("RoomModel", back_populates="memberships")
+    room = relationship("RoomModel", back_populates="memberships")
     # cup = relationship("CupModel", back_populates="memberships")
     group = relationship("GroupModel", back_populates="memberships")

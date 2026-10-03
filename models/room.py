@@ -96,9 +96,13 @@ class RoomModel(BaseModel):
     )
 
     # Relationships to other models:
-    host = relationship("UserModel", foreign_keys=[host_id], backref="hosted_rooms")
-    sport = relationship("SportModel", backref="rooms")
-    group = relationship("GroupModel", backref="rooms")
+    host = relationship(
+        "UserModel", foreign_keys=[host_id], back_populates="hosted_rooms"
+    )
+    sport = relationship("SportModel", back_populates="rooms")
+    group = relationship("GroupModel", back_populates="rooms")
+    memberships = relationship("MembershipModel", back_populates="room")
+    messages = relationship("MessageModel", back_populates="room")
 
     def validate_capacity(self):
         """Raise ValueError if capacity does not match one of the sport's formats"""

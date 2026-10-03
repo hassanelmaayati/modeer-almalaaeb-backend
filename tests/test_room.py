@@ -483,6 +483,48 @@ def test_cancel_room(test_app: TestClient, override_get_db):
     assert room["id"] not in ids
 
 
+def test_cancel_room_posts_system_message(test_app: TestClient, override_get_db):
+    headers = login(test_app, "user1@example.com", "123")
+    room = create_room(test_app, headers, venue_details="Secret court 9")
+    test_app.post(
+        f"/api/v1/rooms/{room['id']}/cancel",
+        headers=headers,
+        json={"reason": "Heavy rain"},
+    )
+
+    response = test_app.get(f"/api/v1/messages?room_id={room['id']}", headers=headers)
+    assert response.status_code == 200
+    messages = response.json()
+    assert len(messages) == 1
+    notice = messages[0]
+    assert notice["type"] == "system"
+    assert notice["sender_id"] is None
+    assert notice["room_id"] == room["id"]
+    assert "Heavy rain" in notice["body"]
+    assert "Secret court 9" not in notice["body"]  # the venue stays private
+
+    # It also shows up as the last message of the host's conversation
+    inbox = test_app.get("/api/v1/messages/conversations", headers=headers).json()
+    entry = next(c for c in inbox if c["room_id"] == room["id"])
+    assert entry["last_message"]["type"] == "system"
+
+
+def test_cancel_room_notice_hidden_from_outsiders(
+    test_app: TestClient, override_get_db
+):
+    host = login(test_app, "user1@example.com", "123")
+    outsider = login(test_app, "user4@example.com", "123")
+    room = create_room(test_app, host)
+    test_app.post(
+        f"/api/v1/rooms/{room['id']}/cancel", headers=host, json={"reason": "Rain"}
+    )
+
+    response = test_app.get(
+        f"/api/v1/messages?room_id={room['id']}", headers=outsider
+    )
+    assert response.status_code == 403
+
+
 def test_cancel_room_requires_reason(test_app: TestClient, override_get_db):
     headers = login(test_app, "user1@example.com", "123")
     room = create_room(test_app, headers)

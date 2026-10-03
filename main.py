@@ -11,6 +11,7 @@ from controllers.auth import router as AuthRouter
 from controllers.users import router as UsersRouter
 from controllers.sports import router as SportsRouter
 from controllers.rooms import router as RoomsRouter
+from controllers.messages import router as MessagesRouter
 from controllers.memberships.room import router as RoomMembersRouter
 from controllers.memberships.friends import router as FriendsRouter
 from controllers.memberships.group import router as GroupMembersRouter
@@ -36,6 +37,12 @@ tags = [
     {
         "name": "Rooms Management",
         "description": "Operations related to rooms (scheduled activities)",
+    },
+    {
+        "name": "Messages Management",
+        "description": "Room chat, direct messages and the conversation list",
+    },
+    {
         "name": "Room Members Management",
         "description": "Operations related to room memberships",
     },
@@ -62,6 +69,7 @@ app.include_router(UsersRouter, prefix="/api/v1")
 app.include_router(GroupsRouter, prefix="/api/v1")
 app.include_router(SportsRouter, prefix="/api/v1")
 app.include_router(RoomsRouter, prefix="/api/v1")
+app.include_router(MessagesRouter, prefix="/api/v1")
 app.include_router(RoomMembersRouter, prefix="/api/v1")
 app.include_router(FriendsRouter, prefix="/api/v1")
 app.include_router(GroupMembersRouter, prefix="/api/v1")
