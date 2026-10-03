@@ -19,10 +19,6 @@ try:
     print("Seeding the database...")
     db = SessionLocal()
 
-    # Hash passwords before adding users to the database
-    for user in user_list:
-        user.set_password(user.password)
-
     db.add_all(user_list)
     db.commit()
 
