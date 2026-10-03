@@ -27,7 +27,7 @@ They're meant for serializer validation later
 ROOM_STATUSES = ("open", "started", "completed", "cancelled")
 ROOM_VISIBILITIES = ("public", "private", "group")
 ROOM_ADMISSION_POLICIES = ("approval", "open")
-DIFFICULTY = ("beginners", "medium", "advenced")
+DIFFICULTY = ("beginners", "medium", "advanced")
 
 class RoomModel(BaseModel):
     __tablename__ = "rooms"
@@ -86,7 +86,7 @@ class RoomModel(BaseModel):
             name="ck_rooms_admission_policy",
         ),
         CheckConstraint(
-            "difficulty IN ('beginners', 'medium', 'advenced')",
+            "difficulty IN ('beginners', 'medium', 'advanced')",
                 name="ck_rooms_difficulty",
             ),
         CheckConstraint(
