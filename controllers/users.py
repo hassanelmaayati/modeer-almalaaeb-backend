@@ -37,6 +37,13 @@ def update_me(
         raise HTTPException(status_code=404, detail="User not found")
 
     user_data = user.model_dump(exclude_unset=True)
+
+    new_user_name = user_data.get("user_name")
+    if new_user_name and new_user_name != db_user.user_name:
+        taken = db.query(UserModel).filter(UserModel.user_name == new_user_name)
+        if taken.first():
+            raise HTTPException(status_code=400, detail="user name is already taken")
+
     for key, value in user_data.items():
         if key in ("user_name",) and value is None:
             raise HTTPException(status_code=422, detail=f"{key} cannot be empty")
