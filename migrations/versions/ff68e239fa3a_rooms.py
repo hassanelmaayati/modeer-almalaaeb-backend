@@ -46,7 +46,7 @@ def upgrade() -> None:
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.Column('updated_at', sa.DateTime(), nullable=True),
     sa.CheckConstraint("admission_policy IN ('approval', 'open')", name='ck_rooms_admission_policy'),
-    sa.CheckConstraint("difficulty IN ('beginners', 'medium', 'advenced')", name='ck_rooms_difficulty'),
+    sa.CheckConstraint("difficulty IN ('beginners', 'medium', 'advanced')", name='ck_rooms_difficulty'),
     sa.CheckConstraint("status IN ('open', 'started', 'completed', 'cancelled')", name='ck_rooms_status'),
     sa.CheckConstraint("visibility != 'group' OR group_id IS NOT NULL", name='ck_rooms_group_visibility_needs_group'),
     sa.CheckConstraint("visibility IN ('public', 'private', 'group')", name='ck_rooms_visibility'),
