@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from data.sports_data import sports_list
 from data.groups_data import groups_list
 from data.users_data import user_list
+from data.cups_data import cups_list
 from config.environment import DATABASE_URL
 from sqlalchemy import create_engine
 from models.base import Base  # import base model
@@ -26,6 +27,9 @@ try:
     db.commit()
 
     db.add_all(groups_list)
+    db.commit()
+
+    db.add_all(cups_list)
     db.commit()
 
     db.close()
