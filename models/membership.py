@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey, Boolean
 
 from sqlalchemy.orm import relationship
 from .base import BaseModel
@@ -27,6 +27,9 @@ class MembershipModel(BaseModel):
     position = Column(String, nullable=True)
     attendance = Column(String, nullable=True)
     rating = Column(Integer, nullable=True)
+
+    requested = Column(Boolean, nullable=True)
+    accepted = Column(Boolean, nullable=True)
 
     user_blocked_other = Column(String, nullable=True)
     other_blocked_user = Column(String, nullable=True)

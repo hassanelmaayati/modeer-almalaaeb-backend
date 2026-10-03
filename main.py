@@ -10,6 +10,7 @@ from controllers.groups import router as GroupsRouter
 from controllers.auth import router as AuthRouter
 from controllers.users import router as UsersRouter
 from controllers.sports import router as SportsRouter
+from controllers.memberships.room import router as RoomMembersRouter
 
 tags = [
     {
@@ -28,6 +29,10 @@ tags = [
         "name": "Sports Management",
         "description": "Operations related to sports",
     },
+    {
+        "name": "Room Members Management",
+        "description": "Operations related to room memberships",
+    },
 ]
 app = FastAPI(
     title="Modeer Almalaaeb API",
@@ -38,6 +43,7 @@ app.include_router(AuthRouter, prefix="/api/v1")
 app.include_router(UsersRouter, prefix="/api/v1")
 app.include_router(GroupsRouter, prefix="/api/v1")
 app.include_router(SportsRouter, prefix="/api/v1")
+app.include_router(RoomMembersRouter, prefix="/api/v1")
 
 
 origins = [
