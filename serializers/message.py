@@ -32,24 +32,6 @@ class CreateMessageSchema(BaseModel):
     body: str
     # Lets the server return the same message when a request is retried
     client_request_id: UUID
-    
-
-# One entry in the inbox: a room chat or a direct chat with one user
-class ConversationSchema(BaseModel):
-    type: Literal["room", "direct"]
-    room_id: int | None = None      # set for room conversations
-    user_id: int | None = None      # set for direct conversations (the other person)
-    title: str                      # room title or the other user's user_name
-    last_message: MessageSchema
-
-    @model_validator(mode="after")
-    def check_target(self):
-        if self.type == "room" and (self.room_id is None or self.user_id is not None):
-            raise ValueError("a room conversation needs room_id and no user_id")
-        if self.type == "direct" and (self.user_id is None or self.room_id is not None):
-            raise ValueError("a direct conversation needs user_id and no room_id")
-        return self
-
 
     # Trim first, so empty spaces counts as empty and the length is measured on the text
     @field_validator("body")
@@ -67,4 +49,21 @@ class ConversationSchema(BaseModel):
     def check_target(self):
         if (self.room_id is None) == (self.recipient_id is None):
             raise ValueError("send to either room_id or recipient_id")
+        return self
+
+
+# One entry in the inbox: a room chat or a direct chat with one user
+class ConversationSchema(BaseModel):
+    type: Literal["room", "direct"]
+    room_id: int | None = None  # set for room conversations
+    user_id: int | None = None  # set for direct conversations (the other person)
+    title: str  # room title or the other user's user_name
+    last_message: MessageSchema
+
+    @model_validator(mode="after")
+    def check_target(self):
+        if self.type == "room" and (self.room_id is None or self.user_id is not None):
+            raise ValueError("a room conversation needs room_id and no user_id")
+        if self.type == "direct" and (self.user_id is None or self.room_id is not None):
+            raise ValueError("a direct conversation needs user_id and no room_id")
         return self
