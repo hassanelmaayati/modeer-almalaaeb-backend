@@ -26,7 +26,11 @@ class UserModel(BaseModel):
     token_version = Column(Integer, nullable=False, default=0, server_default="0")
 
     # Relationships with other models
-    group = relationship("GroupModel", back_populates="members")
+    memberships = relationship(
+        "MembershipModel",
+        back_populates="user",
+        foreign_keys="MembershipModel.user_id",
+    )
     owned_groups = relationship("GroupModel", back_populates="owner")
 
     def set_password(self, password: str):
