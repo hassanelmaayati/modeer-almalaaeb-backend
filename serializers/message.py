@@ -1,0 +1,51 @@
+from datetime import datetime
+from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+
+from models.message import MAX_BODY_LENGTH
+
+
+# What the API returns for room chat, direct and system messages.
+# sender_id is None for system messages; exactly one of room_id and
+# recipient_id is set.
+class MessageSchema(BaseModel):
+    id: int
+    sender_id: int | None = None
+    recipient_id: int | None = None
+    room_id: int | None = None
+    type: str
+    body: str
+    client_request_id: UUID | None = None
+    created_at: datetime | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# POST body. sender_id, type and created_at are set by the server, so any
+# of them sent by the client are ignored. System messages cannot be created
+# through the API.
+class CreateMessageSchema(BaseModel):
+    room_id: int | None = None
+    recipient_id: int | None = None
+    body: str
+    # Lets the server return the same message when a request is retried
+    client_request_id: UUID
+
+    # Trim first, so empty spaces counts as empty and the length is measured on the text
+    @field_validator("body")
+    @classmethod
+    def valid_body(cls, value: str):
+        value = value.strip()
+        if not value:
+            raise ValueError("body cannot be empty")
+        if len(value) > MAX_BODY_LENGTH:
+            raise ValueError(f"body cannot be longer than {MAX_BODY_LENGTH} characters")
+        return value
+
+    # A message goes to a room OR to a user, never both and never neither
+    @model_validator(mode="after")
+    def check_target(self):
+        if (self.room_id is None) == (self.recipient_id is None):
+            raise ValueError("send to either room_id or recipient_id")
+        return self
