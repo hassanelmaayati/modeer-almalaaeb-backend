@@ -8,8 +8,8 @@ from main import app
 
 def test_login(test_app: TestClient, test_db: Session, override_get_db):
 
-    new_user = UserModel(username="test", email="test@example.com", password="123")
-    new_user.set_password(new_user.password)
+    new_user = UserModel(display_name="Test", handle="test", email="test@example.com")
+    new_user.set_password("123")
     test_db.add(new_user)
     test_db.commit()
 
