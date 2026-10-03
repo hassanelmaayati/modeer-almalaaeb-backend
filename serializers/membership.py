@@ -1,7 +1,8 @@
-from pydantic import BaseModel
+from typing import Literal
+
+from pydantic import BaseModel, Field
 
 
-# description is optional
 class RoomMemberSchema(BaseModel):
     id: int
     user_id: int
@@ -18,12 +19,70 @@ class RoomMemberSchema(BaseModel):
 
 
 class CreateRoomMemberSchema(BaseModel):
-    user_id: int
-    room_id: int
+    user_id: int | None = None
 
 
 class UpdateRoomMemberSchema(BaseModel):
-    status: str | None = None
+    status: Literal["pending", "accepted", "declined", "left", "removed"] | None = None
+    position: str | None = None
+    attendance: Literal["unknown", "present", "no_show", "excused"] | None = None
+    rating: int | None = Field(default=None, ge=1, le=5)
+
+
+class MemberSchema(BaseModel):
+    id: int
+    user_id: int
+    room_id: int | None = None
+    group_id: int | None = None
+    cup_id: int | None = None
+    other_user_id: int | None = None
+    status: str
+    requested: bool | None = None
+    accepted: bool | None = None
     position: str | None = None
     attendance: str | None = None
     rating: int | None = None
+    user_blocked_other: str | None = None
+    other_blocked_user: str | None = None
+
+    class Config:
+        orm_mode = True
+
+
+class FriendSchema(MemberSchema):
+    pass
+
+
+class CreateFriendSchema(BaseModel):
+    other_user_id: int
+
+
+class UpdateFriendSchema(BaseModel):
+    status: str | None = None
+    user_blocked_other: str | None = None
+    other_blocked_user: str | None = None
+
+
+class GroupMemberSchema(MemberSchema):
+    pass
+
+
+class CreateGroupMemberSchema(BaseModel):
+    user_id: int
+
+
+class UpdateGroupMemberSchema(BaseModel):
+    status: str | None = None
+
+
+class CupMemberSchema(MemberSchema):
+    pass
+
+
+class CreateCupMemberSchema(BaseModel):
+    user_id: int
+    group_id: int
+
+
+class UpdateCupMemberSchema(BaseModel):
+    status: str | None = None
