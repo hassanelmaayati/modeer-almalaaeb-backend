@@ -19,9 +19,10 @@ class UserModel(BaseModel):
     photo_url = Column(String, nullable=True, default="")
     bio = Column(Text, nullable=True, default="")
 
-    # Private login fields; a user needs a password, a Google identity, or both
+    # Private login fields; google_subject links an optional Google sign-in
     email = Column(String, nullable=False, unique=True)
     password = Column(String, nullable=False)
+    google_subject = Column(String, nullable=True, unique=True)
     token_version = Column(Integer, nullable=False, default=0, server_default="0")
 
     # Relationships with other models
