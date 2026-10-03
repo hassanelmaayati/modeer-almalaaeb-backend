@@ -24,6 +24,7 @@ from serializers.room import (
 )
 
 from dependencies.get_current_user import get_current_user
+from services.messages import create_system_message
 
 router = APIRouter(
     tags=[
@@ -261,9 +262,14 @@ def cancel_room(
     if db_room.status != "open":
         raise HTTPException(status_code=409, detail="Only open rooms can be cancelled")
 
-    # The reason is required by the schema, it will b added later when msg model in initialized
     db_room.status = "cancelled"
     db_room.revision += 1
+
+    # Tell the room's members why it was cancelled. The message is saved in the
+    # same commit as the status change, and it only contains the reason
+    create_system_message(
+        db, db_room.id, f"Room cancelled: {cancellation.reason.strip()}"
+    )
     db.commit()
     db.refresh(db_room)
     return db_room
