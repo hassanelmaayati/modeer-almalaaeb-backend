@@ -1,4 +1,4 @@
-from sqlalchemy import CheckConstraint, Column, Integer, String, Text
+from sqlalchemy import Column, Integer, String, Text
 from .base import BaseModel
 from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
@@ -11,48 +11,30 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 class UserModel(BaseModel):
     __tablename__ = "users"
-    __table_args__ = (
-        CheckConstraint(
-            "password_hash IS NOT NULL OR google_subject IS NOT NULL",
-            name="ck_users_login_method",
-        ),
-    )
 
     id = Column(Integer, primary_key=True, index=True)
 
     # Public profile
-    display_name = Column(String, nullable=False)
-    handle = Column(String, nullable=False, unique=True)
-    avatar_url = Column(String, nullable=True)
-    bio = Column(Text, nullable=True)
+    user_name = Column(String, nullable=False, unique=True)
+    photo_url = Column(String, nullable=True, default="")
+    bio = Column(Text, nullable=True, default="")
 
     # Private login fields; a user needs a password, a Google identity, or both
-    email = Column(String, nullable=True, unique=True)
-    password_hash = Column(String, nullable=True)
-    google_subject = Column(String, nullable=True, unique=True)
-
-    # Bumping this revokes every token signed with an older version
+    email = Column(String, nullable=False, unique=True)
+    password = Column(String, nullable=False)
     token_version = Column(Integer, nullable=False, default=0, server_default="0")
 
     # Relationships with other models
     group = relationship("GroupModel", back_populates="members")
     owned_groups = relationship("GroupModel", back_populates="owner")
 
-    @property
-    def has_password(self) -> bool:
-        return self.password_hash is not None
-
-    @property
-    def google_linked(self) -> bool:
-        return self.google_subject is not None
-
     def set_password(self, password: str):
-        self.password_hash = pwd_context.hash(password)
+        self.password = pwd_context.hash(password)
 
     def verify_password(self, password: str) -> bool:
-        if not self.password_hash:
+        if not self.password:
             return False
-        return pwd_context.verify(password, self.password_hash)
+        return pwd_context.verify(password, self.password)
 
     def generate_jwt(self):
         payload = {
