@@ -25,3 +25,4 @@ class GroupModel(BaseModel):
     memberships = relationship("MembershipModel", back_populates="group")
     owner = relationship("UserModel", back_populates="owned_groups")
     sport = relationship("SportModel", back_populates="groups")
+    rooms = relationship("RoomModel", back_populates="group")

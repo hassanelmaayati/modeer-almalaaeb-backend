@@ -43,7 +43,7 @@ class MessageModel(BaseModel):
     __table_args__ = (
         CheckConstraint(
             "type IN ('room', 'direct', 'system')",
-            name="ck_messages_kind",
+            name="ck_messages_type",
         ),
         # Exactly one target: a room OR a recipient, not both
         CheckConstraint(
@@ -56,7 +56,7 @@ class MessageModel(BaseModel):
             "(type = 'room' AND room_id IS NOT NULL AND sender_id IS NOT NULL) "
             "OR (type = 'direct' AND recipient_id IS NOT NULL AND sender_id IS NOT NULL) "
             "OR (type = 'system' AND room_id IS NOT NULL AND sender_id IS NULL)",
-            name="ck_messages_kind_matches_target",
+            name="ck_messages_type_matches_target",
         ),
         # No self messaging
         CheckConstraint(
@@ -75,9 +75,9 @@ class MessageModel(BaseModel):
 
     # Relationships to other models:
     sender = relationship(
-        "UserModel", foreign_keys=[sender_id], backref="sent_messages"
+        "UserModel", foreign_keys=[sender_id], back_populates="sent_messages"
     )
     recipient = relationship(
-        "UserModel", foreign_keys=[recipient_id], backref="received_messages"
+        "UserModel", foreign_keys=[recipient_id], back_populates="received_messages"
     )
-    room = relationship("RoomModel", backref="messages")
+    room = relationship("RoomModel", back_populates="messages")

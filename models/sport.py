@@ -25,6 +25,7 @@ class SportModel(BaseModel):
 
     # Relationships to other models:
     groups = relationship("GroupModel", back_populates="sport")
+    rooms = relationship("RoomModel", back_populates="sport")
 
     def allowed_capacities(self) -> set[int]:
         return {f["capacity"] for f in (self.formats or [])}
