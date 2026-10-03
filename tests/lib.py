@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 from data.users_data import user_list
 from data.sports_data import sports_list
 from data.groups_data import groups_list
+from data.memberships_data import memberships_list
 
 
 def seed_db(db):
@@ -11,6 +12,8 @@ def seed_db(db):
     db.add_all(sports_list)
     db.commit()
     db.add_all(groups_list)
+    db.commit()
+    db.add_all(memberships_list)
     db.commit()
 
 
