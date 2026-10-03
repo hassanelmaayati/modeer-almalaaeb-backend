@@ -8,13 +8,13 @@ from main import app
 
 def test_login(test_app: TestClient, test_db: Session, override_get_db):
 
-    new_user = UserModel(display_name="Test", handle="test", email="test@example.com")
+    new_user = UserModel(user_name="test", email="test@example.com")
     new_user.set_password("123")
     test_db.add(new_user)
     test_db.commit()
 
     # Use the login helper to generate authentication headers for the new mock user
-    headers = login(test_app, "test", "123")
+    headers = login(test_app, "test@example.com", "123")
     assert "Authorization" in headers
     assert headers["Authorization"].startswith("Bearer ")
 
@@ -22,7 +22,7 @@ def test_login(test_app: TestClient, test_db: Session, override_get_db):
 def test_create_group(test_app: TestClient, test_db: Session, override_get_db):
 
     # Use the login helper to generate authentication headers for the new mock user
-    headers = login(test_app, "test", "123")
+    headers = login(test_app, "test@example.com", "123")
 
     # Data for creating a new group
     group_data = {
@@ -72,7 +72,7 @@ def test_get_groups(test_app: TestClient, override_get_db):
 
 def test_put_group(test_app: TestClient, test_db: Session, override_get_db):
     # Use the login helper to generate authentication headers for the new mock user
-    headers = login(test_app, "test", "123")
+    headers = login(test_app, "test@example.com", "123")
 
     # First, create a new group to update
     group_data = {
@@ -112,7 +112,7 @@ def test_put_group(test_app: TestClient, test_db: Session, override_get_db):
 
 def test_get_group_by_id(test_app: TestClient, test_db: Session, override_get_db):
     # Use the login helper to generate authentication headers for the new mock user
-    headers = login(test_app, "test", "123")
+    headers = login(test_app, "test@example.com", "123")
 
     # First, create a new group to retrieve
     group_data = {
