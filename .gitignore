@@ -2,4 +2,5 @@
 settings.json
 *.pyc
 __pycache__/
-test.db
+./test.db
+migrations/versions/
