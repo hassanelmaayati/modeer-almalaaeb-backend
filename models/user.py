@@ -28,6 +28,7 @@ class UserModel(BaseModel):
     # Relationships with other models
     group = relationship("GroupModel", back_populates="members")
     owned_groups = relationship("GroupModel", back_populates="owner")
+    organized_cups = relationship("CupModel", back_populates="organizer")
 
     def set_password(self, password: str):
         self.password = pwd_context.hash(password)
