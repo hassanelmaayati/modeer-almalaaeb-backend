@@ -5,7 +5,6 @@ from sqlalchemy.orm import Session
 from database import get_db
 
 # Models
-from models.tea import TeaModel
 from models.group import GroupModel
 from models.user import UserModel
 
