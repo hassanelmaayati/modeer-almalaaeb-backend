@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from models.room import RoomModel
+from models.room import DISTRICTS, RoomModel
 from tests.lib import login, get_user_id
 
 # Seeded users all use the password "123" (see data/users_data.py)
@@ -23,6 +23,7 @@ def room_data(**overrides):
         "starts_at": future(days=1),
         "ends_at": future(days=1, hours=1),
         "capacity": 10,
+        "district": "capital",
         "public_area": "Manama",
         "venue_details": "Court 1",
     }
@@ -124,11 +125,26 @@ def test_create_room(test_app: TestClient, test_db: Session, override_get_db):
     assert room["difficulty"] == "beginners"
     assert room["revision"] == 0
     assert room["venue_details"] == "Court 1"
+    assert room["district"] == "capital"
 
     db_room = test_db.query(RoomModel).filter(RoomModel.id == room["id"]).first()
     assert db_room is not None
     assert db_room.title == "Test room"
     assert db_room.capacity == 10
+
+
+def test_create_room_requires_district(test_app: TestClient, override_get_db):
+    headers = login(test_app, "user1@example.com", "123")
+    data = room_data()
+    del data["district"]
+    response = test_app.post("/api/v1/rooms", headers=headers, json=data)
+    assert response.status_code == 422
+
+
+def test_get_rooms_include_district(test_app: TestClient, override_get_db):
+    rooms = test_app.get("/api/v1/rooms").json()
+    assert rooms
+    assert all(room["district"] in DISTRICTS for room in rooms)
 
 
 def test_create_room_requires_login(test_app: TestClient, override_get_db):
@@ -216,6 +232,7 @@ def test_create_room_invalid_choices(test_app: TestClient, override_get_db):
         ("difficulty", "expert"),
         ("visibility", "secret"),
         ("admission_policy", "anyone"),
+        ("district", "mars"),
     ]:
         response = test_app.post(
             "/api/v1/rooms", headers=headers, json=room_data(**{field: value})
@@ -274,6 +291,32 @@ def test_update_room(test_app: TestClient, override_get_db):
     assert response.json()["capacity"] == 14
     assert response.json()["public_area"] == "Manama"  # untouched
     assert response.json()["revision"] == room["revision"] + 1
+
+
+def test_update_room_district(test_app: TestClient, override_get_db):
+    headers = login(test_app, "user1@example.com", "123")
+    room = create_room(test_app, headers)
+
+    response = test_app.put(
+        f"/api/v1/rooms/{room['id']}",
+        headers=headers,
+        json={"revision": room["revision"], "district": "northern"},
+    )
+    assert response.status_code == 200
+    assert response.json()["district"] == "northern"
+
+
+def test_update_room_district_must_be_valid(test_app: TestClient, override_get_db):
+    headers = login(test_app, "user1@example.com", "123")
+    room = create_room(test_app, headers)
+
+    for value in ["mars", None]:
+        response = test_app.put(
+            f"/api/v1/rooms/{room['id']}",
+            headers=headers,
+            json={"revision": room["revision"], "district": value},
+        )
+        assert response.status_code == 422, value
 
 
 def test_update_room_only_host(test_app: TestClient, override_get_db):
@@ -414,6 +457,7 @@ def add_room_starting_in(test_db: Session, minutes: int, host_id=1):
         starts_at=now + timedelta(minutes=minutes),
         ends_at=now + timedelta(minutes=minutes + 60),
         capacity=5,
+        district="capital",
         public_area="Manama",
         venue_details="Pool 1",
     )
@@ -440,7 +484,12 @@ def test_update_frozen_after_cutoff(
     headers = login(test_app, "user1@example.com", "123")
     soon_id = add_room_starting_in(test_db, minutes=10)
 
-    for change in [{"capacity": 6}, {"venue_details": "Pool 2"}, {"public_area": "X"}]:
+    for change in [
+        {"capacity": 6},
+        {"venue_details": "Pool 2"},
+        {"public_area": "X"},
+        {"district": "muharraq"},
+    ]:
         response = test_app.put(
             f"/api/v1/rooms/{soon_id}", headers=headers, json={"revision": 0, **change}
         )

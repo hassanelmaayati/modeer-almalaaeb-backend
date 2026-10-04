@@ -42,6 +42,7 @@ FROZEN_FIELDS = {
     "ends_at",
     "capacity",
     "slot_layout",
+    "district",
     "public_area",
     "venue_details",
 }
