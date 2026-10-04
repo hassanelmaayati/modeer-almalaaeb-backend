@@ -3,10 +3,7 @@ from data.users_data import build_users
 from data.sports_data import build_sports
 from data.groups_data import build_groups
 from data.rooms_data import build_rooms
-from data.users_data import user_list
-from data.sports_data import sports_list
-from data.groups_data import groups_list
-from data.memberships_data import memberships_list
+from data.memberships_data import build_memberships
 
 
 def seed_db(db):
@@ -19,7 +16,7 @@ def seed_db(db):
     db.commit()
     db.add_all(build_rooms())
     db.commit()
-    db.add_all(memberships_list)
+    db.add_all(build_memberships())
     db.commit()
 
 
