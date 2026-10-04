@@ -45,8 +45,7 @@ FROZEN_FIELDS = {
     "slot_layout",
     "district",
     "area",
-    "venue_latitude",
-    "venue_longitude",
+    "venue_location",
     "venue_notes",
 }
 
@@ -90,6 +89,15 @@ def get_host_room(db: Session, room_id: int, current_user: UserModel) -> RoomMod
     if room.host_id != current_user.id:
         raise HTTPException(status_code=403, detail="Only host allowed to do this!")
     return room
+
+
+def split_location(data: dict) -> dict:
+    # The API takes one venue_location, the table stores two columns
+    location = data.pop("venue_location", None)
+    if location is not None:
+        data["venue_latitude"] = location["latitude"]
+        data["venue_longitude"] = location["longitude"]
+    return data
 
 
 def check_capacity(room: RoomModel):
@@ -180,7 +188,7 @@ def create_room(
     if room.group_id is not None:
         check_group(db, room.group_id, current_user)
 
-    new_room = RoomModel(**room.dict(), host_id=current_user.id, sport=sport)
+    new_room = RoomModel(**split_location(room.dict()), host_id=current_user.id, sport=sport)
     check_capacity(new_room)
 
     db.add(new_room)
@@ -256,7 +264,7 @@ def update_room(
         if not sport:
             raise HTTPException(status_code=404, detail="Sport not found")
 
-    for key, value in data.items():
+    for key, value in split_location(data).items():
         setattr(db_room, key, value)
 
     # The sport relationship must point at the new sport before checking capacity

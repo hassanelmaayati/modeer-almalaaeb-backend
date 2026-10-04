@@ -129,6 +129,13 @@ class RoomModel(BaseModel):
     memberships = relationship("MembershipModel", back_populates="room")
     messages = relationship("MessageModel", back_populates="room")
 
+    @property
+    def venue_location(self):
+        """Map pin as {"latitude", "longitude"}, or None when no pin was set"""
+        if self.venue_latitude is None or self.venue_longitude is None:
+            return None
+        return {"latitude": self.venue_latitude, "longitude": self.venue_longitude}
+
     def validate_capacity(self):
         """Raise ValueError if capacity does not match one of the sport's formats"""
         if self.sport is None:

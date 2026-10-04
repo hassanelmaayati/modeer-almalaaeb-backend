@@ -17,6 +17,7 @@ alembic = "*"
 websockets = "*"
 google-auth = "*"
 requests = "*"
+pydantic-extra-types = "*"
 
 [dev-packages]
 pytest = "*"
