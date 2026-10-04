@@ -1,4 +1,17 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+
+class GroupFields(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    description: str | None = None
+    photo_url: str | None = None
+
+    @field_validator("name")
+    @classmethod
+    def trim_name(cls, value):
+        if not value.strip():
+            raise ValueError("name cannot be blank")
+        return value.strip()
 
 
 # description is optional
@@ -10,18 +23,12 @@ class GroupSchema(BaseModel):
     photo_url: str | None = None
     sports_id: int
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
-class CreateGroupSchema(BaseModel):
-    name: str
-    description: str | None = None
-    photo_url: str | None = None
+class CreateGroupSchema(GroupFields):
     sports_id: int
 
 
-class UpdateGroupSchema(BaseModel):
-    name: str
-    description: str | None = None
-    photo_url: str | None = None
+class UpdateGroupSchema(GroupFields):
+    pass
