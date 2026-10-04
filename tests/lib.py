@@ -1,7 +1,4 @@
-import importlib
-
 from fastapi.testclient import TestClient
-from data import users_data, sports_data, groups_data
 
 from data.users_data import build_users
 from data.sports_data import build_sports
@@ -11,16 +8,6 @@ from data.memberships_data import build_memberships
 
 
 def seed_db(db):
-    # Reload the data modules so every test module seeds fresh objects
-    for data_module in (users_data, sports_data, groups_data):
-        importlib.reload(data_module)
-
-    db.commit()
-    db.add_all(users_data.user_list)
-    db.commit()
-    db.add_all(sports_data.sports_list)
-    db.commit()
-    db.add_all(groups_data.groups_list)
     db.add_all(build_users())
     db.commit()
     db.add_all(build_sports())
