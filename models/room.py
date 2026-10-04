@@ -62,9 +62,7 @@ class RoomModel(BaseModel):
     # District is the Bahrain governorate used to find rooms near the user
     district = Column(String, nullable=False)
 
-    # Area (a place inside the district) is safe to show. The venue location
-    # (map pin as latitude/longitude, both set or both empty) and the venue
-    # notes are for the host and admitted players only
+    # location details 
     area = Column(String, nullable=False)
     venue_latitude = Column(Float, nullable=True)
     venue_longitude = Column(Float, nullable=True)
