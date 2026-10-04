@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 
 # Models
+from models.areas import is_area_in_district
 from models.districts import DISTRICTS
 from models.room import RoomModel
 from models.sport import SportModel
@@ -43,8 +44,10 @@ FROZEN_FIELDS = {
     "capacity",
     "slot_layout",
     "district",
-    "public_area",
-    "venue_details",
+    "area",
+    "venue_latitude",
+    "venue_longitude",
+    "venue_notes",
 }
 
 # Columns that cannot be set to null
@@ -59,7 +62,7 @@ REQUIRED_FIELDS = {
     "visibility",
     "admission_policy",
     "district",
-    "public_area",
+    "area",
 }
 
 optional_bearer = HTTPBearer(auto_error=False)
@@ -157,7 +160,7 @@ def get_room(
     if room.visibility != "public" and not is_host:
         raise HTTPException(status_code=404, detail="Room not found")
 
-    # Only the host sees the exact venue details for now (members must be added later)
+    # Only the host sees the venue location and notes for now (members must be added later)
     if is_host:
         return RoomDetailSchema.model_validate(room)
     return RoomSchema.model_validate(room)
@@ -228,6 +231,16 @@ def update_room(
     ends_at = data.get("ends_at", as_utc(db_room.ends_at))
     if ends_at <= starts_at:
         raise HTTPException(status_code=422, detail="ends at must be after starts at")
+
+    # The area must belong to the district, whichever of the two was sent. A
+    # district change without a matching new area is rejected
+    district = data.get("district", db_room.district)
+    area = data.get("area", db_room.area)
+    if {"district", "area"} & data.keys() and not is_area_in_district(area, district):
+        raise HTTPException(
+            status_code=422,
+            detail=f"area '{area}' is not in the {district} district, send a matching area",
+        )
 
     visibility = data.get("visibility", db_room.visibility)
     group_id = data.get("group_id", db_room.group_id)
