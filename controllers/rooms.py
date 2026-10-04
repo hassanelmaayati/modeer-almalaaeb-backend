@@ -57,6 +57,7 @@ REQUIRED_FIELDS = {
     "slot_layout",
     "visibility",
     "admission_policy",
+    "district",
     "public_area",
 }
 

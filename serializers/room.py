@@ -4,6 +4,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from models.room import (
     DIFFICULTY,
+    DISTRICTS,
     ROOM_ADMISSION_POLICIES,
     ROOM_VISIBILITIES,
 )
@@ -54,6 +55,7 @@ class RoomSchema(BaseModel):
     status: str
     visibility: str
     admission_policy: str
+    district: str
     public_area: str
     distance_km: float | None = None
     pace_notes: str | None = None
@@ -82,6 +84,7 @@ class CreateRoomSchema(BaseModel):
     slot_layout: dict = Field(default_factory=dict)
     visibility: str = "public"
     admission_policy: str = "approval"
+    district: str
     public_area: str = Field(min_length=1)
     venue_details: str | None = None
     distance_km: float | None = Field(default=None, gt=0)
@@ -116,6 +119,11 @@ class CreateRoomSchema(BaseModel):
     def valid_admission_policy(cls, value: str):
         return _check_choice(value, ROOM_ADMISSION_POLICIES, "admission_policy")
 
+    @field_validator("district")
+    @classmethod
+    def valid_district(cls, value: str):
+        return _check_choice(value, DISTRICTS, "district")
+
     # Rules that compare several fields run after the fields are validated
     @model_validator(mode="after")
     def check_room_rules(self):
@@ -142,6 +150,7 @@ class UpdateRoomSchema(BaseModel):
     slot_layout: dict | None = None
     visibility: str | None = None
     admission_policy: str | None = None
+    district: str | None = None
     public_area: str | None = Field(default=None, min_length=1)
     venue_details: str | None = None
     distance_km: float | None = Field(default=None, gt=0)
@@ -173,6 +182,11 @@ class UpdateRoomSchema(BaseModel):
     @classmethod
     def valid_admission_policy(cls, value: str | None):
         return _check_choice(value, ROOM_ADMISSION_POLICIES, "admission_policy")
+
+    @field_validator("district")
+    @classmethod
+    def valid_district(cls, value: str | None):
+        return _check_choice(value, DISTRICTS, "district")
 
     @model_validator(mode="after")
     def check_times(self):
