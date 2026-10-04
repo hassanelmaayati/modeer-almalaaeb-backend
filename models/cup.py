@@ -82,6 +82,7 @@ class CupModel(BaseModel):
     # Relationships to other models:
     organizer = relationship("UserModel", back_populates="organized_cups")
     sport = relationship("SportModel")
+    memberships = relationship("MembershipModel", back_populates="cup")
 
     @property
     def format(self):

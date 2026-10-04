@@ -595,7 +595,7 @@ def test_race_cup_flow(test_app: TestClient, cup_data, headers, cup_state):
     assert positions == {first: 2, second: 1, third: None}
 
 
-def test_list_cups_by_status(test_app: TestClient, cup_state):
+def test_list_cups_by_status(test_app: TestClient, cup_state, override_get_db):
     response = test_app.get("/api/v1/cups?status=completed")
     assert response.status_code == 200
     assert {cup["id"] for cup in response.json()} == {
