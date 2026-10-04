@@ -62,9 +62,13 @@ class RoomModel(BaseModel):
     # District is the Bahrain governorate used to find rooms near the user
     district = Column(String, nullable=False)
 
-    # Public area is safe to show, venue details are for admitted players only
-    public_area = Column(String, nullable=False)
-    venue_details = Column(Text, nullable=True)
+    # Area (a place inside the district) is safe to show. The venue location
+    # (map pin as latitude/longitude, both set or both empty) and the venue
+    # notes are for the host and admitted players only
+    area = Column(String, nullable=False)
+    venue_latitude = Column(Float, nullable=True)
+    venue_longitude = Column(Float, nullable=True)
+    venue_notes = Column(Text, nullable=True)
 
     # Optional walking, running and cycling details
     distance_km = Column(Float, nullable=True)
@@ -101,6 +105,18 @@ class RoomModel(BaseModel):
         CheckConstraint(
             "visibility != 'group' OR group_id IS NOT NULL",
             name="ck_rooms_group_visibility_needs_group",
+        ),
+        CheckConstraint(
+            "venue_latitude BETWEEN -90 AND 90",
+            name="ck_rooms_venue_latitude_range",
+        ),
+        CheckConstraint(
+            "venue_longitude BETWEEN -180 AND 180",
+            name="ck_rooms_venue_longitude_range",
+        ),
+        CheckConstraint(
+            "(venue_latitude IS NULL) = (venue_longitude IS NULL)",
+            name="ck_rooms_venue_location_both_or_none",
         ),
         # Matches the discovery query: district, open status, upcoming start
         Index("ix_rooms_district_status_starts_at", "district", "status", "starts_at"),
