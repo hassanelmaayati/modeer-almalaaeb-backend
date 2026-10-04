@@ -10,7 +10,7 @@ from sqlalchemy import create_engine, inspect, text
 
 from migrations.initialize import BASELINE_TABLES, LEGACY_HEAD, initialize_database, migration_config
 
-HEAD = '20261004_realtime'
+HEAD = 'f1c8d3a6b9e2'
 
 
 def upgrade(url):

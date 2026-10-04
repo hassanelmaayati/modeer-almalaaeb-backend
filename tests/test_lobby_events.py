@@ -6,282 +6,138 @@ from models.membership import MembershipModel
 from models.room import RoomModel
 from services import lobby_events
 from services.room_rules import count_slots_left
-
-
-# Records what would be sent instead of using sockets
-class RecordingHub(LobbyHub):
-    def __init__(self, fail=False):
-        self.sent = []
-        self.fail = fail
-
-    async def connect(self, socket): ...
-    async def subscribe(self, socket, district): ...
-    async def unsubscribe(self, socket): ...
-    async def disconnect(self, socket): ...
-
-    async def broadcast(self, district, event):
-        if self.fail:
-            raise RuntimeError("hub is down")
-        self.sent.append((district, event))
-
-
-def add_room(db: Session, **overrides) -> RoomModel:
-    now = datetime.now(timezone.utc)
-    values = dict(
-        host_id=1,
-        sport_id=1,
-        title="Lobby room",
-        starts_at=now + timedelta(days=1),
-        ends_at=now + timedelta(days=1, hours=1),
-        capacity=4,
-        district="capital",
-        area="Manama",
-        venue_notes="Secret court 9",
-    )
-    values.update(overrides)
-    room = RoomModel(**values)
-    db.add(room)
-    db.commit()
-    db.refresh(room)
-    return room
-
-
-def add_member(db: Session, room: RoomModel, user_id: int, status="accepted"):
-    member = MembershipModel(user_id=user_id, room_id=room.id, status=status)
-    db.add(member)
-    db.commit()
-    return member
-
-
-def publish(db, room, before=None):
-    hub = RecordingHub()
-    asyncio.run(publish_room_event(db, room, before, hub=hub))
-    return hub.sent
-
-
-def summary(sent):
-    # [(district, event type)] is enough for most checks
-    return [(district, event.type) for district, event in sent]
-
-
-# ---------- slots left ----------
-
-
-def test_host_takes_one_slot(test_db: Session):
-    room = add_room(test_db, capacity=4)
-    assert count_slots_left(test_db, room) == 3
-
-
-def test_accepted_players_take_slots_but_pending_ones_do_not(test_db: Session):
-    room = add_room(test_db, capacity=4)
-    add_member(test_db, room, 2, "accepted")
-    add_member(test_db, room, 3, "pending")
-    add_member(test_db, room, 4, "declined")
-    assert count_slots_left(test_db, room) == 2
-
-
-def test_host_with_a_membership_row_counts_once(test_db: Session):
-    room = add_room(test_db, capacity=4)
-    add_member(test_db, room, 1, "accepted")  # the host
-    assert count_slots_left(test_db, room) == 3
-
-
-def test_slots_left_never_negative(test_db: Session):
-    room = add_room(test_db, capacity=1)
-    add_member(test_db, room, 2, "accepted")
-    assert count_slots_left(test_db, room) == 0
-
-
-# ---------- new rooms ----------
-
-
-def test_new_public_room_is_published_on_its_district(test_db: Session):
-    room = add_room(test_db, district="muharraq", capacity=6)
-    sent = publish(test_db, room, before=None)
-
-    assert summary(sent) == [("muharraq", "room_created")]
-    payload = sent[0][1].room
-    assert payload.id == room.id
-    assert payload.slots_left == 5
-    assert payload.sport_name
-
-
-def test_published_payload_has_public_fields_only(test_db: Session):
-    room = add_room(test_db)
-    sent = publish(test_db, room)
-
-    text = sent[0][1].model_dump_json()
-    assert "Secret court 9" not in text
-    assert set(json.loads(text)["room"]) == {
-        "id", "title", "sport_id", "sport_name", "district", "area",
-        "starts_at", "capacity", "slots_left", "difficulty", "revision",
-    }
-
-
-def test_private_and_group_rooms_are_never_published(test_db: Session):
-    private = add_room(test_db, visibility="private")
-    group = add_room(test_db, visibility="group", group_id=1)
-
-    assert publish(test_db, private) == []
-    assert publish(test_db, group) == []
-
-
-def test_unlisted_rooms_are_not_published(test_db: Session):
-    now = datetime.now(timezone.utc)
-    cancelled = add_room(test_db, status="cancelled")
-    started = add_room(test_db, status="started")
-    past_cutoff = add_room(
-        test_db, starts_at=now + timedelta(minutes=10), ends_at=now + timedelta(hours=1)
-    )
-    full = add_room(test_db, capacity=1)
-
-    for room in (cancelled, started, past_cutoff, full):
-        assert publish(test_db, room) == [], room.id
-
-
-# ---------- changes to a shown room ----------
-
-
-def test_edit_in_same_district_sends_room_updated(test_db: Session):
-    room = add_room(test_db)
-    before = lobby_state(test_db, room)
-
-    room.title = "New title"
-    room.revision += 1
-    test_db.commit()
-
-    sent = publish(test_db, room, before)
-    assert summary(sent) == [("capital", "room_updated")]
-    assert sent[0][1].room.title == "New title"
-    assert sent[0][1].room.revision == 1
-
-
-def test_joining_updates_slots_left(test_db: Session):
-    room = add_room(test_db, capacity=4)
-    before = lobby_state(test_db, room)
-    add_member(test_db, room, 2, "accepted")
-
-    sent = publish(test_db, room, before)
-    assert summary(sent) == [("capital", "room_updated")]
-    assert sent[0][1].room.slots_left == 2
-
-
-def test_changing_district_moves_the_room(test_db: Session):
-    room = add_room(test_db, district="capital")
-    before = lobby_state(test_db, room)
-
-    room.district = "northern"
-    test_db.commit()
-
-    sent = publish(test_db, room, before)
-    assert summary(sent) == [("capital", "room_removed"), ("northern", "room_created")]
-    assert sent[0][1].reason == "moved"
-
-
-def test_cancelled_room_is_removed(test_db: Session):
-    room = add_room(test_db)
-    before = lobby_state(test_db, room)
-    room.status = "cancelled"
-    test_db.commit()
-
-    sent = publish(test_db, room, before)
-    assert summary(sent) == [("capital", "room_removed")]
-    assert sent[0][1].reason == "cancelled"
-
-
-def test_started_room_is_removed(test_db: Session):
-    room = add_room(test_db)
-    before = lobby_state(test_db, room)
-    room.status = "started"
-    test_db.commit()
-
-    assert publish(test_db, room, before)[0][1].reason == "started"
-
-
-def test_room_that_crosses_the_cutoff_is_removed(test_db: Session):
-    room = add_room(test_db)
-    before = lobby_state(test_db, room)
-    room.starts_at = datetime.now(timezone.utc) + timedelta(minutes=5)
-    test_db.commit()
-
-    sent = publish(test_db, room, before)
-    assert summary(sent) == [("capital", "room_removed")]
-    assert sent[0][1].reason == "past_cutoff"
-
-
-def test_room_made_private_is_removed_and_then_stays_silent(test_db: Session):
-    room = add_room(test_db)
-    before = lobby_state(test_db, room)
-    room.visibility = "private"
-    test_db.commit()
-
-    sent = publish(test_db, room, before)
-    assert summary(sent) == [("capital", "room_removed")]
-    assert sent[0][1].reason == "not_public"
-
-    # Later edits to the private room say nothing at all
-    after_private = lobby_state(test_db, room)
-    room.title = "Secret plans"
-    test_db.commit()
-    assert publish(test_db, room, after_private) == []
-
-
-def test_room_made_public_appears(test_db: Session):
-    room = add_room(test_db, visibility="private")
-    before = lobby_state(test_db, room)
-    room.visibility = "public"
-    test_db.commit()
-
-    assert summary(publish(test_db, room, before)) == [("capital", "room_created")]
-
-
-def test_filling_up_removes_and_a_free_place_brings_it_back(test_db: Session):
-    room = add_room(test_db, capacity=2)
-    before = lobby_state(test_db, room)
-    member = add_member(test_db, room, 2, "accepted")
-
-    sent = publish(test_db, room, before)
-    assert summary(sent) == [("capital", "room_removed")]
-    assert sent[0][1].reason == "full"
-
-    before = lobby_state(test_db, room)
-    member.status = "left"
-    test_db.commit()
-    sent = publish(test_db, room, before)
-    assert summary(sent) == [("capital", "room_created")]
-    assert sent[0][1].room.slots_left == 1
-
-
-def test_room_that_moves_district_while_becoming_full_is_removed_from_the_old_one(
-    test_db: Session,
-):
-    room = add_room(test_db, capacity=2, district="capital")
-    before = lobby_state(test_db, room)
-    room.district = "southern"
-    add_member(test_db, room, 2, "accepted")
-
-    sent = publish(test_db, room, before)
-    assert summary(sent) == [("capital", "room_removed")]
-    assert sent[0][1].reason == "full"
-
-
-# ---------- safety ----------
-
-
-def test_nothing_is_decided_for_a_room_that_was_never_shown(test_db: Session):
-    room = add_room(test_db, visibility="private")
-    before = lobby_state(test_db, room)
-    assert events_for_change(test_db, room, before) == []
-
-
-def test_change_that_does_not_alter_the_lobby_view_sends_nothing(test_db: Session):
-    room = add_room(test_db, capacity=4)
-    before = lobby_state(test_db, room)
-    add_member(test_db, room, 2, "pending")  # reserves nothing
-
-    assert publish(test_db, room, before) == []
-
-
-def test_publish_never_raises(test_db: Session):
-    room = add_room(test_db)
-    asyncio.run(publish_room_event(test_db, room, None, hub=RecordingHub(fail=True)))
+from tests.lib import future
+
+
+def test_slot_count_uses_accepted_players_and_counts_host_once(factory, db):
+    host, accepted, pending, declined = [factory.user() for _ in range(4)]
+    room = factory.room(host, capacity=4)
+    factory.member(host, room=room)
+    factory.member(accepted, room=room)
+    factory.member(pending, room=room, status='pending')
+    factory.member(declined, room=room, status='declined')
+    with db() as session:
+        row = session.get(RoomModel, room['id'])
+        assert count_slots_left(session, row) == 2
+        row.capacity = 1
+        assert count_slots_left(session, row) == 0
+
+
+def test_new_public_event_has_only_safe_projection_and_current_slots(factory, db):
+    host, member = factory.user(), factory.user()
+    room = factory.room(host, district='muharraq', venue_notes='Secret private court')
+    factory.member(member, room=room)
+    with db() as session:
+        events = lobby_events.events_for_change(session, session.get(RoomModel, room['id']), None)
+    assert len(events) == 1 and events[0][0] == 'muharraq'
+    event = events[0][1].model_dump(mode='json')
+    assert event['type'] == 'room_created'
+    assert event['room']['id'] == room['id'] and event['room']['slots_left'] == 2
+    assert set(event['room']) == {'id', 'title', 'sport_id', 'sport_name', 'district', 'area', 'starts_at', 'capacity', 'slots_left', 'difficulty', 'revision'}
+    assert 'Secret private court' not in str(event)
+
+
+@pytest.mark.parametrize('change', [
+    {'visibility': 'private'}, {'visibility': 'group'}, {'status': 'cancelled'},
+    {'status': 'started'}, {'status': 'completed'}, {'capacity': 1},
+    {'starts_at': future(.1), 'ends_at': future(1)},
+])
+def test_never_visible_rooms_produce_no_public_events(factory, db, change):
+    host = factory.user()
+    if change.get('visibility') == 'group':
+        change = {**change, 'group_id': factory.group(host)['id']}
+    room = factory.room(host, **change)
+    with db() as session:
+        row = session.get(RoomModel, room['id'])
+        assert lobby_events.events_for_change(session, row, None) == []
+        assert lobby_events.events_for_change(session, row, lobby_events.lobby_state(session, row)) == []
+
+
+@pytest.mark.parametrize('change, reason', [
+    ({'status': 'cancelled'}, 'cancelled'), ({'status': 'started'}, 'started'),
+    ({'visibility': 'private'}, 'not_public'), ({'capacity': 1}, 'full'),
+    ({'starts_at': future(.1)}, 'past_cutoff'),
+])
+def test_visible_room_removal_has_correct_reason(factory, db, change, reason):
+    room = factory.room(factory.user())
+    with db() as session:
+        row = session.get(RoomModel, room['id'])
+        before = lobby_events.lobby_state(session, row)
+        for key, value in change.items():
+            setattr(row, key, value)
+        session.commit()
+        events = lobby_events.events_for_change(session, row, before)
+    assert [(district, event.type) for district, event in events] == [('capital', 'room_removed')]
+    assert events[0][1].room_id == room['id'] and events[0][1].reason == reason
+
+
+def test_move_update_and_visibility_return_use_current_version(factory, db):
+    room = factory.room(factory.user())
+    with db() as session:
+        row = session.get(RoomModel, room['id'])
+        before = lobby_events.lobby_state(session, row)
+        row.title, row.revision = 'Changed', 1
+        session.commit()
+        update = lobby_events.events_for_change(session, row, before)
+        assert update[0][1].type == 'room_updated' and update[0][1].room.revision == 1
+        assert update[0][1].room.title == 'Changed'
+        before = lobby_events.lobby_state(session, row)
+        row.district = 'southern'
+        session.commit()
+        moved = lobby_events.events_for_change(session, row, before)
+        assert [(district, event.type) for district, event in moved] == [('capital', 'room_removed'), ('southern', 'room_created')]
+        assert moved[0][1].reason == 'moved'
+        row.visibility = 'private'
+        session.commit()
+        before = lobby_events.lobby_state(session, row)
+        row.visibility, row.revision = 'public', 2
+        session.commit()
+        returned = lobby_events.events_for_change(session, row, before)
+        assert returned[0][1].type == 'room_created' and returned[0][1].room.revision == 2
+
+
+def test_full_room_reappears_after_accepted_member_leaves(factory, db):
+    host, player = factory.user(), factory.user()
+    room = factory.room(host, capacity=2)
+    with db() as session:
+        row = session.get(RoomModel, room['id'])
+        before = lobby_events.lobby_state(session, row)
+    member = factory.member(player, room=room)
+    with db() as session:
+        row = session.get(RoomModel, room['id'])
+        full = lobby_events.events_for_change(session, row, before)
+        assert full[0][1].reason == 'full'
+        before = lobby_events.lobby_state(session, row)
+        session.get(MembershipModel, member['id']).status = 'left'
+        session.commit()
+        returned = lobby_events.events_for_change(session, row, before)
+        assert returned[0][1].type == 'room_created' and returned[0][1].room.slots_left == 1
+
+
+def test_pending_membership_or_private_details_do_not_change_projection(factory, db):
+    host, player = factory.user(), factory.user()
+    room = factory.room(host)
+    with db() as session:
+        row = session.get(RoomModel, room['id'])
+        before = lobby_events.lobby_state(session, row)
+    factory.member(player, room=room, status='pending')
+    with db() as session:
+        row = session.get(RoomModel, room['id'])
+        row.venue_notes = 'Updated private address'
+        session.commit()
+        assert lobby_events.events_for_change(session, row, before) == []
+
+
+def test_event_preparation_and_delivery_failures_are_best_effort(factory, db, monkeypatch):
+    room = factory.room(factory.user())
+    def fail_prepare(*args):
+        raise RuntimeError('Cannot prepare lobby projection')
+    with db() as session:
+        row = session.get(RoomModel, room['id'])
+        events = lobby_events.events_for_change(session, row, None)
+        monkeypatch.setattr(lobby_events, 'events_for_change', fail_prepare)
+        assert lobby_events.prepare_room_events(session, row) == []
+    class BrokenHub:
+        async def broadcast(self, district, event):
+            raise RuntimeError('Socket transport unavailable')
+    asyncio.run(lobby_events.send_events(events, BrokenHub()))

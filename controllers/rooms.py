@@ -180,11 +180,8 @@ def get_room(
     invited = member is not None and member.status == "pending" and member.requested is False
     if room.visibility != "public" and not (admitted or invited):
         raise HTTPException(status_code=404, detail="Room not found")
-
-    # Only the host sees the venue location and notes for now (members must be added later)
-    if is_host:
-        return RoomDetailSchema.model_validate(room)
-    return RoomSchema.model_validate(room)
+    # Admitted players and the host get the venue location and notes
+    return room_snapshot(db, room, detailed=admitted)
 
 
 @router.post("/rooms", response_model=RoomDetailSchema, status_code=201)
@@ -201,7 +198,7 @@ def create_room(
     if room.group_id is not None:
         check_group(db, room.group_id, current_user)
 
-    new_room = RoomModel(**split_location(room.dict()), host_id=current_user.id, sport=sport)
+    new_room = RoomModel(**split_location(room.model_dump()), host_id=current_user.id, sport=sport)
     check_capacity(new_room)
 
     db.add(new_room)

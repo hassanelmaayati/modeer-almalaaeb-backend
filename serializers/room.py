@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic_extra_types.coordinate import Coordinate
 
 from models.areas import is_area_in_district
@@ -116,7 +116,7 @@ class CreateRoomSchema(BaseModel):
     visibility: str = "public"
     admission_policy: str = "approval"
     district: str
-    area: str = Field(min_length=1)
+    area: NonBlank = Field(min_length=1)
     venue_location: Coordinate | None = None
     venue_notes: str | None = None
     distance_km: float | None = Field(default=None, gt=0)
@@ -190,7 +190,7 @@ class UpdateRoomSchema(BaseModel):
     visibility: str | None = None
     admission_policy: str | None = None
     district: str | None = None
-    area: str | None = Field(default=None, min_length=1)
+    area: NonBlank | None = Field(default=None, min_length=1)
     venue_location: Coordinate | None = None
     venue_notes: str | None = None
     distance_km: float | None = Field(default=None, gt=0)

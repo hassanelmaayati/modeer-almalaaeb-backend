@@ -21,7 +21,7 @@ def test_public_rest_create_update_move_cancel_delivers_exact_safe_events(networ
         room=api(network.client,'POST','/rooms',user=owner,body=room_body(sport['id']),expected=201)
         event=receive(capital,'room_created')
         assert event['room']['id']==room['id'] and event['room']['slots_left']==3
-        assert set(event['room'])=={'id','title','sport_id','sport_name','district','public_area','starts_at','capacity','slots_left','difficulty','revision'}
+        assert set(event['room'])=={'id','title','sport_id','sport_name','district','area','starts_at','capacity','slots_left','difficulty','revision'}
         assert receive(all_districts,'room_created')==event
         with pytest.raises(TimeoutError): southern.recv(timeout=.1)
         moved=api(network.client,'PUT',f"/rooms/{room['id']}",user=owner,body={'revision':0,'title':'Moved','district':'southern'})
