@@ -21,7 +21,7 @@ def test_discovery_filters_have_exact_results_and_private_projection(client,fact
     for query,ids in queries:
         rows=api(client,'GET','/rooms',params=query)
         assert [row['id'] for row in rows]==ids
-        assert all('venue_details' not in row for row in rows)
+        assert all('venue_notes' not in row for row in rows)
     api(client,'GET','/rooms',params={'district':'mars'},expected=422)
 
 
@@ -31,8 +31,8 @@ def test_detail_and_roster_require_actual_admission(client,factory):
     accepted_row=factory.member(accepted,room=room)
     pending_row=factory.member(pending,room=room,status='pending',requested=False)
     for user in [host,accepted]:
-        assert api(client,'GET',f"/rooms/{room['id']}",user=user)['venue_details']=='Private Court 7'
-    assert 'venue_details' not in api(client,'GET',f"/rooms/{room['id']}",user=pending)
+        assert api(client,'GET',f"/rooms/{room['id']}",user=user)['venue_notes']=='Private Court 7'
+    assert 'venue_notes' not in api(client,'GET',f"/rooms/{room['id']}",user=pending)
     api(client,'GET',f"/rooms/{room['id']}",user=outsider,expected=404)
     api(client,'GET',f"/rooms/{room['id']}",expected=404)
     assert {row['id'] for row in api(client,'GET',f"/rooms/{room['id']}/members",user=host)}=={accepted_row['id'],pending_row['id']}
@@ -49,7 +49,7 @@ def test_create_edit_ignore_server_fields_and_preserve_canonical_values(client,f
     created=api(client,'POST','/rooms',user=host,body=room_body(sport['id'],host_id=outsider['id'],status='cancelled',revision=100,host_generation=100),expected=201)
     assert (created['host_id'],created['status'],created['revision'],created['host_generation'])==(host['id'],'open',0,0)
     api(client,'PUT',f"/rooms/{created['id']}",user=outsider,body={'revision':0,'title':'Denied'},expected=403)
-    updated=api(client,'PUT',f"/rooms/{created['id']}",user=host,body={'revision':0,'title':'Changed','district':'northern','description':'New'})
+    updated=api(client,'PUT',f"/rooms/{created['id']}",user=host,body={'revision':0,'title':'Changed','district':'northern','area':'Budaiya','description':'New'})
     assert (updated['title'],updated['district'],updated['revision'])==('Changed','northern',1)
     api(client,'PUT',f"/rooms/{created['id']}",user=host,body={'revision':0,'title':'Stale'},expected=409)
     with db() as session:
@@ -68,7 +68,7 @@ def test_invalid_room_creation_leaves_database_empty(client,factory,db,change):
     with db() as session: assert session.query(RoomModel).count()==0
 
 
-@pytest.mark.parametrize('field',['sport_id','title','difficulty','starts_at','ends_at','capacity','slot_layout','visibility','admission_policy','district','public_area'])
+@pytest.mark.parametrize('field',['sport_id','title','difficulty','starts_at','ends_at','capacity','slot_layout','visibility','admission_policy','district','area'])
 def test_required_update_fields_cannot_be_null(client,factory,db,field):
     host=factory.user()
     room=factory.room(host)
@@ -107,7 +107,7 @@ def test_cutoff_freezes_schedule_but_allows_description_and_admission_stays_clos
     host,member=factory.user(),factory.user()
     room=factory.room(host,starts_at=future(0.1),ends_at=future(1))
     assert api(client,'GET','/rooms')==[]
-    api(client,'PUT',f"/rooms/{room['id']}",user=host,body={'revision':0,'venue_details':'Changed'},expected=409)
+    api(client,'PUT',f"/rooms/{room['id']}",user=host,body={'revision':0,'venue_notes':'Changed'},expected=409)
     edited=api(client,'PUT',f"/rooms/{room['id']}",user=host,body={'revision':0,'description':'Weather note'})
     assert edited['description']=='Weather note'
     api(client,'POST',f"/rooms/{room['id']}/members",user=member,body={},expected=409)
@@ -185,7 +185,7 @@ def test_host_invitation_acceptance_capacity_and_slot_collision(client,factory,d
     with db() as session: assert session.get(MembershipModel,b['id']).position is None
 
 
-@pytest.mark.parametrize('field',['title','public_area'])
+@pytest.mark.parametrize('field',['title','area'])
 def test_whitespace_only_room_fields_are_rejected_without_persisting(client,factory,db,field):
     host,sport=factory.user(),factory.sport()
     api(client,'POST','/rooms',user=host,body=room_body(sport['id'],**{field:'   '}),expected=422)
@@ -209,3 +209,48 @@ def test_whitespace_cancel_reason_changes_neither_room_nor_notices(client,factor
         assert session.query(MessageModel).count()==0
         from models.notification import NotificationModel
         assert session.query(NotificationModel).count()==0
+
+
+PIN={'latitude':26.2285,'longitude':50.5860}
+
+
+def test_area_must_belong_to_district_on_create_and_update(client,factory):
+    host,sport=factory.user(),factory.sport()
+    api(client,'POST','/rooms',user=host,body=room_body(sport['id'],district='capital',area='Riffa'),expected=422)
+    room=factory.room(host,sport)  # capital / Manama
+    path=f"/rooms/{room['id']}"
+    # A new district alone, or a new area alone, must still match the stored value
+    api(client,'PUT',path,user=host,body={'revision':0,'district':'southern'},expected=422)
+    api(client,'PUT',path,user=host,body={'revision':0,'area':'Riffa'},expected=422)
+    updated=api(client,'PUT',path,user=host,body={'revision':0,'district':'southern','area':'Riffa'})
+    assert (updated['district'],updated['area'])==('southern','Riffa')
+
+
+def test_venue_location_is_private_and_round_trips(client,factory,db):
+    host,outsider,sport=factory.user(),factory.user(),factory.sport()
+    created=api(client,'POST','/rooms',user=host,body=room_body(sport['id'],venue_location=PIN),expected=201)
+    assert created['venue_location']==PIN
+    with db() as session:
+        assert session.get(RoomModel,created['id']).venue_location==PIN
+    assert api(client,'GET',f"/rooms/{created['id']}",user=host)['venue_location']==PIN
+    for viewer in [None,outsider]:
+        row=api(client,'GET',f"/rooms/{created['id']}",user=viewer)
+        assert 'venue_location' not in row and 'venue_notes' not in row
+    assert all('venue_location' not in row for row in api(client,'GET','/rooms'))
+
+
+@pytest.mark.parametrize('location',[
+    {'latitude':51.5,'longitude':-0.12},{'latitude':95,'longitude':50.5},{'latitude':26.2},
+])
+def test_invalid_venue_location_is_rejected(client,factory,location):
+    host,sport=factory.user(),factory.sport()
+    api(client,'POST','/rooms',user=host,body=room_body(sport['id'],venue_location=location),expected=422)
+
+
+def test_venue_location_can_be_updated_until_the_cutoff(client,factory):
+    host=factory.user()
+    room=factory.room(host)
+    updated=api(client,'PUT',f"/rooms/{room['id']}",user=host,body={'revision':0,'venue_location':PIN})
+    assert updated['venue_location']==PIN
+    soon=factory.room(host,starts_at=future(0.1),ends_at=future(1))
+    api(client,'PUT',f"/rooms/{soon['id']}",user=host,body={'revision':0,'venue_location':PIN},expected=409)

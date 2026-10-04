@@ -17,6 +17,9 @@ alembic = "*"
 websockets = "==16.1.1"
 google-auth = "*"
 requests = "*"
+pydantic-extra-types = "*"
+geoalchemy2 = "*"
+shapely = "*"
 
 [dev-packages]
 pytest = "*"

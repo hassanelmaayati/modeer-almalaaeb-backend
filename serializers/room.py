@@ -2,13 +2,20 @@ from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic_extra_types.coordinate import Coordinate
 
+from models.areas import is_area_in_district
 from models.room import (
     DIFFICULTY,
     DISTRICTS,
     ROOM_ADMISSION_POLICIES,
     ROOM_VISIBILITIES,
 )
+
+# Rough bounding box around the Bahrain islands (including the Hawar Islands),
+# used to reject map pins in the sea or abroad
+BAHRAIN_LAT_RANGE = (25.5, 26.4)
+BAHRAIN_LNG_RANGE = (50.3, 50.9)
 
 # A room must start between 1 hour and 14 days from now
 MIN_LEAD_TIME = timedelta(hours=1)
@@ -49,8 +56,19 @@ def _check_choice(value: str | None, allowed: tuple, name: str):
     return value
 
 
-# Public view: venue_details is left out because exact venue
-# details are only for the host and admitted players
+def _check_in_bahrain(value: Coordinate | None):
+    # Coordinate already checks the -90/90 and -180/180 ranges
+    if value is None:
+        return None
+    lat_ok = BAHRAIN_LAT_RANGE[0] <= value.latitude <= BAHRAIN_LAT_RANGE[1]
+    lng_ok = BAHRAIN_LNG_RANGE[0] <= value.longitude <= BAHRAIN_LNG_RANGE[1]
+    if not (lat_ok and lng_ok):
+        raise ValueError("venue_location must be inside Bahrain")
+    return value
+
+
+# Public view: the venue location and notes are left out because exact
+# venue details are only for the host and admitted players
 class RoomSchema(BaseModel):
     id: int
     host_id: int
@@ -67,7 +85,7 @@ class RoomSchema(BaseModel):
     visibility: str
     admission_policy: str
     district: str
-    public_area: str
+    area: str
     distance_km: float | None = None
     pace_notes: str | None = None
     route_notes: str | None = None
@@ -80,7 +98,8 @@ class RoomSchema(BaseModel):
 
 # Full view for the host (and later, accepted members)
 class RoomDetailSchema(RoomSchema):
-    venue_details: str | None = None
+    venue_location: Coordinate | None = None
+    venue_notes: str | None = None
 
 
 # POST body: host_id, status and the counters are set by the server
@@ -97,8 +116,9 @@ class CreateRoomSchema(BaseModel):
     visibility: str = "public"
     admission_policy: str = "approval"
     district: str
-    public_area: NonBlank = Field(min_length=1)
-    venue_details: str | None = None
+    area: NonBlank = Field(min_length=1)
+    venue_location: Coordinate | None = None
+    venue_notes: str | None = None
     distance_km: float | None = Field(default=None, gt=0)
     pace_notes: str | None = None
     route_notes: str | None = None
@@ -136,11 +156,18 @@ class CreateRoomSchema(BaseModel):
     def valid_district(cls, value: str):
         return _check_choice(value, DISTRICTS, "district")
 
+    @field_validator("venue_location")
+    @classmethod
+    def valid_location(cls, value: Coordinate | None):
+        return _check_in_bahrain(value)
+
     # Rules that compare several fields run after the fields are validated
     @model_validator(mode="after")
     def check_room_rules(self):
         if self.ends_at <= self.starts_at:
             raise ValueError("ends_at must be after starts_at")
+        if not is_area_in_district(self.area, self.district):
+            raise ValueError(f"area '{self.area}' is not in the {self.district} district")
         if self.visibility == "group" and self.group_id is None:
             raise ValueError("group_id is required when visibility is 'group'")
         return self
@@ -163,8 +190,9 @@ class UpdateRoomSchema(BaseModel):
     visibility: str | None = None
     admission_policy: str | None = None
     district: str | None = None
-    public_area: NonBlank | None = Field(default=None, min_length=1)
-    venue_details: str | None = None
+    area: NonBlank | None = Field(default=None, min_length=1)
+    venue_location: Coordinate | None = None
+    venue_notes: str | None = None
     distance_km: float | None = Field(default=None, gt=0)
     pace_notes: str | None = None
     route_notes: str | None = None
@@ -200,11 +228,20 @@ class UpdateRoomSchema(BaseModel):
     def valid_district(cls, value: str | None):
         return _check_choice(value, DISTRICTS, "district")
 
+    @field_validator("venue_location")
+    @classmethod
+    def valid_location(cls, value: Coordinate | None):
+        return _check_in_bahrain(value)
+
     @model_validator(mode="after")
     def check_times(self):
         # When only one time is sent, the controller compares it with the stored one
         if self.starts_at and self.ends_at and self.ends_at <= self.starts_at:
             raise ValueError("ends_at must be after starts_at")
+        # When only one of district/area is sent, the controller checks it
+        # against the stored value; here only the case where both are sent
+        if self.district and self.area and not is_area_in_district(self.area, self.district):
+            raise ValueError(f"area '{self.area}' is not in the {self.district} district")
         return self
 
 

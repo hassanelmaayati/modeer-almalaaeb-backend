@@ -79,7 +79,7 @@ def save_message(db: Session, user, data: CreateMessageSchema):
 
 
 def create_system_message(db: Session, room_id: int, body: str) -> MessageModel:
-    """Add a notice to the caller's transaction; never include an exact venue."""
+    """Add a notice to the caller's transaction; never include the exact venue location or notes."""
     message = MessageModel(room_id=room_id, type="system", body=body.strip()[:MAX_BODY_LENGTH])
     db.add(message)
     return message

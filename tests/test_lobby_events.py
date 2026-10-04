@@ -25,7 +25,7 @@ def test_slot_count_uses_accepted_players_and_counts_host_once(factory, db):
 
 def test_new_public_event_has_only_safe_projection_and_current_slots(factory, db):
     host, member = factory.user(), factory.user()
-    room = factory.room(host, district='muharraq', venue_details='Secret private court')
+    room = factory.room(host, district='muharraq', venue_notes='Secret private court')
     factory.member(member, room=room)
     with db() as session:
         events = lobby_events.events_for_change(session, session.get(RoomModel, room['id']), None)
@@ -33,7 +33,7 @@ def test_new_public_event_has_only_safe_projection_and_current_slots(factory, db
     event = events[0][1].model_dump(mode='json')
     assert event['type'] == 'room_created'
     assert event['room']['id'] == room['id'] and event['room']['slots_left'] == 2
-    assert set(event['room']) == {'id', 'title', 'sport_id', 'sport_name', 'district', 'public_area', 'starts_at', 'capacity', 'slots_left', 'difficulty', 'revision'}
+    assert set(event['room']) == {'id', 'title', 'sport_id', 'sport_name', 'district', 'area', 'starts_at', 'capacity', 'slots_left', 'difficulty', 'revision'}
     assert 'Secret private court' not in str(event)
 
 
@@ -123,7 +123,7 @@ def test_pending_membership_or_private_details_do_not_change_projection(factory,
     factory.member(player, room=room, status='pending')
     with db() as session:
         row = session.get(RoomModel, room['id'])
-        row.venue_details = 'Updated private address'
+        row.venue_notes = 'Updated private address'
         session.commit()
         assert lobby_events.events_for_change(session, row, before) == []
 

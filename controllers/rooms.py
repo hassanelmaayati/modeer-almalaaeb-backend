@@ -9,8 +9,9 @@ from sqlalchemy.orm import Session
 from database import get_db
 
 # Models
+from models.areas import is_area_in_district
 from models.districts import DISTRICTS
-from models.room import RoomModel
+from models.room import RoomModel, make_point
 from models.sport import SportModel
 from models.group import GroupModel
 from models.user import UserModel
@@ -48,8 +49,9 @@ FROZEN_FIELDS = {
     "capacity",
     "slot_layout",
     "district",
-    "public_area",
-    "venue_details",
+    "area",
+    "venue_location",
+    "venue_notes",
 }
 
 # Columns that cannot be set to null
@@ -64,7 +66,7 @@ REQUIRED_FIELDS = {
     "visibility",
     "admission_policy",
     "district",
-    "public_area",
+    "area",
 }
 
 optional_bearer = HTTPBearer(auto_error=False)
@@ -92,6 +94,14 @@ def get_host_room(db: Session, room_id: int, current_user: UserModel) -> RoomMod
     if room.host_id != current_user.id:
         raise HTTPException(status_code=403, detail="Only host allowed to do this!")
     return room
+
+
+def split_location(data: dict) -> dict:
+    # The API takes venue_location as latitude/longitude, the table stores a PostGIS point
+    location = data.pop("venue_location", None)
+    if location is not None:
+        data["venue_point"] = make_point(location["latitude"], location["longitude"])
+    return data
 
 
 def check_capacity(room: RoomModel):
@@ -170,6 +180,7 @@ def get_room(
     invited = member is not None and member.status == "pending" and member.requested is False
     if room.visibility != "public" and not (admitted or invited):
         raise HTTPException(status_code=404, detail="Room not found")
+    # Admitted players and the host get the venue location and notes
     return room_snapshot(db, room, detailed=admitted)
 
 
@@ -187,7 +198,7 @@ def create_room(
     if room.group_id is not None:
         check_group(db, room.group_id, current_user)
 
-    new_room = RoomModel(**room.model_dump(), host_id=current_user.id, sport=sport)
+    new_room = RoomModel(**split_location(room.model_dump()), host_id=current_user.id, sport=sport)
     check_capacity(new_room)
 
     db.add(new_room)
@@ -243,6 +254,16 @@ def update_room(
     if ends_at <= starts_at:
         raise HTTPException(status_code=422, detail="ends at must be after starts at")
 
+    # The area must belong to the district, whichever of the two was sent. A
+    # district change without a matching new area is rejected
+    district = data.get("district", db_room.district)
+    area = data.get("area", db_room.area)
+    if {"district", "area"} & data.keys() and not is_area_in_district(area, district):
+        raise HTTPException(
+            status_code=422,
+            detail=f"area '{area}' is not in the {district} district, send a matching area",
+        )
+
     visibility = data.get("visibility", db_room.visibility)
     group_id = data.get("group_id", db_room.group_id)
     if visibility == "group" and group_id is None:
@@ -257,7 +278,7 @@ def update_room(
         if not sport:
             raise HTTPException(status_code=404, detail="Sport not found")
 
-    for key, value in data.items():
+    for key, value in split_location(data).items():
         setattr(db_room, key, value)
 
     # The sport relationship must point at the new sport before checking capacity

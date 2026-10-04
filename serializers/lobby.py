@@ -8,7 +8,7 @@ RemovedReason = Literal["cancelled", "started", "full", "past_cutoff", "moved", 
 
 
 # What anyone watching a district lobby may see about a room.
-# Public fields only: never venue_details, host_id, group_id or member data.
+# Public fields only: never the venue location or notes, host_id, group_id or member data.
 # slots_left is worked out by the server, it is not a column on the room.
 class LobbyRoomSchema(BaseModel):
     id: int
@@ -16,7 +16,7 @@ class LobbyRoomSchema(BaseModel):
     sport_id: int
     sport_name: str
     district: str
-    public_area: str
+    area: str
     starts_at: datetime
     capacity: int
     slots_left: int

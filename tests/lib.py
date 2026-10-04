@@ -19,7 +19,7 @@ def future(hours=24):
 def room_body(sport_id, **changes):
     value = dict(sport_id=sport_id, title='Fixture activity', starts_at=future().isoformat(),
                  ends_at=future(25).isoformat(), capacity=4, district='capital',
-                 public_area='Manama', venue_details='Private Court 7')
+                 area='Manama', venue_notes='Private Court 7')
     value.update(changes)
     return value
 
@@ -61,7 +61,7 @@ class Factory:
         sport = sport or self.sport()
         values = dict(host_id=host['id'], sport_id=sport['id'], title='Room ' + uuid.uuid4().hex[:6],
                       starts_at=future(), ends_at=future(25), capacity=4, district='capital',
-                      public_area='Manama', venue_details='Private Court 7', slot_layout={})
+                      area='Manama', venue_notes='Private Court 7', slot_layout={})
         values.update(changes)
         return self.persist(RoomModel(**values))
 
