@@ -14,6 +14,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 
 from .base import BaseModel
+from .districts import DISTRICTS  
 from .group import GroupModel
 from .sport import SportModel
 from .user import UserModel
@@ -29,7 +30,6 @@ ROOM_STATUSES = ("open", "started", "completed", "cancelled")
 ROOM_VISIBILITIES = ("public", "private", "group")
 ROOM_ADMISSION_POLICIES = ("approval", "open")
 DIFFICULTY = ("beginners", "medium", "advanced")
-DISTRICTS = ("capital", "muharraq", "northern", "southern")
 
 class RoomModel(BaseModel):
     __tablename__ = "rooms"

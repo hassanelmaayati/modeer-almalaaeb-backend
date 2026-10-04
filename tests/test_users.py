@@ -93,6 +93,76 @@ def test_get_and_update_me(test_app: TestClient, override_get_db):
     assert response.json()["bio"] == "Midfielder"
 
 
+def test_signup_with_home_district(test_app: TestClient, test_db: Session, override_get_db):
+    user_data = {
+        "user_name": "district_player",
+        "email": "district@example.com",
+        "password": "strongpass",
+        "district": "northern",
+    }
+    response = test_app.post("/api/v1/auth/signup", json=user_data)
+    assert response.status_code == 201
+    assert response.json()["user"]["district"] == "northern"
+
+    user = test_db.query(UserModel).filter(UserModel.user_name == "district_player").first()
+    assert user.district == "northern"
+
+
+def test_signup_without_district_leaves_it_empty(test_app: TestClient, override_get_db):
+    user_data = {
+        "user_name": "no_district_player",
+        "email": "nodistrict@example.com",
+        "password": "strongpass",
+    }
+    response = test_app.post("/api/v1/auth/signup", json=user_data)
+    assert response.status_code == 201
+    assert response.json()["user"]["district"] is None
+
+
+def test_signup_rejects_invalid_district(test_app: TestClient, override_get_db):
+    user_data = {
+        "user_name": "mars_player",
+        "email": "mars@example.com",
+        "password": "strongpass",
+        "district": "mars",
+    }
+    response = test_app.post("/api/v1/auth/signup", json=user_data)
+    assert response.status_code == 422
+
+
+def test_update_home_district(test_app: TestClient, override_get_db):
+    headers = login(test_app, "other@example.com", "otherpass")
+
+    response = test_app.put(
+        "/api/v1/users/me",
+        headers=headers,
+        json={"user_name": "renamed_player", "district": "muharraq"},
+    )
+    assert response.status_code == 200
+    assert response.json()["district"] == "muharraq"
+    assert test_app.get("/api/v1/users/me", headers=headers).json()["district"] == "muharraq"
+
+    # Changing the district can be undone by sending null
+    response = test_app.put(
+        "/api/v1/users/me",
+        headers=headers,
+        json={"user_name": "renamed_player", "district": None},
+    )
+    assert response.status_code == 200
+    assert response.json()["district"] is None
+
+
+def test_update_home_district_must_be_valid(test_app: TestClient, override_get_db):
+    headers = login(test_app, "other@example.com", "otherpass")
+
+    response = test_app.put(
+        "/api/v1/users/me",
+        headers=headers,
+        json={"user_name": "renamed_player", "district": "mars"},
+    )
+    assert response.status_code == 422
+
+
 def test_get_users(test_app: TestClient, override_get_db):
     response = test_app.get("/api/v1/users")
     assert response.status_code == 200

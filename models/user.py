@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text
+from sqlalchemy import CheckConstraint, Column, Integer, String, Text
 from .base import BaseModel
 from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
@@ -19,11 +19,21 @@ class UserModel(BaseModel):
     photo_url = Column(String, nullable=True, default="")
     bio = Column(Text, nullable=True, default="")
 
+    # Home district (see models/districts.py); optional, used as the default room filter
+    district = Column(String, nullable=False)
+
     # Private login fields; google_subject links an optional Google sign-in
     email = Column(String, nullable=False, unique=True)
     password = Column(String, nullable=False)
     google_subject = Column(String, nullable=True, unique=True)
     token_version = Column(Integer, nullable=False, default=0, server_default="0")
+
+    __table_args__ = (
+        CheckConstraint(
+            "district IS NULL OR district IN ('capital', 'muharraq', 'northern', 'southern')",
+            name="ck_users_district",
+        ),
+    )
 
     # Relationships with other models
     memberships = relationship(
