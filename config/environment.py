@@ -13,3 +13,4 @@ CORS_ORIGINS = [
     for origin in os.getenv("CORS_ORIGINS", "").split(",")
     if origin.strip()
 ]
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")

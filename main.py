@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from controllers.groups import router as GroupsRouter
 from controllers.auth import router as AuthRouter
+from controllers.google_auth import router as GoogleAuthRouter
 from controllers.users import router as UsersRouter
 from controllers.sports import router as SportsRouter
 from controllers.cups import router as CupsRouter
@@ -87,6 +88,7 @@ app = FastAPI(
     openapi_tags=tags,
 )
 app.include_router(AuthRouter, prefix="/api/v1")
+app.include_router(GoogleAuthRouter, prefix="/api/v1")
 app.include_router(UsersRouter, prefix="/api/v1")
 app.include_router(GroupsRouter, prefix="/api/v1")
 app.include_router(SportsRouter, prefix="/api/v1")
