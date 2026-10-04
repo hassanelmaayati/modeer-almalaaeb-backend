@@ -1,6 +1,4 @@
-from typing import List
-
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from database import get_db
@@ -8,106 +6,68 @@ from dependencies.get_current_user import get_current_user
 from models.group import GroupModel
 from models.membership import MembershipModel
 from models.user import UserModel
-from serializers.membership import (
-    GroupMemberSchema,
-    CreateGroupMemberSchema,
-    UpdateGroupMemberSchema,
-)
+from serializers.membership import CreateGroupMemberSchema, GroupMemberSchema, UpdateGroupMemberSchema
+from services.changes import change_events
+from services.memberships import commit, invitation_transition, load
+from services.realtime import queue_events
 
 router = APIRouter(tags=["Group Members Management"])
 
 
-def _get_group(db: Session, group_id: int) -> GroupModel:
-    group = db.query(GroupModel).filter(GroupModel.id == group_id).first()
-    if not group:
-        raise HTTPException(status_code=404, detail="Group not found")
-    return group
+def members(db, group_id):
+    return db.query(MembershipModel).filter(MembershipModel.group_id == group_id,
+                                            MembershipModel.cup_id.is_(None))
 
 
-def _group_members(db: Session, group_id: int):
-    return db.query(MembershipModel).filter(
-        MembershipModel.group_id == group_id,
-        MembershipModel.cup_id.is_(None),
-    )
-
-
-@router.get("/groups/{group_id}/members", response_model=List[GroupMemberSchema])
-def get_group_members(
-    group_id: int,
-    db: Session = Depends(get_db),
-    current_user: UserModel = Depends(get_current_user),
-):
-    group = _get_group(db, group_id)
-    query = _group_members(db, group_id)
+@router.get("/groups/{group_id}/members", response_model=list[GroupMemberSchema])
+def get_group_members(group_id: int, db: Session = Depends(get_db),
+                      current_user: UserModel = Depends(get_current_user)):
+    group = load(db, GroupModel, group_id)
+    query = members(db, group_id)
     if group.owner_id != current_user.id:
-        # Non-owners see accepted members and their own invitation
-        query = query.filter(
-            (MembershipModel.status == "accepted")
-            | (MembershipModel.user_id == current_user.id)
-        )
-    # Owners see all members
+        query = query.filter((MembershipModel.status == "accepted") |
+                             (MembershipModel.user_id == current_user.id))
     return query.all()
 
 
-@router.post(
-    "/groups/{group_id}/members", response_model=GroupMemberSchema, status_code=201
-)
-def invite_group_member(
-    group_id: int,
-    member: CreateGroupMemberSchema,
-    db: Session = Depends(get_db),
-    current_user: UserModel = Depends(get_current_user),
-):
-    group = _get_group(db, group_id)
+@router.post("/groups/{group_id}/members", response_model=GroupMemberSchema, status_code=201)
+def invite_group_member(group_id: int, member: CreateGroupMemberSchema,
+                        background_tasks: BackgroundTasks, db: Session = Depends(get_db),
+                        current_user: UserModel = Depends(get_current_user)):
+    group = load(db, GroupModel, group_id, lock=True)
     if group.owner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Only the owner can invite")
-    if not db.query(UserModel).filter(UserModel.id == member.user_id).first():
-        raise HTTPException(status_code=404, detail="User not found")
-    if (
-        _group_members(db, group_id)
-        .filter(MembershipModel.user_id == member.user_id)
-        .first()
-    ):
-        raise HTTPException(status_code=409, detail="Already a member or invited")
-
-    new_member = MembershipModel(
-        user_id=member.user_id,
-        group_id=group_id,
-        status="pending",
-        requested=False,
-        accepted=False,
-    )
+        raise HTTPException(403, "Only the owner can invite")
+    load(db, UserModel, member.user_id)
+    if member.user_id == group.owner_id or members(db, group_id).filter(
+            MembershipModel.user_id == member.user_id).first():
+        raise HTTPException(409, "Already a member or invited")
+    new_member = MembershipModel(user_id=member.user_id, group_id=group_id,
+                                 status="pending", requested=False, accepted=False)
     db.add(new_member)
-    db.commit()
+    events = change_events(db, {"type": "group", "id": group_id}, "group.invitation",
+                          "You were invited to a group", current_user.id,
+                          recipient_ids={group.owner_id, member.user_id})
+    commit(db)
     db.refresh(new_member)
+    queue_events(background_tasks, events)
     return new_member
 
 
 @router.patch("/groups/{group_id}/members/{user_id}", response_model=GroupMemberSchema)
-def update_group_member(
-    group_id: int,
-    user_id: int,
-    member: UpdateGroupMemberSchema,
-    db: Session = Depends(get_db),
-    current_user: UserModel = Depends(get_current_user),
-):
-    group = _get_group(db, group_id)
-    db_member = (
-        _group_members(db, group_id).filter(MembershipModel.user_id == user_id).first()
-    )
-    if not db_member:
-        raise HTTPException(status_code=404, detail="Group member not found")
+def update_group_member(group_id: int, user_id: int, member: UpdateGroupMemberSchema,
+                        background_tasks: BackgroundTasks, db: Session = Depends(get_db),
+                        current_user: UserModel = Depends(get_current_user)):
+    group = load(db, GroupModel, group_id, lock=True)
+    row = members(db, group_id).filter(MembershipModel.user_id == user_id).first()
+    if not row:
+        raise HTTPException(404, "Group member not found")
     if member.status is None:
-        raise HTTPException(status_code=422, detail="status is required")
-
-    is_self = user_id == current_user.id
-    is_owner = group.owner_id == current_user.id
-    allowed = ("accepted", "declined", "left") if is_self else ("removed",)
-    if not (is_self or is_owner) or member.status not in allowed:
-        raise HTTPException(status_code=403, detail="Not allowed")
-
-    db_member.status = member.status
-    db_member.accepted = member.status == "accepted"
-    db.commit()
-    db.refresh(db_member)
-    return db_member
+        raise HTTPException(422, "status is required")
+    invitation_transition(row, member.status, is_self=user_id == current_user.id,
+                          is_owner=group.owner_id == current_user.id)
+    events = change_events(db, {"type": "group", "id": group_id}, "group.membership",
+                          "A group membership was updated", current_user.id, extra_ids=[user_id])
+    commit(db)
+    db.refresh(row)
+    queue_events(background_tasks, events)
+    return row

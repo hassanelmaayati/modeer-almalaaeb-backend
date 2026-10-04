@@ -1,199 +1,111 @@
+from datetime import datetime, timedelta, timezone
+import jwt
 import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+
 from models.user import UserModel
-from tests.lib import login
+from tests.lib import PASSWORD, api
 
 
-@pytest.fixture(scope="module", autouse=True)
-def other_player(test_db: Session):
-    player = UserModel(user_name="other_player", email="other@example.com")
-    player.set_password("otherpass")
-    test_db.add(player)
-    test_db.commit()
+def test_signup_login_profile_update_and_logout_are_persisted(client, db):
+    registered = api(client, 'POST', '/auth/signup', body={'user_name': 'new_player', 'email': 'new@example.test', 'password': PASSWORD, 'bio': 'Striker', 'district': 'northern'}, expected=201)
+    assert registered['user']['user_name'] == 'new_player'
+    assert {'password', 'email', 'google_subject'}.isdisjoint(registered['user'])
+    user = {'id': registered['user']['id'], 'headers': {'Authorization': 'Bearer ' + registered['token']}}
+    with db() as session:
+        stored = session.get(UserModel, user['id'])
+        assert stored.password != PASSWORD and stored.verify_password(PASSWORD)
+        assert stored.district == 'northern'
+    logged_in = api(client, 'POST', '/auth/login', body={'email': 'new@example.test', 'password': PASSWORD})
+    assert logged_in['user']['id'] == user['id']
+    updated = api(client, 'PUT', '/users/me', user=user, body={'user_name': 'changed_player', 'bio': 'Midfielder', 'district': None})
+    assert updated['user_name'] == 'changed_player' and updated['district'] is None
+    assert api(client, 'GET', '/users/me', user=user)['bio'] == 'Midfielder'
+    with db() as session:
+        assert session.get(UserModel, user['id']).user_name == 'changed_player'
+    assert api(client, 'GET', f"/users/{user['id']}")['user_name'] == 'changed_player'
+    assert [item['id'] for item in api(client, 'GET', '/users')] == [user['id']]
+    api(client, 'POST', '/auth/logout', user=user, expected=204)
+    api(client, 'GET', '/users/me', user=user, expected=401)
+    with db() as session:
+        assert session.get(UserModel, user['id']).token_version == 1
+    relogin = api(client, 'POST', '/auth/login', body={'email': 'new@example.test', 'password': PASSWORD})
+    assert relogin['token'] != logged_in['token']
 
 
-def test_signup(test_app: TestClient, test_db: Session, override_get_db):
-    user_data = {
-        "user_name": "new_player",
-        "email": "new@example.com",
-        "password": "strongpass",
-        "bio": "Striker",
-    }
-    response = test_app.post("/api/v1/auth/signup", json=user_data)
-
-    assert response.status_code == 201
-    body = response.json()
-    assert body["token"]
-    assert body["user"]["user_name"] == "new_player"
-    assert body["user"]["bio"] == "Striker"
-    assert "password" not in body["user"]
-    assert "email" not in body["user"]
-
-    user = test_db.query(UserModel).filter(UserModel.user_name == "new_player").first()
-    assert user is not None
-    assert user.password != "strongpass"
+@pytest.mark.parametrize('changes,status', [({'user_name':'ab'},422),({'email':'bad'},422),({'password':'short'},422),({'district':'mars'},422)])
+def test_signup_rejects_invalid_input_without_creating_users(client, db, changes, status):
+    body = {'user_name':'valid_player','email':'valid@example.test','password':PASSWORD, **changes}
+    api(client,'POST','/auth/signup',body=body,expected=status)
+    with db() as session:
+        assert session.query(UserModel).count() == 0
 
 
-def test_signup_rejects_duplicate_user_name(test_app: TestClient, override_get_db):
-    user_data = {
-        "user_name": "other_player",
-        "email": "copy@example.com",
-        "password": "strongpass",
-    }
-    response = test_app.post("/api/v1/auth/signup", json=user_data)
-    assert response.status_code == 400
-    assert response.json()["detail"] == "user name is already taken"
+@pytest.mark.parametrize('field', ['user_name', 'email'])
+def test_signup_rejects_duplicates_without_creating_users(client, db, factory, field):
+    first = factory.user('existing')
+    body = {'user_name':'other_player','email':'other@example.test','password':PASSWORD}
+    body[field] = first[field]
+    api(client,'POST','/auth/signup',body=body,expected=400)
+    with db() as session:
+        assert session.query(UserModel).count() == 1
 
 
-def test_signup_rejects_duplicate_email(test_app: TestClient, override_get_db):
-    user_data = {
-        "user_name": "copy_player",
-        "email": "other@example.com",
-        "password": "strongpass",
-    }
-    response = test_app.post("/api/v1/auth/signup", json=user_data)
-    assert response.status_code == 400
-    assert response.json()["detail"] == "Email is already registered"
+def test_login_and_profile_errors_do_not_mutate_existing_user(client, factory, db):
+    user = factory.user()
+    api(client,'POST','/auth/login',body={'email':user['email'],'password':'wrongpassword'},expected=400)
+    api(client,'GET','/users/987654',expected=404)
+    api(client,'PUT','/users/me',user=user,body={'user_name':user['user_name'],'district':'mars'},expected=422)
+    with db() as session:
+        assert session.get(UserModel,user['id']).district == 'capital'
+        assert session.get(UserModel,user['id']).token_version == 0
 
 
-def test_signup_validates_fields(test_app: TestClient, override_get_db):
-    user_data = {
-        "user_name": "ab",
-        "email": "not-an-email",
-        "password": "short",
-    }
-    response = test_app.post("/api/v1/auth/signup", json=user_data)
-    assert response.status_code == 422
+@pytest.mark.parametrize('claims', [
+    {'sub':'abc','ver':0}, {'sub':None,'ver':0}, {'sub':'1','ver':-1}, {'sub':'99999','ver':0},
+    {'sub':'1'}, {'sub':'1','ver':0,'exp':1},
+])
+def test_invalid_claims_are_401_instead_of_server_errors(client, factory, claims):
+    factory.user()
+    body = {'exp':datetime.now(timezone.utc)+timedelta(hours=1), **claims}
+    token = jwt.encode(body,'modeer-isolated-backend-test-secret-2026',algorithm='HS256')
+    response = client.get('/api/v1/users/me',headers={'Authorization':'Bearer '+token})
+    assert response.status_code == 401, response.text
 
 
-def test_login_with_email(test_app: TestClient, override_get_db):
-    assert login(test_app, "other@example.com", "otherpass")
-
-    response = test_app.post(
-        "/api/v1/auth/login", json={"email": "other@example.com", "password": "wrong"}
-    )
-    assert response.status_code == 400
-
-
-def test_get_and_update_me(test_app: TestClient, override_get_db):
-    headers = login(test_app, "other@example.com", "otherpass")
-
-    response = test_app.get("/api/v1/users/me", headers=headers)
-    assert response.status_code == 200
-    assert response.json()["user_name"] == "other_player"
-
-    response = test_app.put(
-        "/api/v1/users/me",
-        headers=headers,
-        json={"user_name": "renamed_player", "bio": "Midfielder"},
-    )
-    assert response.status_code == 200
-    assert response.json()["user_name"] == "renamed_player"
-    assert response.json()["bio"] == "Midfielder"
+def test_google_create_signin_link_and_collision_have_real_database_outcomes(client, db, factory, monkeypatch):
+    import controllers.google_auth as google
+    claims = {'sub':'google-subject-one','email':'google@example.test','email_verified':True,'picture':'https://example.test/photo.jpg'}
+    monkeypatch.setattr(google,'verify_google_credential',lambda _: claims)
+    created = api(client,'POST','/auth/google',body={'credential':'verified-fixture'},expected=201)
+    signed = api(client,'POST','/auth/google',body={'credential':'verified-fixture'})
+    assert signed['user']['id'] == created['user']['id']
+    password_user = factory.user()
+    claims.update(sub='google-subject-two',email=password_user['email'])
+    api(client,'POST','/auth/google',body={'credential':'fixture'},expected=409)
+    linked = api(client,'POST','/auth/google/link',user=password_user,body={'credential':'fixture'})
+    assert linked['id'] == password_user['id']
+    api(client,'POST','/auth/google/link',user=password_user,body={'credential':'fixture'},expected=409)
+    other = factory.user()
+    api(client,'POST','/auth/google/link',user=other,body={'credential':'fixture'},expected=400)
+    with db() as session:
+        assert session.get(UserModel,password_user['id']).google_subject == 'google-subject-two'
+        assert session.query(UserModel).filter(UserModel.google_subject=='google-subject-one').count() == 1
+        assert session.get(UserModel,other['id']).google_subject is None
 
 
-def test_signup_with_home_district(test_app: TestClient, test_db: Session, override_get_db):
-    user_data = {
-        "user_name": "district_player",
-        "email": "district@example.com",
-        "password": "strongpass",
-        "district": "northern",
-    }
-    response = test_app.post("/api/v1/auth/signup", json=user_data)
-    assert response.status_code == 201
-    assert response.json()["user"]["district"] == "northern"
-
-    user = test_db.query(UserModel).filter(UserModel.user_name == "district_player").first()
-    assert user.district == "northern"
-
-
-def test_signup_without_district_leaves_it_empty(test_app: TestClient, override_get_db):
-    user_data = {
-        "user_name": "no_district_player",
-        "email": "nodistrict@example.com",
-        "password": "strongpass",
-    }
-    response = test_app.post("/api/v1/auth/signup", json=user_data)
-    assert response.status_code == 201
-    assert response.json()["user"]["district"] is None
-
-
-def test_signup_rejects_invalid_district(test_app: TestClient, override_get_db):
-    user_data = {
-        "user_name": "mars_player",
-        "email": "mars@example.com",
-        "password": "strongpass",
-        "district": "mars",
-    }
-    response = test_app.post("/api/v1/auth/signup", json=user_data)
-    assert response.status_code == 422
-
-
-def test_update_home_district(test_app: TestClient, override_get_db):
-    headers = login(test_app, "other@example.com", "otherpass")
-
-    response = test_app.put(
-        "/api/v1/users/me",
-        headers=headers,
-        json={"user_name": "renamed_player", "district": "muharraq"},
-    )
-    assert response.status_code == 200
-    assert response.json()["district"] == "muharraq"
-    assert test_app.get("/api/v1/users/me", headers=headers).json()["district"] == "muharraq"
-
-    # Changing the district can be undone by sending null
-    response = test_app.put(
-        "/api/v1/users/me",
-        headers=headers,
-        json={"user_name": "renamed_player", "district": None},
-    )
-    assert response.status_code == 200
-    assert response.json()["district"] is None
-
-
-def test_update_home_district_must_be_valid(test_app: TestClient, override_get_db):
-    headers = login(test_app, "other@example.com", "otherpass")
-
-    response = test_app.put(
-        "/api/v1/users/me",
-        headers=headers,
-        json={"user_name": "renamed_player", "district": "mars"},
-    )
-    assert response.status_code == 422
-
-
-def test_get_users(test_app: TestClient, override_get_db):
-    response = test_app.get("/api/v1/users")
-    assert response.status_code == 200
-    user_names = [user["user_name"] for user in response.json()]
-    assert "renamed_player" in user_names
-    assert all("email" not in user for user in response.json())
-
-
-def test_get_public_profile(test_app: TestClient, test_db: Session, override_get_db):
-    user = (
-        test_db.query(UserModel).filter(UserModel.user_name == "renamed_player").first()
-    )
-    response = test_app.get(f"/api/v1/users/{user.id}")
-    assert response.status_code == 200
-    assert response.json()["user_name"] == "renamed_player"
-    assert "email" not in response.json()
-
-    response = test_app.get("/api/v1/users/99999")
-    assert response.status_code == 404
-
-
-def test_me_requires_auth(test_app: TestClient, override_get_db):
-    response = test_app.get("/api/v1/users/me")
-    assert response.status_code == 401
-
-
-def test_logout_revokes_token(test_app: TestClient, override_get_db):
-    headers = login(test_app, "other@example.com", "otherpass")
-
-    response = test_app.post("/api/v1/auth/logout", headers=headers)
-    assert response.status_code == 204
-
-    response = test_app.get("/api/v1/users/me", headers=headers)
-    assert response.status_code == 401
+@pytest.mark.parametrize('problem,status', [('unconfigured',503),('invalid',401),('unverified',401),('network',503)])
+def test_google_verification_failures_create_no_account(client, db, monkeypatch, problem, status):
+    import controllers.google_auth as google
+    from google.auth.exceptions import GoogleAuthError
+    if problem=='unconfigured':
+        monkeypatch.setattr(google,'GOOGLE_CLIENT_ID',None)
+    else:
+        def verify(*args,**kwargs):
+            if problem=='invalid': raise ValueError('invalid')
+            if problem=='network': raise GoogleAuthError('offline')
+            return {'email_verified':False}
+        monkeypatch.setattr(google.id_token,'verify_oauth2_token',verify)
+    api(client,'POST','/auth/google',body={'credential':'fixture'},expected=status)
+    with db() as session:
+        assert session.query(UserModel).count()==0

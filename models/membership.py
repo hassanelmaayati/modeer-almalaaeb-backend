@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Boolean
+from sqlalchemy import Boolean, Column, ForeignKey, Index, Integer, String, UniqueConstraint, case
+from sqlalchemy.sql.expression import Grouping
 
 from sqlalchemy.orm import relationship
 from .base import BaseModel
@@ -34,6 +35,21 @@ class MembershipModel(BaseModel):
 
     user_blocked_other = Column(String, nullable=True)
     other_blocked_user = Column(String, nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "room_id", name="uq_memberships_user_room"),
+        UniqueConstraint("user_id", "cup_id", name="uq_memberships_user_cup"),
+        Index("uq_memberships_user_group", user_id, group_id, unique=True,
+              postgresql_where=(group_id.is_not(None) & cup_id.is_(None)),
+              sqlite_where=(group_id.is_not(None) & cup_id.is_(None))),
+        Index("uq_memberships_friend_pair",
+              Grouping(case((user_id < other_user_id, user_id), else_=other_user_id)),
+              Grouping(case((user_id < other_user_id, other_user_id), else_=user_id)), unique=True,
+              postgresql_where=other_user_id.is_not(None), sqlite_where=other_user_id.is_not(None)),
+        Index("uq_memberships_room_position", room_id, position, unique=True,
+              postgresql_where=(status == "accepted") & position.is_not(None),
+              sqlite_where=(status == "accepted") & position.is_not(None)),
+    )
 
     # Relationships to other models:
     user = relationship(

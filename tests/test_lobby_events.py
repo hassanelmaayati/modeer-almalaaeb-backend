@@ -1,17 +1,10 @@
 import asyncio
-import json
-from datetime import datetime, timedelta, timezone
 
-from sqlalchemy.orm import Session
+import pytest
 
 from models.membership import MembershipModel
 from models.room import RoomModel
-from services.lobby import LobbyHub
-from services.lobby_events import (
-    events_for_change,
-    lobby_state,
-    publish_room_event,
-)
+from services import lobby_events
 from services.room_rules import count_slots_left
 
 

@@ -1,9 +1,8 @@
 import asyncio
 from datetime import datetime, timedelta, timezone
+from unittest.mock import patch
 
-from sqlalchemy.orm import Session
-
-from models.membership import MembershipModel
+import pytest
 from models.room import RoomModel
 from services.lifecycle import lifecycle_loop, run_lifecycle_tick
 from tests.conftest import TestingSessionLocal

@@ -47,7 +47,7 @@ async def handle_message(websocket: WebSocket, raw) -> dict | None:
 
     if action == "subscribe":
         district = data.get("district")
-        if not isinstance(district, str) or district not in DISTRICTS:
+        if district is not None and district not in DISTRICTS:
             return {
                 "type": "error",
                 "detail": f"district must be one of: {', '.join(DISTRICTS)}",

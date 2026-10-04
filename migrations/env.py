@@ -1,89 +1,53 @@
-from logging.config import fileConfig
-
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
-
-from alembic import context
-import models
-
-# this is the Alembic Config object, which provides
-# access to the values within the .ini file in use.
-config = context.config
-
+"""Run migrations with an explicit URL or caller-owned transaction."""
 import os
-
-database_url = os.environ.get("DATABASE_URL")
-
-if database_url:
-    config.set_main_option("sqlalchemy.url", database_url)
-else:
-    # Fallback to a default or raise an error if the variable is not set
-    # For example, you can get it from alembic.ini if not found in env
-    raise ValueError("DATABASE_URL environment variable is required")
-
-# Interpret the config file for Python logging.
-# This line sets up loggers basically.
-if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+from logging.config import fileConfig
+from alembic import context
+from sqlalchemy import engine_from_config, pool
+import models
 from models.base import Base
 
-# add your model's MetaData object here
-# for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
+config = context.config
 target_metadata = Base.metadata
-
-# other values from the config, defined by the needs of env.py,
-# can be acquired:
-# my_important_option = config.get_main_option("my_important_option")
-# ... etc.
+if config.config_file_name is not None:
+    fileConfig(config.config_file_name)
 
 
-def run_migrations_offline() -> None:
-    """Run migrations in 'offline' mode.
+def configure_url():
+    url = config.attributes.get('database_url') or os.environ.get('DATABASE_URL')
+    if not url:
+        raise ValueError('DATABASE_URL or an explicit migration database_url is required')
+    config.set_main_option('sqlalchemy.url', url.replace('%', '%%'))
 
-    This configures the context with just a URL
-    and not an Engine, though an Engine is acceptable
-    here as well.  By skipping the Engine creation
-    we don't even need a DBAPI to be available.
 
-    Calls to context.execute() here emit the given string to the
-    script output.
-
-    """
-    url = config.get_main_option("sqlalchemy.url")
-    context.configure(
-        url=url,
-        target_metadata=target_metadata,
-        literal_binds=True,
-        dialect_opts={"paramstyle": "named"},
-    )
-
+def run_on_connection(connection):
+    context.configure(connection=connection, target_metadata=target_metadata)
+    migration = context.get_context()
+    operation = migration.opts.get('fn')
+    if operation and operation.__name__ == 'downgrade':
+        # Historical revisions assume tables predating Alembic. Replaying those
+        # downgrades cannot safely undo a fully initialized application schema.
+        forbidden = {'f837b871ec81', '7382d258d28d', 'c00a640ed5c7'}
+        steps = operation(migration.get_current_heads(), migration)
+        if any(not step.to_revisions or forbidden.intersection(step.to_revisions) for step in steps):
+            raise ValueError('Downgrade below the frozen baseline 0a029e480f8f is unsupported')
     with context.begin_transaction():
         context.run_migrations()
 
 
-def run_migrations_online() -> None:
-    """Run migrations in 'online' mode.
-
-    In this scenario we need to create an Engine
-    and associate a connection with the context.
-
-    """
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
-
-    with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
-
-        with context.begin_transaction():
-            context.run_migrations()
-
-
 if context.is_offline_mode():
-    run_migrations_offline()
+    configure_url()
+    context.configure(url=config.get_main_option('sqlalchemy.url'), target_metadata=target_metadata,
+                      literal_binds=True, dialect_opts={'paramstyle': 'named'})
+    with context.begin_transaction():
+        context.run_migrations()
+elif config.attributes.get('connection') is not None:
+    run_on_connection(config.attributes['connection'])
 else:
-    run_migrations_online()
+    configure_url()
+    engine = engine_from_config(config.get_section(config.config_ini_section, {}),
+                                prefix='sqlalchemy.', poolclass=pool.NullPool)
+    try:
+        with engine.connect() as connection:
+            run_on_connection(connection)
+    finally:
+        engine.dispose()

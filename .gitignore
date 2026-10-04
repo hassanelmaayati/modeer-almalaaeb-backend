@@ -3,4 +3,5 @@ settings.json
 *.pyc
 __pycache__/
 test.db
+.pytest_cache/
 migrations/versions/
