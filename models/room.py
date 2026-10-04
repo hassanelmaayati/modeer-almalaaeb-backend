@@ -5,6 +5,7 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -28,6 +29,7 @@ ROOM_STATUSES = ("open", "started", "completed", "cancelled")
 ROOM_VISIBILITIES = ("public", "private", "group")
 ROOM_ADMISSION_POLICIES = ("approval", "open")
 DIFFICULTY = ("beginners", "medium", "advanced")
+DISTRICTS = ("capital", "muharraq", "northern", "southern")
 
 class RoomModel(BaseModel):
     __tablename__ = "rooms"
@@ -56,6 +58,9 @@ class RoomModel(BaseModel):
     status = Column(String, nullable=False, default="open", server_default="open")
     visibility = Column(String, nullable=False, default="public", server_default="public")
     admission_policy = Column(String, nullable=False, default="approval", server_default="approval")
+
+    # District is the Bahrain governorate used to find rooms near the user
+    district = Column(String, nullable=False)
 
     # Public area is safe to show, venue details are for admitted players only
     public_area = Column(String, nullable=False)
@@ -90,9 +95,15 @@ class RoomModel(BaseModel):
                 name="ck_rooms_difficulty",
             ),
         CheckConstraint(
+            "district IN ('capital', 'muharraq', 'northern', 'southern')",
+            name="ck_rooms_district",
+        ),
+        CheckConstraint(
             "visibility != 'group' OR group_id IS NOT NULL",
             name="ck_rooms_group_visibility_needs_group",
         ),
+        # Matches the discovery query: district, open status, upcoming start
+        Index("ix_rooms_district_status_starts_at", "district", "status", "starts_at"),
     )
 
     # Relationships to other models:
