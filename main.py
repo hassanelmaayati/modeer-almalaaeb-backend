@@ -10,12 +10,16 @@ from controllers.groups import router as GroupsRouter
 from controllers.auth import router as AuthRouter
 from controllers.users import router as UsersRouter
 from controllers.sports import router as SportsRouter
+<<<<<<< HEAD
+from controllers.cups import router as CupsRouter
+=======
 from controllers.rooms import router as RoomsRouter
 from controllers.messages import router as MessagesRouter
 from controllers.memberships.room import router as RoomMembersRouter
 from controllers.memberships.friends import router as FriendsRouter
 from controllers.memberships.group import router as GroupMembersRouter
 from controllers.memberships.cup import router as CupRosterRouter
+>>>>>>> 38ca36c9404cf6d093c5db0b75c6a780b4a04ee5
 
 tags = [
     {
@@ -35,6 +39,10 @@ tags = [
         "description": "Operations related to sports",
     },
     {
+<<<<<<< HEAD
+        "name": "Cups Management",
+        "description": "Football cups, team entries and knockout brackets",
+=======
         "name": "Rooms Management",
         "description": "Operations related to rooms (scheduled activities)",
     },
@@ -57,6 +65,7 @@ tags = [
     {
         "name": "Cup Roster Management",
         "description": "Cup roster invitations",
+>>>>>>> 38ca36c9404cf6d093c5db0b75c6a780b4a04ee5
     },
 ]
 app = FastAPI(
@@ -68,12 +77,16 @@ app.include_router(AuthRouter, prefix="/api/v1")
 app.include_router(UsersRouter, prefix="/api/v1")
 app.include_router(GroupsRouter, prefix="/api/v1")
 app.include_router(SportsRouter, prefix="/api/v1")
+<<<<<<< HEAD
+app.include_router(CupsRouter, prefix="/api/v1")
+=======
 app.include_router(RoomsRouter, prefix="/api/v1")
 app.include_router(MessagesRouter, prefix="/api/v1")
 app.include_router(RoomMembersRouter, prefix="/api/v1")
 app.include_router(FriendsRouter, prefix="/api/v1")
 app.include_router(GroupMembersRouter, prefix="/api/v1")
 app.include_router(CupRosterRouter, prefix="/api/v1")
+>>>>>>> 38ca36c9404cf6d093c5db0b75c6a780b4a04ee5
 
 
 origins = [

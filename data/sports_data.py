@@ -27,5 +27,4 @@ def build_sports():
         SportModel(name="Swimming"),
     ]
 
-
 sports_list = build_sports()

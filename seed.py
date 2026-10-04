@@ -4,6 +4,7 @@ from data.sports_data import sports_list
 from data.groups_data import groups_list
 from data.rooms_data import rooms_list
 from data.users_data import user_list
+from data.cups_data import cups_list
 from config.environment import DATABASE_URL
 from sqlalchemy import create_engine
 from models.base import Base  # import base model
@@ -29,7 +30,11 @@ try:
     db.add_all(groups_list)
     db.commit()
 
+<<<<<<< HEAD
+    db.add_all(cups_list)
+=======
     db.add_all(rooms_list)
+>>>>>>> 38ca36c9404cf6d093c5db0b75c6a780b4a04ee5
     db.commit()
 
     db.close()

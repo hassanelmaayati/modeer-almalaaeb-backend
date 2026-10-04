@@ -1,13 +1,30 @@
+import importlib
+
 from fastapi.testclient import TestClient
+<<<<<<< HEAD
+from data import users_data, sports_data, groups_data
+=======
 from data.users_data import build_users
 from data.sports_data import build_sports
 from data.groups_data import build_groups
 from data.rooms_data import build_rooms
 from data.memberships_data import build_memberships
+>>>>>>> 38ca36c9404cf6d093c5db0b75c6a780b4a04ee5
 
 
 def seed_db(db):
+    # Reload the data modules so every test module seeds fresh objects
+    for data_module in (users_data, sports_data, groups_data):
+        importlib.reload(data_module)
+
     db.commit()
+<<<<<<< HEAD
+    db.add_all(users_data.user_list)
+    db.commit()
+    db.add_all(sports_data.sports_list)
+    db.commit()
+    db.add_all(groups_data.groups_list)
+=======
     db.add_all(build_users())
     db.commit()
     db.add_all(build_sports())
@@ -17,6 +34,7 @@ def seed_db(db):
     db.add_all(build_rooms())
     db.commit()
     db.add_all(build_memberships())
+>>>>>>> 38ca36c9404cf6d093c5db0b75c6a780b4a04ee5
     db.commit()
 
 
