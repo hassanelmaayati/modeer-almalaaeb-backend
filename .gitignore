@@ -3,4 +3,8 @@ settings.json
 *.pyc
 __pycache__/
 test.db
+<<<<<<< HEAD
 migrations/versions/
+=======
+migrations/versions/
+>>>>>>> 38ca36c9404cf6d093c5db0b75c6a780b4a04ee5
