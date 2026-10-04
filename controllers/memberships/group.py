@@ -27,6 +27,7 @@ def _get_group(db: Session, group_id: int) -> GroupModel:
 def _group_members(db: Session, group_id: int):
     return db.query(MembershipModel).filter(
         MembershipModel.group_id == group_id,
+        MembershipModel.cup_id.is_(None),
     )
 
 
