@@ -10,6 +10,7 @@ from controllers.groups import router as GroupsRouter
 from controllers.auth import router as AuthRouter
 from controllers.users import router as UsersRouter
 from controllers.sports import router as SportsRouter
+from controllers.cups import router as CupsRouter
 from controllers.rooms import router as RoomsRouter
 from controllers.messages import router as MessagesRouter
 from controllers.memberships.room import router as RoomMembersRouter
@@ -19,10 +20,6 @@ from controllers.memberships.cup import router as CupRosterRouter
 
 tags = [
     {
-        "name": "Groups Management",
-        "description": "Operations related to social groups and teams",
-    },
-    {
         "name": "Auth",
         "description": "Sign up, sign in and sign out",
     },
@@ -31,10 +28,16 @@ tags = [
         "description": "Profiles and player search",
     },
     {
+        "name": "Groups Management",
+        "description": "Operations related to social groups and teams",
+    },
+    {
         "name": "Sports Management",
         "description": "Operations related to sports",
     },
     {
+        "name": "Cups Management",
+        "description": "Football cups, team entries and knockout brackets",
         "name": "Rooms Management",
         "description": "Operations related to rooms (scheduled activities)",
     },
@@ -68,6 +71,7 @@ app.include_router(AuthRouter, prefix="/api/v1")
 app.include_router(UsersRouter, prefix="/api/v1")
 app.include_router(GroupsRouter, prefix="/api/v1")
 app.include_router(SportsRouter, prefix="/api/v1")
+app.include_router(CupsRouter, prefix="/api/v1")
 app.include_router(RoomsRouter, prefix="/api/v1")
 app.include_router(MessagesRouter, prefix="/api/v1")
 app.include_router(RoomMembersRouter, prefix="/api/v1")

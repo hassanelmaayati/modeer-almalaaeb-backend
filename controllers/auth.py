@@ -23,6 +23,7 @@ def signup(user: UserSignupSchema, db: Session = Depends(get_db)):
         email=user.email,
         photo_url=user.photo_url or None,
         bio=user.bio or None,
+        district=user.district,
     )
     new_user.set_password(user.password)
     db.add(new_user)
