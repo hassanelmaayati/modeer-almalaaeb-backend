@@ -10,6 +10,8 @@ from sqlalchemy import (
     String,
     Text,
 )
+from geoalchemy2 import Geography
+from geoalchemy2.shape import to_shape
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 
@@ -21,6 +23,18 @@ from .user import UserModel
 
 # JSONB on PostgreSQL, plain JSON on SQLite (used by the tests)
 JsonType = JSON().with_variant(JSONB(), "postgresql")
+
+# PostGIS geography point (distances are in metres) on PostgreSQL
+# plain text on SQLite (used by the tests, which have no PostGIS)
+PointType = Geography(geometry_type="POINT", srid=4326, spatial_index=False).with_variant(
+    Text(), "sqlite"
+)
+
+
+def make_point(latitude: float, longitude: float) -> str:
+    """Point as EWKT, which PostGIS reads directly and SQLite stores as text"""
+    # PostGIS wants longitude first
+    return f"SRID=4326;POINT({longitude} {latitude})"
 
 '''
 tuples listing the allowed values for status, visibility, admission_policy, and difficulty
@@ -64,8 +78,7 @@ class RoomModel(BaseModel):
 
     # location details 
     area = Column(String, nullable=False)
-    venue_latitude = Column(Float, nullable=True)
-    venue_longitude = Column(Float, nullable=True)
+    venue_point = Column(PointType, nullable=True)
     venue_notes = Column(Text, nullable=True)
 
     # Optional walking, running and cycling details
@@ -104,20 +117,10 @@ class RoomModel(BaseModel):
             "visibility != 'group' OR group_id IS NOT NULL",
             name="ck_rooms_group_visibility_needs_group",
         ),
-        CheckConstraint(
-            "venue_latitude BETWEEN -90 AND 90",
-            name="ck_rooms_venue_latitude_range",
-        ),
-        CheckConstraint(
-            "venue_longitude BETWEEN -180 AND 180",
-            name="ck_rooms_venue_longitude_range",
-        ),
-        CheckConstraint(
-            "(venue_latitude IS NULL) = (venue_longitude IS NULL)",
-            name="ck_rooms_venue_location_both_or_none",
-        ),
         # Matches the discovery query: district, open status, upcoming start
         Index("ix_rooms_district_status_starts_at", "district", "status", "starts_at"),
+        # Spatial index for distance queries (ignored on SQLite)
+        Index("ix_rooms_venue_point", "venue_point", postgresql_using="gist"),
     )
 
     # Relationships to other models:
@@ -132,9 +135,16 @@ class RoomModel(BaseModel):
     @property
     def venue_location(self):
         """Map pin as {"latitude", "longitude"}, or None when no pin was set"""
-        if self.venue_latitude is None or self.venue_longitude is None:
+        point = self.venue_point
+        if point is None:
             return None
-        return {"latitude": self.venue_latitude, "longitude": self.venue_longitude}
+        if isinstance(point, str):
+            longitude, latitude = map(float, point.split("POINT(")[1].rstrip(")").split())
+        else:
+            # PostgreSQL returns a WKB element
+            shape = to_shape(point)
+            longitude, latitude = shape.x, shape.y
+        return {"latitude": latitude, "longitude": longitude}
 
     def validate_capacity(self):
         """Raise ValueError if capacity does not match one of the sport's formats"""

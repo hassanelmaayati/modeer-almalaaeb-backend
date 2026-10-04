@@ -24,7 +24,7 @@ def add_room(db: Session, starts_in, lasts=60, **overrides) -> RoomModel:
         ends_at=start + timedelta(minutes=lasts),
         capacity=4,
         district="capital",
-        public_area="Manama",
+        area="Manama",
     )
     values.update(overrides)
     room = RoomModel(**values)

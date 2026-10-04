@@ -42,8 +42,8 @@ def add_room(db: Session, **overrides) -> RoomModel:
         ends_at=now + timedelta(days=1, hours=1),
         capacity=4,
         district="capital",
-        public_area="Manama",
-        venue_details="Secret court 9",
+        area="Manama",
+        venue_notes="Secret court 9",
     )
     values.update(overrides)
     room = RoomModel(**values)
@@ -120,7 +120,7 @@ def test_published_payload_has_public_fields_only(test_db: Session):
     text = sent[0][1].model_dump_json()
     assert "Secret court 9" not in text
     assert set(json.loads(text)["room"]) == {
-        "id", "title", "sport_id", "sport_name", "district", "public_area",
+        "id", "title", "sport_id", "sport_name", "district", "area",
         "starts_at", "capacity", "slots_left", "difficulty", "revision",
     }
 

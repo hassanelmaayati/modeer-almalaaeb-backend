@@ -11,7 +11,7 @@ from database import get_db
 # Models
 from models.areas import is_area_in_district
 from models.districts import DISTRICTS
-from models.room import RoomModel
+from models.room import RoomModel, make_point
 from models.sport import SportModel
 from models.group import GroupModel
 from models.user import UserModel
@@ -92,11 +92,10 @@ def get_host_room(db: Session, room_id: int, current_user: UserModel) -> RoomMod
 
 
 def split_location(data: dict) -> dict:
-    # The API takes one venue_location, the table stores two columns
+    # The API takes venue_location as latitude/longitude, the table stores a PostGIS point
     location = data.pop("venue_location", None)
     if location is not None:
-        data["venue_latitude"] = location["latitude"]
-        data["venue_longitude"] = location["longitude"]
+        data["venue_point"] = make_point(location["latitude"], location["longitude"])
     return data
 
 

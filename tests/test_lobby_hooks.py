@@ -51,8 +51,8 @@ def room_body(**overrides):
         "ends_at": when(25),
         "capacity": 4,
         "district": "capital",
-        "public_area": "Manama",
-        "venue_details": "Pool 7, side door",
+        "area": "Manama",
+        "venue_notes": "Pool 7, side door",
     }
     body.update(overrides)
     return body
@@ -86,7 +86,7 @@ def player(test_app, n=2):
 
 
 def test_creating_a_public_room_publishes_it(test_app: TestClient, override_get_db, hub):
-    make_room(test_app, host(test_app), district="northern")
+    make_room(test_app, host(test_app), district="northern", area="Budaiya")
     assert hub.summary() == [("northern", "room_created")]
 
 
@@ -119,7 +119,7 @@ def test_moving_a_room_to_another_district(test_app: TestClient, override_get_db
     room = make_room(test_app, headers, district="capital")
     hub.clear()
 
-    put(test_app, headers, room, district="southern")
+    put(test_app, headers, room, district="southern", area="Riffa")
     assert hub.summary() == [("capital", "room_removed"), ("southern", "room_created")]
     assert hub.sent[0][1].reason == "moved"
 

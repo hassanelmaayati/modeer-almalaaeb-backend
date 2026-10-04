@@ -16,8 +16,8 @@ def build_rooms():
             ends_at=now + timedelta(days=1, hours=1),
             capacity=10,
             district="capital",
-            public_area="Manama",
-            venue_details="Pitch 3, Bahrain Sports Hall",
+            area="Manama",
+            venue_notes="Pitch 3, Bahrain Sports Hall",
         ),
         RoomModel(
             host_id=2,
@@ -28,8 +28,8 @@ def build_rooms():
             ends_at=now + timedelta(days=2, hours=2),
             capacity=6,
             district="southern",
-            public_area="Riffa",
-            venue_details="Outdoor court behind the mall",
+            area="Riffa",
+            venue_notes="Outdoor court behind the mall",
         ),
         # Group-only room, owned by the host of group 3
         RoomModel(
@@ -43,8 +43,8 @@ def build_rooms():
             capacity=4,
             visibility="group",
             district="muharraq",
-            public_area="Muharraq",
-            venue_details="Court 2",
+            area="Muharraq",
+            venue_notes="Court 2",
         ),
         # Swimming has no formats, so any capacity is accepted
         RoomModel(
@@ -55,7 +55,7 @@ def build_rooms():
             ends_at=now + timedelta(days=4, hours=1),
             capacity=8,
             district="capital",
-            public_area="Juffair",
+            area="Juffair",
             distance_km=1.5,
             pace_notes="Easy pace",
         ),

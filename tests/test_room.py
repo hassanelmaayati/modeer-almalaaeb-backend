@@ -24,8 +24,8 @@ def room_data(**overrides):
         "ends_at": future(days=1, hours=1),
         "capacity": 10,
         "district": "capital",
-        "public_area": "Manama",
-        "venue_details": "Court 1",
+        "area": "Manama",
+        "venue_notes": "Court 1",
     }
     data.update(overrides)
     return data
@@ -51,7 +51,7 @@ def test_get_rooms(test_app: TestClient, test_db: Session, override_get_db):
     for room in rooms:
         assert room["status"] == "open"
         assert room["visibility"] == "public"
-        assert "venue_details" not in room  # exact venue stays private
+        assert "venue_notes" not in room  # exact venue stays private
 
     # Sorted by start time
     starts = [room["starts_at"] for room in rooms]
@@ -125,21 +125,21 @@ def test_get_room_hides_venue_from_visitors(test_app: TestClient, override_get_d
     response = test_app.get("/api/v1/rooms/1")
     assert response.status_code == 200
     assert response.json()["title"] == "Friday 5-a-side"
-    assert "venue_details" not in response.json()
+    assert "venue_notes" not in response.json()
 
 
 def test_get_room_shows_venue_to_host(test_app: TestClient, override_get_db):
     headers = login(test_app, "user1@example.com", "123")
     response = test_app.get("/api/v1/rooms/1", headers=headers)
     assert response.status_code == 200
-    assert response.json()["venue_details"] == "Pitch 3, Bahrain Sports Hall"
+    assert response.json()["venue_notes"] == "Pitch 3, Bahrain Sports Hall"
 
 
 def test_get_room_hides_venue_from_other_users(test_app: TestClient, override_get_db):
     headers = login(test_app, "user2@example.com", "123")
     response = test_app.get("/api/v1/rooms/1", headers=headers)
     assert response.status_code == 200
-    assert "venue_details" not in response.json()
+    assert "venue_notes" not in response.json()
 
 
 def test_get_room_not_found(test_app: TestClient, override_get_db):
@@ -156,7 +156,7 @@ def test_get_group_room_hidden_from_non_host(test_app: TestClient, override_get_
     host = login(test_app, "user3@example.com", "123")
     response = test_app.get("/api/v1/rooms/3", headers=host)
     assert response.status_code == 200
-    assert response.json()["venue_details"] == "Court 2"
+    assert response.json()["venue_notes"] == "Court 2"
 
 
 # ---------- create ----------
@@ -173,7 +173,7 @@ def test_create_room(test_app: TestClient, test_db: Session, override_get_db):
     assert room["visibility"] == "public"
     assert room["difficulty"] == "beginners"
     assert room["revision"] == 0
-    assert room["venue_details"] == "Court 1"
+    assert room["venue_notes"] == "Court 1"
     assert room["district"] == "capital"
 
     db_room = test_db.query(RoomModel).filter(RoomModel.id == room["id"]).first()
@@ -338,7 +338,7 @@ def test_update_room(test_app: TestClient, override_get_db):
     assert response.status_code == 200
     assert response.json()["title"] == "New title"
     assert response.json()["capacity"] == 14
-    assert response.json()["public_area"] == "Manama"  # untouched
+    assert response.json()["area"] == "Manama"  # untouched
     assert response.json()["revision"] == room["revision"] + 1
 
 
@@ -349,10 +349,42 @@ def test_update_room_district(test_app: TestClient, override_get_db):
     response = test_app.put(
         f"/api/v1/rooms/{room['id']}",
         headers=headers,
-        json={"revision": room["revision"], "district": "northern"},
+        json={"revision": room["revision"], "district": "northern", "area": "Budaiya"},
     )
     assert response.status_code == 200
     assert response.json()["district"] == "northern"
+
+
+def test_update_room_district_needs_matching_area(
+    test_app: TestClient, override_get_db
+):
+    headers = login(test_app, "user1@example.com", "123")
+    room = create_room(test_app, headers)  # capital / Manama
+
+    # New district alone: the stored area (Manama) is not in it
+    response = test_app.put(
+        f"/api/v1/rooms/{room['id']}",
+        headers=headers,
+        json={"revision": room["revision"], "district": "southern"},
+    )
+    assert response.status_code == 422
+
+    # A new area alone must belong to the stored district
+    response = test_app.put(
+        f"/api/v1/rooms/{room['id']}",
+        headers=headers,
+        json={"revision": room["revision"], "area": "Riffa"},
+    )
+    assert response.status_code == 422
+
+    # Both together, matching: accepted
+    response = test_app.put(
+        f"/api/v1/rooms/{room['id']}",
+        headers=headers,
+        json={"revision": room["revision"], "district": "southern", "area": "Riffa"},
+    )
+    assert response.status_code == 200
+    assert response.json()["area"] == "Riffa"
 
 
 def test_update_room_district_must_be_valid(test_app: TestClient, override_get_db):
@@ -507,8 +539,8 @@ def add_room_starting_in(test_db: Session, minutes: int, host_id=1):
         ends_at=now + timedelta(minutes=minutes + 60),
         capacity=5,
         district="capital",
-        public_area="Manama",
-        venue_details="Pool 1",
+        area="Manama",
+        venue_notes="Pool 1",
     )
     test_db.add(room)
     test_db.commit()
@@ -535,8 +567,8 @@ def test_update_frozen_after_cutoff(
 
     for change in [
         {"capacity": 6},
-        {"venue_details": "Pool 2"},
-        {"public_area": "X"},
+        {"venue_notes": "Pool 2"},
+        {"area": "X"},
         {"district": "muharraq"},
     ]:
         response = test_app.put(
@@ -583,7 +615,7 @@ def test_cancel_room(test_app: TestClient, override_get_db):
 
 def test_cancel_room_posts_system_message(test_app: TestClient, override_get_db):
     headers = login(test_app, "user1@example.com", "123")
-    room = create_room(test_app, headers, venue_details="Secret court 9")
+    room = create_room(test_app, headers, venue_notes="Secret court 9")
     test_app.post(
         f"/api/v1/rooms/{room['id']}/cancel",
         headers=headers,
@@ -666,3 +698,78 @@ def test_cancelled_room_cannot_be_cancelled_or_edited(
 
     edit = test_app.put(url, headers=headers, json={"revision": 1, "title": "x"})
     assert edit.status_code == 409
+
+
+# ---------- area and venue location ----------
+
+PIN = {"latitude": 26.2285, "longitude": 50.5860}
+
+
+def test_create_room_area_must_be_in_district(test_app: TestClient, override_get_db):
+    headers = login(test_app, "user1@example.com", "123")
+    response = test_app.post(
+        "/api/v1/rooms", headers=headers, json=room_data(district="capital", area="Riffa")
+    )
+    assert response.status_code == 422
+
+
+def test_create_room_with_venue_location(
+    test_app: TestClient, test_db: Session, override_get_db
+):
+    headers = login(test_app, "user1@example.com", "123")
+    room = create_room(test_app, headers, venue_location=PIN)
+
+    assert room["venue_location"] == PIN
+    # Stored as one point, read back as latitude/longitude
+    db_room = test_db.query(RoomModel).filter(RoomModel.id == room["id"]).first()
+    assert db_room.venue_location == PIN
+
+    # Only the host sees it
+    visitor = test_app.get(f"/api/v1/rooms/{room['id']}").json()
+    assert "venue_location" not in visitor
+    assert "venue_notes" not in visitor
+    host_view = test_app.get(f"/api/v1/rooms/{room['id']}", headers=headers).json()
+    assert host_view["venue_location"] == PIN
+
+
+def test_create_room_venue_location_must_be_valid(
+    test_app: TestClient, override_get_db
+):
+    headers = login(test_app, "user1@example.com", "123")
+    for bad in [
+        {"latitude": 51.5, "longitude": -0.12},  # London
+        {"latitude": 95, "longitude": 50.5},  # not a real latitude
+        {"latitude": 26.2},  # half a pin
+    ]:
+        response = test_app.post(
+            "/api/v1/rooms", headers=headers, json=room_data(venue_location=bad)
+        )
+        assert response.status_code == 422, bad
+
+
+def test_update_room_venue_location(test_app: TestClient, override_get_db):
+    headers = login(test_app, "user1@example.com", "123")
+    room = create_room(test_app, headers)
+    assert room["venue_location"] is None
+
+    response = test_app.put(
+        f"/api/v1/rooms/{room['id']}",
+        headers=headers,
+        json={"revision": room["revision"], "venue_location": PIN},
+    )
+    assert response.status_code == 200
+    assert response.json()["venue_location"] == PIN
+
+
+def test_update_venue_location_frozen_after_cutoff(
+    test_app: TestClient, test_db: Session, override_get_db
+):
+    headers = login(test_app, "user1@example.com", "123")
+    soon_id = add_room_starting_in(test_db, minutes=10)
+
+    response = test_app.put(
+        f"/api/v1/rooms/{soon_id}",
+        headers=headers,
+        json={"revision": 0, "venue_location": PIN},
+    )
+    assert response.status_code == 409
