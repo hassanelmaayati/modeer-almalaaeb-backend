@@ -20,7 +20,7 @@ class UserModel(BaseModel):
     bio = Column(Text, nullable=True, default="")
 
     # Home district (see models/districts.py); optional, used as the default room filter
-    district = Column(String, nullable=False)
+    district = Column(String, nullable=True)
 
     # Private login fields; google_subject links an optional Google sign-in
     email = Column(String, nullable=False, unique=True)
