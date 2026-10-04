@@ -6,5 +6,6 @@ from . import cup
 from . import room
 from . import membership
 from . import message
+from . import notification
 
 __all__ = ["BaseModel"]
