@@ -1,137 +1,76 @@
-from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
-from models.user import UserModel
+import pytest
 from models.group import GroupModel
-from tests.lib import login, get_user_id
-from main import app
+from models.membership import MembershipModel
+from tests.lib import api
 
 
-def test_login(test_app: TestClient, test_db: Session, override_get_db):
-
-    new_user = UserModel(user_name="test", email="test@example.com")
-    new_user.set_password("123")
-    test_db.add(new_user)
-    test_db.commit()
-
-    # Use the login helper to generate authentication headers for the new mock user
-    headers = login(test_app, "test@example.com", "123")
-    assert "Authorization" in headers
-    assert headers["Authorization"].startswith("Bearer ")
-
-
-def test_create_group(test_app: TestClient, test_db: Session, override_get_db):
-
-    # Use the login helper to generate authentication headers for the new mock user
-    headers = login(test_app, "test@example.com", "123")
-
-    # Data for creating a new group
-    group_data = {
-        "name": "Test Group",
-        "description": "A test group",
-        "photo_url": "http://example.com/photo.jpg",
-        "sports_id": 1,
-    }
-
-    # Send a POST request to create a new group
-    response = test_app.post("/api/v1/groups", headers=headers, json=group_data)
-
-    user_id = get_user_id(headers)
-    # Verify that the response is successful
-    assert response.status_code == 201
-    assert response.json()["name"] == group_data["name"]
-    assert response.json()["sports_id"] == group_data["sports_id"]
-    assert response.json()["description"] == group_data["description"]
-    assert response.json()["photo_url"] == group_data["photo_url"]
-    assert response.json()["owner_id"] == user_id
-    assert "id" in response.json()  # Ensure an ID is returned
-    # Verify the group was created in the database
-    group_id = response.json()["id"]
-    group = test_db.query(GroupModel).filter(GroupModel.id == group_id).first()
-    assert group is not None
-    assert group.name == group_data["name"]
-    assert group.sports_id == group_data["sports_id"]
-    assert group.owner_id == user_id
-    assert group.description == group_data["description"]
-    assert group.photo_url == group_data["photo_url"]
+def test_group_create_read_update_and_owner_permissions_are_persisted(client,factory,db):
+    owner,other=factory.user(),factory.user()
+    sport=factory.sport()
+    group=api(client,'POST','/groups',user=owner,body={'name':'Evening team','sports_id':sport['id'],'description':'Meet weekly'},expected=201)
+    assert group['owner_id']==owner['id'] and group['sports_id']==sport['id']
+    assert [value['id'] for value in api(client,'GET','/groups')]==[group['id']]
+    assert api(client,'GET',f"/groups/{group['id']}")['name']=='Evening team'
+    api(client,'PUT',f"/groups/{group['id']}",user=other,body={'name':'Denied'},expected=403)
+    edited=api(client,'PUT',f"/groups/{group['id']}",user=owner,body={'name':'Updated team','description':'Friday'})
+    assert edited['name']=='Updated team'
+    with db() as session:
+        stored=session.get(GroupModel,group['id'])
+        assert (stored.name,stored.description,stored.owner_id)==('Updated team','Friday',owner['id'])
+    api(client,'GET','/groups/99999',expected=404)
 
 
-def test_get_groups(test_app: TestClient, override_get_db):
-    response = test_app.get("/api/v1/groups")
-    assert response.status_code == 200
-    groups = response.json()
-    assert isinstance(groups, list)
-    assert len(groups) >= 2  # Ensure there are at least two groups in the test database
-    for group in groups:
-        assert "id" in group
-        assert "name" in group
-        assert "sports_id" in group
-        assert "owner_id" in group
-        assert "description" in group
-        assert "photo_url" in group
+def test_group_invitation_accept_leave_has_isolated_membership_and_notifications(client,factory,db):
+    owner,member,outsider=factory.user(),factory.user(),factory.user()
+    group=factory.group(owner)
+    api(client,'POST',f"/groups/{group['id']}/members",user=outsider,body={'user_id':member['id']},expected=403)
+    invited=api(client,'POST',f"/groups/{group['id']}/members",user=owner,body={'user_id':member['id']},expected=201)
+    assert (invited['status'],invited['requested'],invited['accepted'])==('pending',False,False)
+    api(client,'POST',f"/groups/{group['id']}/members",user=owner,body={'user_id':member['id']},expected=409)
+    accepted=api(client,'PATCH',f"/groups/{group['id']}/members/{member['id']}",user=member,body={'status':'accepted'})
+    assert accepted['accepted'] is True
+    left=api(client,'PATCH',f"/groups/{group['id']}/members/{member['id']}",user=member,body={'status':'left'})
+    assert left['status']=='left' and left['accepted'] is False
+    with db() as session:
+        rows=session.query(MembershipModel).filter_by(group_id=group['id'],cup_id=None).all()
+        assert len(rows)==1 and rows[0].status=='left'
+    notices=api(client,'GET','/notifications',user=member)
+    assert any(item['target']=={'type':'group','id':group['id']} for item in notices['items'])
 
 
-def test_put_group(test_app: TestClient, test_db: Session, override_get_db):
-    # Use the login helper to generate authentication headers for the new mock user
-    headers = login(test_app, "test@example.com", "123")
-
-    # First, create a new group to update
-    group_data = {
-        "name": "Test Group to Update",
-        "description": "A test group",
-        "photo_url": "http://example.com/photo.jpg",
-        "sports_id": 1,
-    }
-    response = test_app.post("/api/v1/groups", headers=headers, json=group_data)
-    assert response.status_code == 201
-    group_id = response.json()["id"]
-
-    # Data for updating the group
-    updated_group_data = {
-        "name": "Updated Test Group",
-        "description": "An updated test group",
-        "photo_url": "http://example.com/updated_photo.jpg",
-    }
-
-    # Send a PUT request to update the group
-    response = test_app.put(
-        f"/api/v1/groups/{group_id}", headers=headers, json=updated_group_data
-    )
-    assert response.status_code == 200
-    assert response.json()["name"] == updated_group_data["name"]
-    assert response.json()["description"] == updated_group_data["description"]
-    assert response.json()["photo_url"] == updated_group_data["photo_url"]
-
-    # Verify the group was updated in the database
-    group = test_db.query(GroupModel).filter(GroupModel.id == group_id).first()
-    assert group is not None
-    assert group.name == updated_group_data["name"]
-    assert group.description == updated_group_data["description"]
-    assert group.photo_url == updated_group_data["photo_url"]
-    assert group.owner_id == get_user_id(headers)
+@pytest.mark.parametrize('terminal',['left','declined','removed'])
+def test_terminal_group_members_cannot_restore_themselves(client,factory,db,terminal):
+    owner,member=factory.user(),factory.user()
+    group=factory.group(owner)
+    row=factory.member(member,group=group,status=terminal)
+    api(client,'PATCH',f"/groups/{group['id']}/members/{member['id']}",user=member,body={'status':'accepted'},expected=403)
+    with db() as session:
+        assert session.get(MembershipModel,row['id']).status==terminal
 
 
-def test_get_group_by_id(test_app: TestClient, test_db: Session, override_get_db):
-    # Use the login helper to generate authentication headers for the new mock user
-    headers = login(test_app, "test@example.com", "123")
+def test_owner_removal_cannot_be_spoofed_and_roster_projection_is_exact(client,factory,db):
+    owner,accepted,pending,outsider=[factory.user() for _ in range(4)]
+    group=factory.group(owner)
+    accepted_row=factory.member(accepted,group=group)
+    factory.member(pending,group=group,status='pending')
+    # Cup roster rows sharing group_id remain separate from ordinary membership.
+    cup=factory.cup(owner)
+    factory.member(outsider,group=group,cup=cup)
+    owner_ids={row['user_id'] for row in api(client,'GET',f"/groups/{group['id']}/members",user=owner)}
+    assert owner_ids=={accepted['id'],pending['id']}
+    assert {row['user_id'] for row in api(client,'GET',f"/groups/{group['id']}/members",user=pending)}=={accepted['id'],pending['id']}
+    api(client,'PATCH',f"/groups/{group['id']}/members/{accepted['id']}",user=outsider,body={'status':'removed'},expected=403)
+    removed=api(client,'PATCH',f"/groups/{group['id']}/members/{accepted['id']}",user=owner,body={'status':'removed'})
+    assert removed['accepted'] is False
+    with db() as session:
+        assert session.get(MembershipModel,accepted_row['id']).status=='removed'
 
-    # First, create a new group to retrieve
-    group_data = {
-        "name": "Test Group to Retrieve",
-        "description": "A test group",
-        "photo_url": "http://example.com/photo.jpg",
-        "sports_id": 1,
-    }
-    response = test_app.post("/api/v1/groups", headers=headers, json=group_data)
-    assert response.status_code == 201
-    group_id = response.json()["id"]
 
-    # Send a GET request to retrieve the group by ID
-    response = test_app.get(f"/api/v1/groups/{group_id}", headers=headers)
-    assert response.status_code == 200
-    group = response.json()
-    assert group["id"] == group_id
-    assert group["name"] == group_data["name"]
-    assert group["description"] == group_data["description"]
-    assert group["photo_url"] == group_data["photo_url"]
-    assert group["sports_id"] == group_data["sports_id"]
-    assert group["owner_id"] == get_user_id(headers)
+@pytest.mark.parametrize('body,expected', [({},422), ({'status':'bogus'},403)])
+def test_invalid_group_status_does_not_change_membership(client,factory,db,body,expected):
+    owner,member=factory.user(),factory.user()
+    group=factory.group(owner)
+    row=factory.member(member,group=group,status='pending')
+    response=client.patch(f"/api/v1/groups/{group['id']}/members/{member['id']}",headers=member['headers'],json=body)
+    assert response.status_code == expected,response.text
+    with db() as session: assert session.get(MembershipModel,row['id']).status=='pending'

@@ -1,12 +1,9 @@
-from fastapi.testclient import TestClient
-from main import app
+from tests.lib import api
 
 
-def test_get_sports(test_app: TestClient):
-    response = test_app.get("/api/v1/sports")
-    assert response.status_code == 200
-    sports = response.json()
-    assert isinstance(sports, list)
-    for sport in sports:
-        assert "id" in sport
-        assert "name" in sport
+def test_sports_are_exact_isolated_fixtures_and_missing_id_is_404(client,factory):
+    first=factory.sport('Swimming',formats=[{'key':'four','capacity':4}])
+    second=factory.sport('Football')
+    assert [(item['id'],item['name']) for item in api(client,'GET','/sports')] == [(first['id'],'Swimming'),(second['id'],'Football')]
+    assert api(client,'GET',f"/sports/{first['id']}")['name']=='Swimming'
+    api(client,'GET','/sports/987654',expected=404)
