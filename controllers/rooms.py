@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 # DB
@@ -25,6 +25,7 @@ from serializers.room import (
 )
 
 from dependencies.get_current_user import get_current_user
+from services.lobby_events import lobby_state, queue_room_events
 from services.messages import create_system_message
 from services.room_rules import CUTOFF, as_utc, is_past_cutoff
 
@@ -165,6 +166,7 @@ def get_room(
 @router.post("/rooms", response_model=RoomDetailSchema, status_code=201)
 def create_room(
     room: CreateRoomSchema,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: UserModel = Depends(get_current_user),
 ):
@@ -181,6 +183,8 @@ def create_room(
     db.add(new_room)
     db.commit()
     db.refresh(new_room)
+    # Tell the lobby after the commit; it is sent once the response is on its way
+    queue_room_events(background_tasks, db, new_room)
     return new_room
 
 
@@ -188,6 +192,7 @@ def create_room(
 def update_room(
     room_id: int,
     room: UpdateRoomSchema,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: UserModel = Depends(get_current_user),
 ):
@@ -201,6 +206,9 @@ def update_room(
         raise HTTPException(
             status_code=409, detail="Room was changed, reload it and try again"
         )
+
+    # How the lobby saw the room before this edit, to work out what changed
+    before = lobby_state(db, db_room)
 
     data = room.dict(exclude_unset=True)
     data.pop("revision")
@@ -247,6 +255,7 @@ def update_room(
     db_room.revision += 1
     db.commit()
     db.refresh(db_room)
+    queue_room_events(background_tasks, db, db_room, before)
     return db_room
 
 
@@ -254,6 +263,7 @@ def update_room(
 def cancel_room(
     room_id: int,
     cancellation: CancelRoomSchema,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: UserModel = Depends(get_current_user),
 ):
@@ -261,6 +271,8 @@ def cancel_room(
 
     if db_room.status != "open":
         raise HTTPException(status_code=409, detail="Only open rooms can be cancelled")
+
+    before = lobby_state(db, db_room)
 
     db_room.status = "cancelled"
     db_room.revision += 1
@@ -272,4 +284,5 @@ def cancel_room(
     )
     db.commit()
     db.refresh(db_room)
+    queue_room_events(background_tasks, db, db_room, before)
     return db_room

@@ -1,3 +1,6 @@
+import asyncio
+from contextlib import asynccontextmanager, suppress
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -11,7 +14,8 @@ from controllers.users import router as UsersRouter
 from controllers.sports import router as SportsRouter
 from controllers.cups import router as CupsRouter
 from controllers.rooms import router as RoomsRouter
-from config.environment import CORS_ORIGINS
+from config.environment import CORS_ORIGINS, LIFECYCLE_WORKER_ENABLED
+from services.lifecycle import lifecycle_loop
 from controllers.messages import router as MessagesRouter
 from controllers.lobby_ws import router as LobbyWsRouter
 from controllers.memberships.room import router as RoomMembersRouter
@@ -63,7 +67,21 @@ tags = [
         "description": "Cup roster invitations",
     },
 ]
+
+
+# Starts the worker that starts and finishes rooms, and stops it on shutdown
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    worker = asyncio.create_task(lifecycle_loop()) if LIFECYCLE_WORKER_ENABLED else None
+    yield
+    if worker:
+        worker.cancel()
+        with suppress(asyncio.CancelledError):
+            await worker
+
+
 app = FastAPI(
+    lifespan=lifespan,
     title="Modeer Almalaaeb API",
     description="API for organizing activities, groups and cups in Bahrain",
     openapi_tags=tags,

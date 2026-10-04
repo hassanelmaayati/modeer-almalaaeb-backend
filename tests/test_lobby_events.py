@@ -281,6 +281,14 @@ def test_nothing_is_decided_for_a_room_that_was_never_shown(test_db: Session):
     assert events_for_change(test_db, room, before) == []
 
 
+def test_change_that_does_not_alter_the_lobby_view_sends_nothing(test_db: Session):
+    room = add_room(test_db, capacity=4)
+    before = lobby_state(test_db, room)
+    add_member(test_db, room, 2, "pending")  # reserves nothing
+
+    assert publish(test_db, room, before) == []
+
+
 def test_publish_never_raises(test_db: Session):
     room = add_room(test_db)
     asyncio.run(publish_room_event(test_db, room, None, hub=RecordingHub(fail=True)))
