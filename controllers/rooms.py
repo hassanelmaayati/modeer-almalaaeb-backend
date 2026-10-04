@@ -26,15 +26,13 @@ from serializers.room import (
 
 from dependencies.get_current_user import get_current_user
 from services.messages import create_system_message
+from services.room_rules import CUTOFF, as_utc, is_past_cutoff
 
 router = APIRouter(
     tags=[
         "Rooms Management",
     ]
 )
-
-# Discovery and schedule/venue/capacity edits close 15 minutes before the start
-CUTOFF = timedelta(minutes=15)
 
 # Fields that are frozen once the cutoff is reached
 FROZEN_FIELDS = {
@@ -74,17 +72,6 @@ def get_optional_user(
     if credentials is None:
         return None
     return get_current_user(db=db, token=credentials)
-
-
-def as_utc(value: datetime) -> datetime:
-    # SQLite (used by the tests) returns naive datetimes
-    if value.tzinfo is None:
-        return value.replace(tzinfo=timezone.utc)
-    return value
-
-
-def is_past_cutoff(room: RoomModel) -> bool:
-    return datetime.now(timezone.utc) >= as_utc(room.starts_at) - CUTOFF
 
 
 def get_room_or_404(db: Session, room_id: int) -> RoomModel:
