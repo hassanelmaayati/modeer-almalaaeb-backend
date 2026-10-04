@@ -18,6 +18,8 @@ websockets = "*"
 google-auth = "*"
 requests = "*"
 pydantic-extra-types = "*"
+geoalchemy2 = "*"
+shapely = "*"
 
 [dev-packages]
 pytest = "*"
