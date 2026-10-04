@@ -72,6 +72,55 @@ def test_get_rooms_filter_by_difficulty(test_app: TestClient, override_get_db):
     assert all(room["difficulty"] == "medium" for room in response.json())
 
 
+def test_get_rooms_filter_by_district(test_app: TestClient, override_get_db):
+    response = test_app.get("/api/v1/rooms?district=capital")
+    assert response.status_code == 200
+    rooms = response.json()
+    assert len(rooms) >= 1
+    assert all(room["district"] == "capital" for room in rooms)
+
+    # The seed has a public Riffa room in the southern district
+    southern = test_app.get("/api/v1/rooms?district=southern").json()
+    assert southern
+    assert all(room["district"] == "southern" for room in southern)
+    assert not {room["id"] for room in rooms} & {room["id"] for room in southern}
+
+
+def test_get_rooms_without_district_lists_all_districts(
+    test_app: TestClient, override_get_db
+):
+    rooms = test_app.get("/api/v1/rooms").json()
+    assert len({room["district"] for room in rooms}) >= 2
+
+
+def test_get_rooms_district_hides_non_public_rooms(
+    test_app: TestClient, override_get_db
+):
+    # The only muharraq room in the seed is group-only, so it is not listed
+    response = test_app.get("/api/v1/rooms?district=muharraq")
+    assert response.status_code == 200
+    assert all(room["visibility"] == "public" for room in response.json())
+    assert 3 not in [room["id"] for room in response.json()]
+
+
+def test_get_rooms_invalid_district(test_app: TestClient, override_get_db):
+    response = test_app.get("/api/v1/rooms?district=mars")
+    assert response.status_code == 422
+
+
+def test_get_rooms_district_combines_with_other_filters(
+    test_app: TestClient, override_get_db
+):
+    response = test_app.get("/api/v1/rooms?district=southern&sport_id=2")
+    assert response.status_code == 200
+    rooms = response.json()
+    assert rooms
+    assert all(r["district"] == "southern" and r["sport_id"] == 2 for r in rooms)
+
+    # Right district, wrong sport: nothing matches
+    assert test_app.get("/api/v1/rooms?district=southern&sport_id=1").json() == []
+
+
 def test_get_room_hides_venue_from_visitors(test_app: TestClient, override_get_db):
     response = test_app.get("/api/v1/rooms/1")
     assert response.status_code == 200

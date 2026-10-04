@@ -6,8 +6,7 @@ def build_users():
         UserModel(user_name="Test1", email="user1@example.com", district="capital"),
         UserModel(user_name="Test2", email="user2@example.com", district="southern"),
         UserModel(user_name="Test3", email="user3@example.com", district="muharraq"),
-        # No home district, like an existing user who has not picked one
-        UserModel(user_name="Test4", email="user4@example.com"),
+        UserModel(user_name="Test4", email="user4@example.com", district="northern"),
     ]
     for user in users:
         user.set_password("123")

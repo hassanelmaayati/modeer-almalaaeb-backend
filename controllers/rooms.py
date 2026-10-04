@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 
 # Models
+from models.districts import DISTRICTS
 from models.room import RoomModel
 from models.sport import SportModel
 from models.group import GroupModel
@@ -121,10 +122,18 @@ def check_group(db: Session, group_id: int, current_user: UserModel):
 def get_rooms(
     sport_id: int | None = None,
     difficulty: str | None = None,
+    district: str | None = None,
     starts_from: datetime | None = None,
     starts_to: datetime | None = None,
     db: Session = Depends(get_db),
 ):
+    # No district means all districts; an unknown one is a client mistake
+    if district is not None and district not in DISTRICTS:
+        raise HTTPException(
+            status_code=422,
+            detail=f"district must be one of: {', '.join(DISTRICTS)}",
+        )
+
     # Discovery shows public, open rooms that are not yet past the cutoff
     cutoff_time = datetime.now(timezone.utc) + CUTOFF
     query = db.query(RoomModel).filter(
@@ -137,6 +146,8 @@ def get_rooms(
         query = query.filter(RoomModel.sport_id == sport_id)
     if difficulty is not None:
         query = query.filter(RoomModel.difficulty == difficulty)
+    if district is not None:
+        query = query.filter(RoomModel.district == district)
     if starts_from is not None:
         query = query.filter(RoomModel.starts_at >= as_utc(starts_from))
     if starts_to is not None:
