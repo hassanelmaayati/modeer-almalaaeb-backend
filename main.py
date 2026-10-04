@@ -19,6 +19,9 @@ from config.environment import CORS_ORIGINS, LIFECYCLE_WORKER_ENABLED
 from services.lifecycle import lifecycle_loop
 from controllers.messages import router as MessagesRouter
 from controllers.lobby_ws import router as LobbyWsRouter
+from controllers.realtime_ws import router as RealtimeRouter
+from controllers.notifications import router as NotificationsRouter
+from services import realtime
 from controllers.memberships.room import router as RoomMembersRouter
 from controllers.memberships.friends import router as FriendsRouter
 from controllers.memberships.group import router as GroupMembersRouter
@@ -44,6 +47,8 @@ tags = [
     {
         "name": "Cups Management",
         "description": "Football cups, team entries and knockout brackets",
+    },
+    {
         "name": "Rooms Management",
         "description": "Operations related to rooms (scheduled activities)",
     },
@@ -74,11 +79,14 @@ tags = [
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     worker = asyncio.create_task(lifecycle_loop()) if LIFECYCLE_WORKER_ENABLED else None
-    yield
-    if worker:
-        worker.cancel()
-        with suppress(asyncio.CancelledError):
-            await worker
+    try:
+        yield
+    finally:
+        if worker:
+            worker.cancel()
+            with suppress(asyncio.CancelledError):
+                await worker
+        await realtime.realtime_hub.close()
 
 
 app = FastAPI(
@@ -96,6 +104,8 @@ app.include_router(CupsRouter, prefix="/api/v1")
 app.include_router(RoomsRouter, prefix="/api/v1")
 app.include_router(MessagesRouter, prefix="/api/v1")
 app.include_router(LobbyWsRouter, prefix="/api/v1")
+app.include_router(RealtimeRouter, prefix="/api/v1")
+app.include_router(NotificationsRouter, prefix="/api/v1")
 app.include_router(RoomMembersRouter, prefix="/api/v1")
 app.include_router(FriendsRouter, prefix="/api/v1")
 app.include_router(GroupMembersRouter, prefix="/api/v1")
