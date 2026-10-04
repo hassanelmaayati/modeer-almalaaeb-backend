@@ -19,16 +19,16 @@ from controllers.memberships.cup import router as CupRosterRouter
 
 tags = [
     {
-        "name": "Groups Management",
-        "description": "Operations related to social groups and teams",
-    },
-    {
         "name": "Auth",
         "description": "Sign up, sign in and sign out",
     },
     {
         "name": "Users Management",
         "description": "Profiles and player search",
+    },
+    {
+        "name": "Groups Management",
+        "description": "Operations related to social groups and teams",
     },
     {
         "name": "Sports Management",
