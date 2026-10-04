@@ -55,7 +55,7 @@ def to_lobby_room(db: Session, room: RoomModel) -> LobbyRoomSchema:
         sport_id=room.sport_id,
         sport_name=room.sport.name,
         district=room.district,
-        public_area=room.public_area,
+        area=room.area,
         starts_at=room.starts_at,
         capacity=room.capacity,
         slots_left=count_slots_left(db, room),
