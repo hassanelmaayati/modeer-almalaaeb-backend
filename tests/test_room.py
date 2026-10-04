@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from models.room import RoomModel
+from models.room import DISTRICTS, RoomModel
 from tests.lib import login, get_user_id
 
 # Seeded users all use the password "123" (see data/users_data.py)
@@ -23,6 +23,7 @@ def room_data(**overrides):
         "starts_at": future(days=1),
         "ends_at": future(days=1, hours=1),
         "capacity": 10,
+        "district": "capital",
         "public_area": "Manama",
         "venue_details": "Court 1",
     }
@@ -69,6 +70,55 @@ def test_get_rooms_filter_by_difficulty(test_app: TestClient, override_get_db):
     response = test_app.get("/api/v1/rooms?difficulty=medium")
     assert response.status_code == 200
     assert all(room["difficulty"] == "medium" for room in response.json())
+
+
+def test_get_rooms_filter_by_district(test_app: TestClient, override_get_db):
+    response = test_app.get("/api/v1/rooms?district=capital")
+    assert response.status_code == 200
+    rooms = response.json()
+    assert len(rooms) >= 1
+    assert all(room["district"] == "capital" for room in rooms)
+
+    # The seed has a public Riffa room in the southern district
+    southern = test_app.get("/api/v1/rooms?district=southern").json()
+    assert southern
+    assert all(room["district"] == "southern" for room in southern)
+    assert not {room["id"] for room in rooms} & {room["id"] for room in southern}
+
+
+def test_get_rooms_without_district_lists_all_districts(
+    test_app: TestClient, override_get_db
+):
+    rooms = test_app.get("/api/v1/rooms").json()
+    assert len({room["district"] for room in rooms}) >= 2
+
+
+def test_get_rooms_district_hides_non_public_rooms(
+    test_app: TestClient, override_get_db
+):
+    # The only muharraq room in the seed is group-only, so it is not listed
+    response = test_app.get("/api/v1/rooms?district=muharraq")
+    assert response.status_code == 200
+    assert all(room["visibility"] == "public" for room in response.json())
+    assert 3 not in [room["id"] for room in response.json()]
+
+
+def test_get_rooms_invalid_district(test_app: TestClient, override_get_db):
+    response = test_app.get("/api/v1/rooms?district=mars")
+    assert response.status_code == 422
+
+
+def test_get_rooms_district_combines_with_other_filters(
+    test_app: TestClient, override_get_db
+):
+    response = test_app.get("/api/v1/rooms?district=southern&sport_id=2")
+    assert response.status_code == 200
+    rooms = response.json()
+    assert rooms
+    assert all(r["district"] == "southern" and r["sport_id"] == 2 for r in rooms)
+
+    # Right district, wrong sport: nothing matches
+    assert test_app.get("/api/v1/rooms?district=southern&sport_id=1").json() == []
 
 
 def test_get_room_hides_venue_from_visitors(test_app: TestClient, override_get_db):
@@ -124,11 +174,26 @@ def test_create_room(test_app: TestClient, test_db: Session, override_get_db):
     assert room["difficulty"] == "beginners"
     assert room["revision"] == 0
     assert room["venue_details"] == "Court 1"
+    assert room["district"] == "capital"
 
     db_room = test_db.query(RoomModel).filter(RoomModel.id == room["id"]).first()
     assert db_room is not None
     assert db_room.title == "Test room"
     assert db_room.capacity == 10
+
+
+def test_create_room_requires_district(test_app: TestClient, override_get_db):
+    headers = login(test_app, "user1@example.com", "123")
+    data = room_data()
+    del data["district"]
+    response = test_app.post("/api/v1/rooms", headers=headers, json=data)
+    assert response.status_code == 422
+
+
+def test_get_rooms_include_district(test_app: TestClient, override_get_db):
+    rooms = test_app.get("/api/v1/rooms").json()
+    assert rooms
+    assert all(room["district"] in DISTRICTS for room in rooms)
 
 
 def test_create_room_requires_login(test_app: TestClient, override_get_db):
@@ -216,6 +281,7 @@ def test_create_room_invalid_choices(test_app: TestClient, override_get_db):
         ("difficulty", "expert"),
         ("visibility", "secret"),
         ("admission_policy", "anyone"),
+        ("district", "mars"),
     ]:
         response = test_app.post(
             "/api/v1/rooms", headers=headers, json=room_data(**{field: value})
@@ -274,6 +340,32 @@ def test_update_room(test_app: TestClient, override_get_db):
     assert response.json()["capacity"] == 14
     assert response.json()["public_area"] == "Manama"  # untouched
     assert response.json()["revision"] == room["revision"] + 1
+
+
+def test_update_room_district(test_app: TestClient, override_get_db):
+    headers = login(test_app, "user1@example.com", "123")
+    room = create_room(test_app, headers)
+
+    response = test_app.put(
+        f"/api/v1/rooms/{room['id']}",
+        headers=headers,
+        json={"revision": room["revision"], "district": "northern"},
+    )
+    assert response.status_code == 200
+    assert response.json()["district"] == "northern"
+
+
+def test_update_room_district_must_be_valid(test_app: TestClient, override_get_db):
+    headers = login(test_app, "user1@example.com", "123")
+    room = create_room(test_app, headers)
+
+    for value in ["mars", None]:
+        response = test_app.put(
+            f"/api/v1/rooms/{room['id']}",
+            headers=headers,
+            json={"revision": room["revision"], "district": value},
+        )
+        assert response.status_code == 422, value
 
 
 def test_update_room_only_host(test_app: TestClient, override_get_db):
@@ -414,6 +506,7 @@ def add_room_starting_in(test_db: Session, minutes: int, host_id=1):
         starts_at=now + timedelta(minutes=minutes),
         ends_at=now + timedelta(minutes=minutes + 60),
         capacity=5,
+        district="capital",
         public_area="Manama",
         venue_details="Pool 1",
     )
@@ -440,7 +533,12 @@ def test_update_frozen_after_cutoff(
     headers = login(test_app, "user1@example.com", "123")
     soon_id = add_room_starting_in(test_db, minutes=10)
 
-    for change in [{"capacity": 6}, {"venue_details": "Pool 2"}, {"public_area": "X"}]:
+    for change in [
+        {"capacity": 6},
+        {"venue_details": "Pool 2"},
+        {"public_area": "X"},
+        {"district": "muharraq"},
+    ]:
         response = test_app.put(
             f"/api/v1/rooms/{soon_id}", headers=headers, json={"revision": 0, **change}
         )
