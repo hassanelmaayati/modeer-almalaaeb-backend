@@ -83,3 +83,8 @@ class UserUpdateSchema(BaseModel):
     @classmethod
     def normalize(cls, value):
         return value.strip() if isinstance(value, str) else value
+
+
+class GoogleCredentialSchema(BaseModel):
+    # The Google ID token the frontend's Google button returns
+    credential: str = Field(min_length=1)
