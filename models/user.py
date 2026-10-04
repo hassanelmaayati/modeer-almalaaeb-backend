@@ -32,9 +32,8 @@ class UserModel(BaseModel):
         foreign_keys="MembershipModel.user_id",
     )
     owned_groups = relationship("GroupModel", back_populates="owner")
-<<<<<<< HEAD
+
     organized_cups = relationship("CupModel", back_populates="organizer")
-=======
     hosted_rooms = relationship(
         "RoomModel", back_populates="host", foreign_keys="RoomModel.host_id"
     )
@@ -46,8 +45,6 @@ class UserModel(BaseModel):
         back_populates="recipient",
         foreign_keys="MessageModel.recipient_id",
     )
->>>>>>> 38ca36c9404cf6d093c5db0b75c6a780b4a04ee5
-
     def set_password(self, password: str):
         self.password = pwd_context.hash(password)
 

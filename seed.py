@@ -30,11 +30,10 @@ try:
     db.add_all(groups_list)
     db.commit()
 
-<<<<<<< HEAD
     db.add_all(cups_list)
-=======
+    db.commit()
+
     db.add_all(rooms_list)
->>>>>>> 38ca36c9404cf6d093c5db0b75c6a780b4a04ee5
     db.commit()
 
     db.close()
