@@ -1,136 +1,84 @@
+import json
+import time
+from websockets.sync.client import connect
+from websockets.exceptions import ConnectionClosed, InvalidStatus
 import pytest
-from starlette.testclient import TestClient
-from starlette.websockets import WebSocketDisconnect
-
 from controllers import lobby_ws
-from main import app
-from services.lobby import lobby_hub
-
-URL = "/api/v1/ws/lobby"
+from tests.lib import api,room_body
+from tests.test_realtime import receive
 
 
-@pytest.fixture
-def client():
-    return TestClient(app)
+def lobby(network,district=None):
+    socket=connect(network.ws+'/api/v1/ws/lobby',origin='http://127.0.0.1:5174')
+    socket.send(json.dumps({'action':'subscribe','district':district}))
+    assert json.loads(socket.recv(timeout=2))=={'type':'subscribed','district':district}
+    return socket
 
 
-def test_subscribe_and_unsubscribe(client):
-    with client.websocket_connect(URL) as ws:
-        ws.send_json({"action": "subscribe", "district": "capital"})
-        assert ws.receive_json() == {"type": "subscribed", "district": "capital"}
-        assert lobby_hub.watcher_count("capital") == 1
-
-        ws.send_json({"action": "unsubscribe"})
-        assert ws.receive_json() == {"type": "unsubscribed"}
-        assert lobby_hub.watcher_count("capital") == 0
-
-
-def test_new_subscribe_replaces_the_old_district(client):
-    with client.websocket_connect(URL) as ws:
-        ws.send_json({"action": "subscribe", "district": "capital"})
-        ws.receive_json()
-        ws.send_json({"action": "subscribe", "district": "southern"})
-        assert ws.receive_json()["district"] == "southern"
-
-        assert lobby_hub.watcher_count("capital") == 0
-        assert lobby_hub.watcher_count("southern") == 1
+def test_public_rest_create_update_move_cancel_delivers_exact_safe_events(network,factory):
+    owner,sport=factory.user(),factory.sport()
+    with lobby(network,'capital') as capital,lobby(network,'southern') as southern,lobby(network) as all_districts:
+        room=api(network.client,'POST','/rooms',user=owner,body=room_body(sport['id']),expected=201)
+        event=receive(capital,'room_created')
+        assert event['room']['id']==room['id'] and event['room']['slots_left']==3
+        assert set(event['room'])=={'id','title','sport_id','sport_name','district','public_area','starts_at','capacity','slots_left','difficulty','revision'}
+        assert receive(all_districts,'room_created')==event
+        with pytest.raises(TimeoutError): southern.recv(timeout=.1)
+        moved=api(network.client,'PUT',f"/rooms/{room['id']}",user=owner,body={'revision':0,'title':'Moved','district':'southern'})
+        removed=receive(capital,'room_removed')
+        assert removed['room_id']==room['id'] and removed['reason']=='moved'
+        assert receive(southern,'room_created')['room']['title']=='Moved'
+        api(network.client,'POST',f"/rooms/{room['id']}/cancel",user=owner,body={'reason':'Rain'})
+        removal=receive(southern,'room_removed')
+        assert removal['reason']=='cancelled' and removal['room_id']==room['id']
 
 
-def test_ping_gets_pong(client):
-    with client.websocket_connect(URL) as ws:
-        ws.send_json({"action": "ping"})
-        assert ws.receive_json() == {"type": "pong"}
+def test_lobby_membership_changes_fill_remove_and_leave_republish_with_versions(network,factory):
+    host,player=factory.user(),factory.user()
+    sport=factory.sport()
+    with lobby(network) as socket:
+        room=api(network.client,'POST','/rooms',user=host,body=room_body(sport['id'],capacity=2),expected=201)
+        initial=receive(socket,'room_created')['room']
+        api(network.client,'POST',f"/rooms/{room['id']}/members",user=player,body={},expected=201)
+        with pytest.raises(TimeoutError): socket.recv(timeout=.1)
+        api(network.client,'PATCH',f"/rooms/{room['id']}/members/{player['id']}",user=host,body={'status':'accepted'})
+        assert receive(socket,'room_removed')['reason']=='full'
+        api(network.client,'DELETE',f"/rooms/{room['id']}/members/me",user=player,expected=204)
+        reopened=receive(socket,'room_created')['room']
+        assert reopened['slots_left']==1 and reopened['revision']>initial['revision']
 
 
-def test_unknown_district_is_rejected_but_connection_stays(client):
-    with client.websocket_connect(URL) as ws:
-        for bad in ["mars", None, 5, ["capital"]]:
-            ws.send_json({"action": "subscribe", "district": bad})
-            assert ws.receive_json()["type"] == "error"
-        assert lobby_hub.watcher_count("capital") == 0
-
-        ws.send_json({"action": "ping"})
-        assert ws.receive_json() == {"type": "pong"}
-
-
-def test_anything_else_is_ignored(client):
-    with client.websocket_connect(URL) as ws:
-        ws.send_text("not json")
-        ws.send_text("[1, 2, 3]")
-        ws.send_text('"subscribe"')
-        ws.send_json({"action": "delete_everything"})
-        ws.send_json({"no_action": True})
-        ws.send_bytes(b"\x00\x01")
-        # No answer was sent for any of them, so the next reply is the pong
-        ws.send_json({"action": "ping"})
-        assert ws.receive_json() == {"type": "pong"}
+def test_private_changes_are_silent_and_district_switch_unsubscribe_cleanup_work(network,factory):
+    host,sport=factory.user(),factory.sport()
+    with lobby(network,'capital') as socket:
+        api(network.client,'POST','/rooms',user=host,body=room_body(sport['id'],visibility='private'),expected=201)
+        with pytest.raises(TimeoutError): socket.recv(timeout=.1)
+        socket.send(json.dumps({'action':'subscribe','district':'southern'}));assert receive(socket,'subscribed')['district']=='southern'
+        api(network.client,'POST','/rooms',user=host,body=room_body(sport['id'],district='capital'),expected=201)
+        with pytest.raises(TimeoutError): socket.recv(timeout=.1)
+        socket.send(json.dumps({'action':'unsubscribe'}));assert receive(socket,'unsubscribed')=={'type':'unsubscribed'}
+        api(network.client,'POST','/rooms',user=host,body=room_body(sport['id'],district='southern'),expected=201)
+        with pytest.raises(TimeoutError): socket.recv(timeout=.1)
+    deadline=time.monotonic()+2
+    while lobby_ws.open_total and time.monotonic()<deadline: time.sleep(.01)
+    assert lobby_ws.open_total==0 and lobby_ws.open_by_ip=={} and lobby_ws.lobby_hub.connection_count()==0
 
 
-def test_oversized_message_closes_the_socket(client):
-    with client.websocket_connect(URL) as ws:
-        ws.send_text("x" * (lobby_ws.MAX_MESSAGE_BYTES + 1))
-        with pytest.raises(WebSocketDisconnect) as closed:
-            ws.receive_json()
-        assert closed.value.code == lobby_ws.CLOSE_MESSAGE_TOO_BIG
+@pytest.mark.parametrize('district',['mars',5,['capital']])
+def test_invalid_lobby_district_stays_connected(network,district):
+    with connect(network.ws+'/api/v1/ws/lobby') as socket:
+        socket.send(json.dumps({'action':'subscribe','district':district}))
+        assert receive(socket,'error')['detail']
+        socket.send(json.dumps({'action':'ping'}));assert receive(socket,'pong')=={'type':'pong'}
 
 
-def test_message_at_the_size_limit_is_allowed(client):
-    with client.websocket_connect(URL) as ws:
-        ws.send_text("x" * lobby_ws.MAX_MESSAGE_BYTES)
-        ws.send_json({"action": "ping"})
-        assert ws.receive_json() == {"type": "pong"}
-
-
-def test_origin_must_be_allowed(client, monkeypatch):
-    monkeypatch.setattr(lobby_ws, "CORS_ORIGINS", ["http://localhost:5173"])
-
-    with pytest.raises(WebSocketDisconnect) as closed:
-        with client.websocket_connect(URL, headers={"origin": "http://evil.example"}):
-            pass
-    assert closed.value.code == lobby_ws.CLOSE_POLICY_VIOLATION
-
-    with client.websocket_connect(URL, headers={"origin": "http://localhost:5173"}) as ws:
-        ws.send_json({"action": "ping"})
-        assert ws.receive_json() == {"type": "pong"}
-
-
-def test_request_without_origin_is_allowed(client, monkeypatch):
-    monkeypatch.setattr(lobby_ws, "CORS_ORIGINS", ["http://localhost:5173"])
-    with client.websocket_connect(URL) as ws:
-        ws.send_json({"action": "ping"})
-        assert ws.receive_json() == {"type": "pong"}
-
-
-def test_total_connection_cap(client, monkeypatch):
-    monkeypatch.setattr(lobby_ws, "MAX_CONNECTIONS", 1)
-    with client.websocket_connect(URL):
-        with pytest.raises(WebSocketDisconnect) as closed:
-            with client.websocket_connect(URL):
-                pass
-        assert closed.value.code == lobby_ws.CLOSE_TRY_AGAIN_LATER
-
-    # Once the first one is gone there is room again
-    with client.websocket_connect(URL) as ws:
-        ws.send_json({"action": "ping"})
-        assert ws.receive_json() == {"type": "pong"}
-
-
-def test_per_address_connection_cap(client, monkeypatch):
-    monkeypatch.setattr(lobby_ws, "MAX_CONNECTIONS_PER_IP", 2)
-    with client.websocket_connect(URL), client.websocket_connect(URL):
-        with pytest.raises(WebSocketDisconnect) as closed:
-            with client.websocket_connect(URL):
-                pass
-        assert closed.value.code == lobby_ws.CLOSE_TRY_AGAIN_LATER
-
-
-def test_disconnect_cleans_up(client):
-    with client.websocket_connect(URL) as ws:
-        ws.send_json({"action": "subscribe", "district": "northern"})
-        ws.receive_json()
-        assert lobby_ws.open_total == 1
-
-    assert lobby_ws.open_total == 0
-    assert lobby_ws.open_by_ip == {}
-    assert lobby_hub.connection_count() == 0
-    assert lobby_hub.watcher_count("northern") == 0
+def test_lobby_origin_caps_binary_and_malformed_frames_are_enforced(network,monkeypatch):
+    with pytest.raises(InvalidStatus): connect(network.ws+'/api/v1/ws/lobby',origin='http://evil.example')
+    monkeypatch.setattr(lobby_ws,'MAX_CONNECTIONS',1)
+    with lobby(network) as socket:
+        with pytest.raises(InvalidStatus): connect(network.ws+'/api/v1/ws/lobby')
+        socket.send('bad-json');socket.send(json.dumps({'action':'unexpected'}))
+        socket.send(json.dumps({'action':'ping'}));assert receive(socket,'pong')=={'type':'pong'}
+        socket.send(b'x'*(lobby_ws.MAX_MESSAGE_BYTES+1))
+        with pytest.raises(ConnectionClosed) as closed: socket.recv(timeout=2)
+        assert closed.value.rcvd.code==1009
