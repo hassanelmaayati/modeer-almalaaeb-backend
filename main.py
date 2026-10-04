@@ -1,4 +1,3 @@
-import os
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -12,7 +11,9 @@ from controllers.users import router as UsersRouter
 from controllers.sports import router as SportsRouter
 from controllers.cups import router as CupsRouter
 from controllers.rooms import router as RoomsRouter
+from config.environment import CORS_ORIGINS
 from controllers.messages import router as MessagesRouter
+from controllers.lobby_ws import router as LobbyWsRouter
 from controllers.memberships.room import router as RoomMembersRouter
 from controllers.memberships.friends import router as FriendsRouter
 from controllers.memberships.group import router as GroupMembersRouter
@@ -74,21 +75,16 @@ app.include_router(SportsRouter, prefix="/api/v1")
 app.include_router(CupsRouter, prefix="/api/v1")
 app.include_router(RoomsRouter, prefix="/api/v1")
 app.include_router(MessagesRouter, prefix="/api/v1")
+app.include_router(LobbyWsRouter, prefix="/api/v1")
 app.include_router(RoomMembersRouter, prefix="/api/v1")
 app.include_router(FriendsRouter, prefix="/api/v1")
 app.include_router(GroupMembersRouter, prefix="/api/v1")
 app.include_router(CupRosterRouter, prefix="/api/v1")
 
 
-origins = [
-    origin.strip()
-    for origin in os.getenv("CORS_ORIGINS", "").split(",")
-    if origin.strip()
-]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=CORS_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )
