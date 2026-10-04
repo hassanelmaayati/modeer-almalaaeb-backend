@@ -22,7 +22,7 @@ class MembershipModel(BaseModel):
     other_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     room_id = Column(Integer, ForeignKey("rooms.id"), nullable=True)
     group_id = Column(Integer, ForeignKey("groups.id"), nullable=True)
-    # cup_id = Column(Integer, ForeignKey("cups.id"), nullable=True)
+    cup_id = Column(Integer, nullable=True)
 
     status = Column(String, nullable=False)
     position = Column(String, nullable=True)
