@@ -1,10 +1,11 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Depends
 from sqlalchemy.orm import Session
 
 from models.user import UserModel
 from serializers.user import UserSignupSchema, UserLoginSchema, UserTokenSchema
 from database import get_db
 from dependencies.get_current_user import get_current_user
+from services import realtime
 
 router = APIRouter(tags=["Auth"])
 
@@ -48,10 +49,13 @@ def login(user: UserLoginSchema, db: Session = Depends(get_db)):
 
 @router.post("/auth/logout", status_code=204)
 def logout(
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: UserModel = Depends(get_current_user),
 ):
     # Revokes every token issued so far, on all devices
+    old_version = current_user.token_version
     current_user.token_version += 1
     db.commit()
+    background_tasks.add_task(realtime.realtime_hub.close_user, current_user.id, old_version)
     return None

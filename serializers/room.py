@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
+from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from models.room import (
     DIFFICULTY,
@@ -12,6 +13,16 @@ from models.room import (
 # A room must start between 1 hour and 14 days from now
 MIN_LEAD_TIME = timedelta(hours=1)
 MAX_LEAD_TIME = timedelta(days=14)
+
+
+def nonblank(value):
+    value = value.strip()
+    if not value:
+        raise ValueError("cannot be blank")
+    return value
+
+
+NonBlank = Annotated[str, AfterValidator(nonblank)]
 
 
 def _to_utc(value: datetime) -> datetime:
@@ -62,6 +73,7 @@ class RoomSchema(BaseModel):
     route_notes: str | None = None
     host_generation: int
     revision: int
+    slots_left: int = 0
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -75,7 +87,7 @@ class RoomDetailSchema(RoomSchema):
 class CreateRoomSchema(BaseModel):
     sport_id: int
     group_id: int | None = None
-    title: str = Field(min_length=1)
+    title: NonBlank = Field(min_length=1)
     description: str | None = None
     difficulty: str = "beginners"
     starts_at: datetime
@@ -85,7 +97,7 @@ class CreateRoomSchema(BaseModel):
     visibility: str = "public"
     admission_policy: str = "approval"
     district: str
-    public_area: str = Field(min_length=1)
+    public_area: NonBlank = Field(min_length=1)
     venue_details: str | None = None
     distance_km: float | None = Field(default=None, gt=0)
     pace_notes: str | None = None
@@ -141,7 +153,7 @@ class UpdateRoomSchema(BaseModel):
     revision: int
     sport_id: int | None = None
     group_id: int | None = None
-    title: str | None = Field(default=None, min_length=1)
+    title: NonBlank | None = Field(default=None, min_length=1)
     description: str | None = None
     difficulty: str | None = None
     starts_at: datetime | None = None
@@ -151,7 +163,7 @@ class UpdateRoomSchema(BaseModel):
     visibility: str | None = None
     admission_policy: str | None = None
     district: str | None = None
-    public_area: str | None = Field(default=None, min_length=1)
+    public_area: NonBlank | None = Field(default=None, min_length=1)
     venue_details: str | None = None
     distance_km: float | None = Field(default=None, gt=0)
     pace_notes: str | None = None
@@ -198,4 +210,4 @@ class UpdateRoomSchema(BaseModel):
 
 # Body of the cancel request; a reason is always required
 class CancelRoomSchema(BaseModel):
-    reason: str = Field(min_length=1)
+    reason: NonBlank = Field(min_length=1)

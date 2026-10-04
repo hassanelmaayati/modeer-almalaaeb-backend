@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class RoomMemberSchema(BaseModel):
@@ -14,8 +14,7 @@ class RoomMemberSchema(BaseModel):
     attendance: str | None = None
     rating: int | None = None
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class CreateRoomMemberSchema(BaseModel):
@@ -45,8 +44,7 @@ class MemberSchema(BaseModel):
     user_blocked_other: str | None = None
     other_blocked_user: str | None = None
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class FriendSchema(MemberSchema):

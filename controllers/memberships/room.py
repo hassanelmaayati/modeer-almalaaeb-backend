@@ -1,195 +1,164 @@
-from typing import List
-
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from database import get_db
 from dependencies.get_current_user import get_current_user
+from dependencies.get_optional_user import get_optional_user
 from models.membership import MembershipModel
 from models.room import RoomModel
 from models.user import UserModel
+from serializers.membership import CreateRoomMemberSchema, RoomMemberSchema, UpdateRoomMemberSchema
+from services.changes import change_events
 from services.lobby_events import lobby_state, queue_room_events
-from serializers.membership import (
-    RoomMemberSchema,
-    CreateRoomMemberSchema,
-    UpdateRoomMemberSchema,
-)
+from services.memberships import commit, load
+from services.realtime import queue_events
+from services.room_rules import count_slots_left, is_past_cutoff, as_utc
+from datetime import datetime, timezone
 
-router = APIRouter(
-    tags=[
-        "Room Members Management",
-    ]
-)
+router = APIRouter(tags=["Room Members Management"])
 
 
-def _get_host_id(db: Session, room_id: int) -> int:
-    from models.room import RoomModel
-
-    room = db.query(RoomModel).filter(RoomModel.id == room_id).first()
-    if not room:
-        raise HTTPException(status_code=404, detail="Room not found")
-    return room.host_id
+def members(db, room_id):
+    return db.query(MembershipModel).filter(MembershipModel.room_id == room_id)
 
 
-def _get_room(db: Session, room_id: int) -> RoomModel:
-    return db.query(RoomModel).filter(RoomModel.id == room_id).first()
+def require_admission(room):
+    if room.status != "open" or is_past_cutoff(room):
+        raise HTTPException(409, "Admission is closed")
 
 
-def _room_membership(db: Session, room_id: int, user_id: int):
-    return (
-        db.query(MembershipModel)
-        .filter(
-            MembershipModel.room_id == room_id,
-            MembershipModel.user_id == user_id,
-        )
-        .first()
-    )
+def finish(db, background_tasks, room, before, actor_id, member, text):
+    room.revision += 1
+    events = change_events(db, {"type": "room", "id": room.id}, "room.membership",
+                          text, actor_id, extra_ids=[member.user_id])
+    commit(db)
+    db.refresh(member)
+    queue_room_events(background_tasks, db, room, before)
+    queue_events(background_tasks, events)
+    return member
 
 
-@router.get("/rooms/{room_id}/members", response_model=List[RoomMemberSchema])
-def get_room_members(room_id: int, db: Session = Depends(get_db)):
-    return db.query(MembershipModel).filter(MembershipModel.room_id == room_id).all()
+@router.get("/rooms/{room_id}/members", response_model=list[RoomMemberSchema])
+def get_room_members(room_id: int, db: Session = Depends(get_db),
+                     current_user: UserModel | None = Depends(get_optional_user)):
+    room = load(db, RoomModel, room_id)
+    query = members(db, room_id)
+    own = query.filter(MembershipModel.user_id == current_user.id).first() if current_user else None
+    is_host = current_user is not None and current_user.id == room.host_id
+    admitted = own is not None and own.status == "accepted"
+    invited = own is not None and own.status == "pending" and not own.requested
+    if room.visibility != "public" and not (is_host or admitted or invited):
+        raise HTTPException(404, "Room not found")
+    if is_host:
+        return query.all()
+    if admitted:
+        return query.filter(MembershipModel.status == "accepted").all()
+    return [own] if own else []
 
 
-@router.post(
-    "/rooms/{room_id}/members", response_model=RoomMemberSchema, status_code=201
-)
-def create_room_member(
-    room_id: int,
-    membership: CreateRoomMemberSchema,
-    db: Session = Depends(get_db),
-    current_user: UserModel = Depends(get_current_user),
-):
-    host_id = _get_host_id(db, room_id)
-    target_id = membership.user_id or current_user.id
+@router.post("/rooms/{room_id}/members", response_model=RoomMemberSchema, status_code=201)
+def create_room_member(room_id: int, membership: CreateRoomMemberSchema,
+                       background_tasks: BackgroundTasks, db: Session = Depends(get_db),
+                       current_user: UserModel = Depends(get_current_user)):
+    room = load(db, RoomModel, room_id, lock=True)
+    require_admission(room)
+    target_id = membership.user_id if membership.user_id is not None else current_user.id
     is_self = target_id == current_user.id
-
-    # Only the host may invite someone else; anyone may ask to join
-    if not is_self:
-        if current_user.id != host_id:
-            raise HTTPException(status_code=403, detail="Only the host can invite")
-        if not db.query(UserModel).filter(UserModel.id == target_id).first():
-            raise HTTPException(status_code=404, detail="User not found")
-
-    if _room_membership(db, room_id, target_id):
-        raise HTTPException(status_code=409, detail="Already requested or a member")
-
-    new_membership = MembershipModel(
-        user_id=target_id,
-        room_id=room_id,
-        status="pending",
-        # requested=True: the player asked (host approves); False: host invited
-        requested=is_self,
-        accepted=False,
-    )
-    db.add(new_membership)
-    db.commit()
-    db.refresh(new_membership)
-    return new_membership
+    if not is_self and current_user.id != room.host_id:
+        raise HTTPException(403, "Only the host can invite")
+    if is_self and room.visibility != "public" and current_user.id != room.host_id:
+        raise HTTPException(404, "Room not found")
+    if target_id == room.host_id:
+        raise HTTPException(409, "The host already has a place")
+    load(db, UserModel, target_id)
+    if members(db, room_id).filter(MembershipModel.user_id == target_id).first():
+        raise HTTPException(409, "Already requested or a member")
+    if count_slots_left(db, room) == 0:
+        raise HTTPException(409, "The room is full")
+    member = MembershipModel(user_id=target_id, room_id=room_id, status="pending",
+                             requested=is_self, accepted=False)
+    db.add(member)
+    events = change_events(db, {"type": "room", "id": room_id},
+                          "room.request" if is_self else "room.invitation",
+                          "A player requested a place" if is_self else "You were invited to a room",
+                          current_user.id, recipient_ids={room.host_id, target_id})
+    commit(db)
+    db.refresh(member)
+    queue_events(background_tasks, events)
+    return member
 
 
 @router.patch("/rooms/{room_id}/members/{user_id}", response_model=RoomMemberSchema)
-def update_room_member(
-    room_id: int,
-    user_id: int,
-    membership: UpdateRoomMemberSchema,
-    background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db),
-    current_user: UserModel = Depends(get_current_user),
-):
-    host_id = _get_host_id(db, room_id)
-    db_member = _room_membership(db, room_id, user_id)
-    if not db_member:
-        raise HTTPException(status_code=404, detail="Room member not found")
-
-    data = membership.model_dump(exclude_unset=True)
-    is_host = current_user.id == host_id
-    is_self = current_user.id == user_id
+def update_room_member(room_id: int, user_id: int, membership: UpdateRoomMemberSchema,
+                       background_tasks: BackgroundTasks, db: Session = Depends(get_db),
+                       current_user: UserModel = Depends(get_current_user)):
+    room = load(db, RoomModel, room_id, lock=True)
+    member = members(db, room_id).filter(MembershipModel.user_id == user_id).first()
+    if not member:
+        raise HTTPException(404, "Room member not found")
+    is_host, is_self = current_user.id == room.host_id, current_user.id == user_id
     if not (is_host or is_self):
-        raise HTTPException(status_code=403, detail="Not allowed")
-
-    # How the lobby saw the room before this change (accepting or removing a
-    # player changes the free places)
-    room = _get_room(db, room_id)
+        raise HTTPException(403, "Not allowed")
     before = lobby_state(db, room)
-
-    if "status" in data and data["status"] is not None:
-        new_status = data["status"]
-        old_status = db_member.status
-        if is_host and old_status == "pending" and db_member.requested:
-            allowed = ("accepted", "declined")
-        elif is_self and old_status == "pending" and not db_member.requested:
-            allowed = ("accepted", "declined")
-        else:
-            allowed = ()
-        if is_host and not is_self and old_status in ("pending", "accepted"):
-            allowed += ("removed",)
-        if is_self and old_status in ("pending", "accepted"):
-            allowed += ("left",)
-        if new_status not in allowed:
-            raise HTTPException(
-                status_code=403,
-                detail=f"Cannot change status from {old_status} to {new_status}",
-            )
-        db_member.status = new_status
-        db_member.accepted = new_status == "accepted"
-        if new_status in ("declined", "left", "removed"):
-            db_member.position = None
-
+    data = membership.model_dump(exclude_unset=True)
+    status = data.get("status")
+    if status is not None:
+        allowed = set()
+        if member.status == "pending" and ((is_host and member.requested) or (is_self and not member.requested)):
+            allowed.update(("accepted", "declined"))
+        if is_host and not is_self and member.status in ("pending", "accepted"):
+            allowed.add("removed")
+        if is_self and member.status in ("pending", "accepted"):
+            allowed.add("left")
+        if status not in allowed:
+            raise HTTPException(403, f"Cannot change status from {member.status} to {status}")
+        if status == "accepted":
+            require_admission(room)
+            if count_slots_left(db, room) == 0:
+                raise HTTPException(409, "The room is full")
+        member.status, member.accepted = status, status == "accepted"
+        if status != "accepted":
+            member.position = None
     if "position" in data:
-        if db_member.status != "accepted":
-            raise HTTPException(status_code=409, detail="Only accepted players have a slot")
-        if data["position"] is not None:
-            taken = (
-                db.query(MembershipModel)
-                .filter(
-                    MembershipModel.room_id == room_id,
-                    MembershipModel.status == "accepted",
-                    MembershipModel.position == data["position"],
-                    MembershipModel.id != db_member.id,
-                )
-                .first()
-            )
-            if taken:
-                raise HTTPException(status_code=409, detail="Slot already taken")
-        db_member.position = data["position"]
-
-    if "attendance" in data and data["attendance"] is not None:
+        if member.status != "accepted":
+            raise HTTPException(409, "Only accepted players have a slot")
+        if room.status != "open" or datetime.now(timezone.utc) >= as_utc(room.starts_at):
+            raise HTTPException(409, "Slot selection is closed")
+        position = data["position"]
+        if position is not None:
+            if not position.strip() or len(position) > 50:
+                raise HTTPException(422, "Invalid position")
+            if members(db, room_id).filter(MembershipModel.status == "accepted",
+                    MembershipModel.position == position, MembershipModel.id != member.id).first():
+                raise HTTPException(409, "Slot already taken")
+        member.position = position
+    if data.get("attendance") is not None:
         if not is_host:
-            raise HTTPException(status_code=403, detail="Only the host records attendance")
-        db_member.attendance = data["attendance"]
-
-    if "rating" in data and data["rating"] is not None:
-        if not is_host:
-            raise HTTPException(status_code=403, detail="Only the host can rate")
-        if is_self:
-            raise HTTPException(status_code=403, detail="Cannot rate yourself")
-        if db_member.attendance != "present":
-            raise HTTPException(status_code=409, detail="Rate only present players")
-        db_member.rating = data["rating"]
-
-    db.commit()
-    db.refresh(db_member)
-    queue_room_events(background_tasks, db, room, before)
-    return db_member
+            raise HTTPException(403, "Only the host records attendance")
+        member.attendance = data["attendance"]
+    if data.get("rating") is not None:
+        if not is_host or is_self:
+            raise HTTPException(403, "Only the host can rate other players")
+        if member.attendance != "present":
+            raise HTTPException(409, "Rate only present players")
+        member.rating = data["rating"]
+    return finish(db, background_tasks, room, before, current_user.id, member,
+                  "A room membership was updated")
 
 
 @router.delete("/rooms/{room_id}/members/me", status_code=204)
-def leave_room(
-    room_id: int,
-    background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db),
-    current_user: UserModel = Depends(get_current_user),
-):
-    db_member = _room_membership(db, room_id, current_user.id)
-    if not db_member:
-        raise HTTPException(status_code=404, detail="Room member not found")
-    room = _get_room(db, room_id)
+def leave_room(room_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db),
+               current_user: UserModel = Depends(get_current_user)):
+    room = load(db, RoomModel, room_id, lock=True)
+    if room.host_id == current_user.id:
+        raise HTTPException(409, "The host cannot leave their room")
+    member = members(db, room_id).filter(MembershipModel.user_id == current_user.id).first()
+    if not member:
+        raise HTTPException(404, "Room member not found")
+    if member.status == "left":
+        return None
+    if member.status not in ("pending", "accepted"):
+        raise HTTPException(409, "Membership is already closed")
     before = lobby_state(db, room)
-
-    # Keep the row for history; release the slot
-    db_member.status = "left"
-    db_member.position = None
-    db_member.accepted = False
-    db.commit()
-    queue_room_events(background_tasks, db, room, before)
+    member.status, member.accepted, member.position = "left", False, None
+    finish(db, background_tasks, room, before, current_user.id, member, "A player left a room")

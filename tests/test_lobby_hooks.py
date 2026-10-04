@@ -1,265 +1,123 @@
-from datetime import datetime, timedelta, timezone
-
 import pytest
-from fastapi.testclient import TestClient
-
-from services import lobby_events
-from services.lobby import LobbyHub
-from tests.lib import login
-
-
-# Records what the controllers asked the lobby to send
-class RecordingHub(LobbyHub):
-    def __init__(self, fail=False):
-        self.sent = []
-        self.fail = fail
-
-    async def connect(self, socket): ...
-    async def subscribe(self, socket, district): ...
-    async def unsubscribe(self, socket): ...
-    async def disconnect(self, socket): ...
-
-    async def broadcast(self, district, event):
-        if self.fail:
-            raise RuntimeError("hub is down")
-        self.sent.append((district, event))
-
-    def summary(self):
-        return [(district, event.type) for district, event in self.sent]
-
-    def clear(self):
-        self.sent.clear()
-
-
-@pytest.fixture
-def hub(monkeypatch):
-    recording = RecordingHub()
-    monkeypatch.setattr(lobby_events, "lobby_hub", recording)
-    return recording
-
-
-def when(hours=24):
-    return (datetime.now(timezone.utc) + timedelta(hours=hours)).isoformat()
-
-
-def room_body(**overrides):
-    # Swimming accepts any capacity, so the number of places is easy to control
-    body = {
-        "sport_id": 4,
-        "title": "Hook room",
-        "starts_at": when(24),
-        "ends_at": when(25),
-        "capacity": 4,
-        "district": "capital",
-        "public_area": "Manama",
-        "venue_details": "Pool 7, side door",
-    }
-    body.update(overrides)
-    return body
-
-
-def make_room(test_app, headers, **overrides):
-    response = test_app.post("/api/v1/rooms", headers=headers, json=room_body(**overrides))
-    assert response.status_code == 201, response.text
-    return response.json()
-
-
-def put(test_app, headers, room, **changes):
-    response = test_app.put(
-        f"/api/v1/rooms/{room['id']}",
-        headers=headers,
-        json={"revision": room["revision"], **changes},
-    )
-    assert response.status_code == 200, response.text
-    return response.json()
-
-
-def host(test_app):
-    return login(test_app, "user1@example.com", "123")
-
-
-def player(test_app, n=2):
-    return login(test_app, f"user{n}@example.com", "123")
-
-
-# ---------- create, update, cancel ----------
-
-
-def test_creating_a_public_room_publishes_it(test_app: TestClient, override_get_db, hub):
-    make_room(test_app, host(test_app), district="northern")
-    assert hub.summary() == [("northern", "room_created")]
-
-
-def test_creating_a_private_room_publishes_nothing(
-    test_app: TestClient, override_get_db, hub
-):
-    make_room(test_app, host(test_app), visibility="private")
-    assert hub.sent == []
-
-
-def test_what_is_published_never_includes_the_venue(
-    test_app: TestClient, override_get_db, hub
-):
-    make_room(test_app, host(test_app))
-    assert "Pool 7" not in hub.sent[0][1].model_dump_json()
-
-
-def test_editing_a_room_publishes_an_update(test_app: TestClient, override_get_db, hub):
-    headers = host(test_app)
-    room = make_room(test_app, headers)
-    hub.clear()
-
-    put(test_app, headers, room, title="Renamed")
-    assert hub.summary() == [("capital", "room_updated")]
-    assert hub.sent[0][1].room.title == "Renamed"
-
-
-def test_moving_a_room_to_another_district(test_app: TestClient, override_get_db, hub):
-    headers = host(test_app)
-    room = make_room(test_app, headers, district="capital")
-    hub.clear()
-
-    put(test_app, headers, room, district="southern")
-    assert hub.summary() == [("capital", "room_removed"), ("southern", "room_created")]
-    assert hub.sent[0][1].reason == "moved"
-
-
-def test_making_a_room_private_and_public_again(
-    test_app: TestClient, override_get_db, hub
-):
-    headers = host(test_app)
-    room = make_room(test_app, headers)
-    hub.clear()
-
-    room = put(test_app, headers, room, visibility="private")
-    assert hub.summary() == [("capital", "room_removed")]
-    assert hub.sent[0][1].reason == "not_public"
-    hub.clear()
-
-    room = put(test_app, headers, room, title="Quiet edit")
-    assert hub.sent == []  # a private room stays silent
-
-    put(test_app, headers, room, visibility="public")
-    assert hub.summary() == [("capital", "room_created")]
-
-
-def test_cancelling_a_room_removes_it(test_app: TestClient, override_get_db, hub):
-    headers = host(test_app)
-    room = make_room(test_app, headers)
-    hub.clear()
-
-    response = test_app.post(
-        f"/api/v1/rooms/{room['id']}/cancel", headers=headers, json={"reason": "Rain"}
-    )
-    assert response.status_code == 200
-    assert hub.summary() == [("capital", "room_removed")]
-    assert hub.sent[0][1].reason == "cancelled"
-
-
-# ---------- members ----------
-
-
-def request_to_join(test_app, room, n=2):
-    response = test_app.post(
-        f"/api/v1/rooms/{room['id']}/members", headers=player(test_app, n), json={}
-    )
-    assert response.status_code == 201, response.text
-
-
-def set_status(test_app, room, user_id, status, headers):
-    return test_app.patch(
-        f"/api/v1/rooms/{room['id']}/members/{user_id}",
-        headers=headers,
-        json={"status": status},
-    )
-
-
-def test_join_request_alone_publishes_nothing(test_app: TestClient, override_get_db, hub):
-    room = make_room(test_app, host(test_app))
-    hub.clear()
-
-    request_to_join(test_app, room)
-    assert hub.sent == []
-
-
-def test_accepting_a_player_updates_the_free_places(
-    test_app: TestClient, override_get_db, hub
-):
-    headers = host(test_app)
-    room = make_room(test_app, headers, capacity=4)
-    request_to_join(test_app, room, n=2)
-    hub.clear()
-
-    assert set_status(test_app, room, 2, "accepted", headers).status_code == 200
-    assert hub.summary() == [("capital", "room_updated")]
-    assert hub.sent[0][1].room.slots_left == 2
-
-
-def test_kicking_a_player_frees_a_place(test_app: TestClient, override_get_db, hub):
-    headers = host(test_app)
-    room = make_room(test_app, headers, capacity=4)
-    request_to_join(test_app, room, n=2)
-    set_status(test_app, room, 2, "accepted", headers)
-    hub.clear()
-
-    assert set_status(test_app, room, 2, "removed", headers).status_code == 200
-    assert hub.summary() == [("capital", "room_updated")]
-    assert hub.sent[0][1].room.slots_left == 3
-
-
-def test_room_that_fills_up_is_removed_and_comes_back_when_someone_leaves(
-    test_app: TestClient, override_get_db, hub
-):
-    headers = host(test_app)
-    room = make_room(test_app, headers, capacity=2)  # host + one player
-    request_to_join(test_app, room, n=2)
-    hub.clear()
-
-    set_status(test_app, room, 2, "accepted", headers)
-    assert hub.summary() == [("capital", "room_removed")]
-    assert hub.sent[0][1].reason == "full"
-    hub.clear()
-
-    response = test_app.delete(
-        f"/api/v1/rooms/{room['id']}/members/me", headers=player(test_app, 2)
-    )
-    assert response.status_code == 204
-    assert hub.summary() == [("capital", "room_created")]
-    assert hub.sent[0][1].room.slots_left == 1
-
-
-def test_changes_to_a_private_rooms_members_publish_nothing(
-    test_app: TestClient, override_get_db, hub
-):
-    headers = host(test_app)
-    room = make_room(test_app, headers, visibility="private", capacity=2)
-    request_to_join(test_app, room, n=3)
-    set_status(test_app, room, 3, "accepted", headers)
-    assert hub.sent == []
-
-
-# ---------- a broken lobby never breaks the request ----------
-
-
-def test_a_failing_hub_does_not_break_the_requests(
-    test_app: TestClient, override_get_db, monkeypatch
-):
-    monkeypatch.setattr(lobby_events, "lobby_hub", RecordingHub(fail=True))
-    headers = host(test_app)
-
-    room = make_room(test_app, headers)  # still 201
-    put(test_app, headers, room, title="Still works")  # still 200
-    response = test_app.post(
-        f"/api/v1/rooms/{room['id']}/cancel", headers=headers, json={"reason": "Test"}
-    )
-    assert response.status_code == 200
-
-
-def test_events_that_cannot_be_prepared_do_not_break_the_request(
-    test_app: TestClient, override_get_db, monkeypatch
-):
-    def explode(*args, **kwargs):
-        raise RuntimeError("cannot build events")
-
-    monkeypatch.setattr(lobby_events, "events_for_change", explode)
-    make_room(test_app, host(test_app))  # still 201
+from sqlalchemy.exc import IntegrityError
+
+from database import get_db
+from models.message import MessageModel
+from models.notification import NotificationModel
+from models.room import RoomModel
+from services import lobby_events, realtime
+from services.messages import message_events
+from tests.lib import api, room_body
+from tests.test_lobby_ws import lobby
+from tests.test_realtime import assert_no_message, receive, user_socket
+
+
+def test_rejected_http_commands_emit_nothing_and_leave_rows_unchanged(network, factory, db):
+    owner, member, outsider = [factory.user() for _ in range(3)]
+    room = factory.room(owner)
+    factory.member(member, room=room)
+    with lobby(network) as public, user_socket(network, member) as personal:
+        path = f"/rooms/{room['id']}"
+        api(network.client, 'PUT', path, user=outsider, body={'revision': 0, 'title': 'Denied'}, expected=403)
+        api(network.client, 'PUT', path, user=owner, body={'revision': 10, 'title': 'Stale'}, expected=409)
+        api(network.client, 'PUT', path, user=owner, body={'revision': 0, 'district': 'mars'}, expected=422)
+        for socket in (public, personal):
+            with pytest.raises(TimeoutError):
+                socket.recv(timeout=.1)
+    with db() as session:
+        row = session.get(RoomModel, room['id'])
+        assert row.title == room['title'] and row.revision == 0
+        assert session.query(NotificationModel).count() == 0
+
+
+def test_failed_commit_rolls_back_room_and_notices_without_publishing(network, configured_app, factory, db):
+    owner, member = factory.user(), factory.user()
+    room = factory.room(owner)
+    factory.member(member, room=room)
+    previous = configured_app.dependency_overrides[get_db]
+    def rejected_session():
+        with db() as session:
+            def reject_commit():
+                raise IntegrityError('COMMIT', {}, RuntimeError('Injected storage failure'))
+            session.commit = reject_commit
+            yield session
+    with lobby(network) as public, user_socket(network, member) as personal:
+        configured_app.dependency_overrides[get_db] = rejected_session
+        try:
+            api(network.client, 'PUT', f"/rooms/{room['id']}", user=owner, body={'revision': 0, 'title': 'Never committed'}, expected=409)
+        finally:
+            configured_app.dependency_overrides[get_db] = previous
+        for socket in (public, personal):
+            with pytest.raises(TimeoutError):
+                socket.recv(timeout=.1)
+    with db() as session:
+        row = session.get(RoomModel, room['id'])
+        assert row.title == room['title'] and row.revision == 0
+        assert session.query(NotificationModel).count() == 0
+
+
+@pytest.mark.parametrize('visibility', ['private', 'group'])
+def test_private_room_updates_notify_admitted_members_and_never_public_lobby(network, factory, db, visibility):
+    owner, member, outsider = [factory.user() for _ in range(3)]
+    group = factory.group(owner) if visibility == 'group' else None
+    room = factory.room(owner, visibility=visibility, group_id=group['id'] if group else None)
+    factory.member(member, room=room)
+    with lobby(network) as public, user_socket(network, member) as admitted, user_socket(network, outsider) as outside:
+        updated = api(network.client, 'PUT', f"/rooms/{room['id']}", user=owner, body={'revision': 0, 'description': 'Updated activity'})
+        event = receive(admitted, 'room.updated')
+        assert event == {'type': 'room.updated', 'room_id': room['id']}
+        notice = receive(admitted, 'notification.created')['notification']
+        assert notice['target'] == {'type': 'room', 'id': room['id']} and notice['kind'] == 'room.updated'
+        for socket in (public, outside):
+            with pytest.raises(TimeoutError):
+                socket.recv(timeout=.1)
+        assert updated['revision'] == 1
+    with db() as session:
+        assert session.get(RoomModel, room['id']).description == 'Updated activity'
+        assert session.query(NotificationModel).filter_by(user_id=member['id']).count() == 1
+
+
+def test_broken_lobby_transport_does_not_lose_committed_update_or_private_alert(network, factory, db, monkeypatch):
+    owner, member = factory.user(), factory.user()
+    room = factory.room(owner)
+    factory.member(member, room=room)
+    async def broken_broadcast(*args):
+        raise RuntimeError('Public transport unavailable')
+    monkeypatch.setattr(lobby_events.lobby_hub, 'broadcast', broken_broadcast)
+    with user_socket(network, member) as personal:
+        updated = api(network.client, 'PUT', f"/rooms/{room['id']}", user=owner, body={'revision': 0, 'title': 'Committed despite transport failure'})
+        assert receive(personal, 'room.updated')['room_id'] == room['id']
+        assert receive(personal, 'notification.created')['notification']['kind'] == 'room.updated'
+    with db() as session:
+        row = session.get(RoomModel, room['id'])
+        assert row.title == updated['title'] and row.revision == 1
+        assert session.query(NotificationModel).count() == 1
+
+
+def test_broken_event_projection_still_commits_http_creation(network, factory, db, monkeypatch):
+    owner, sport = factory.user(), factory.sport()
+    def broken_projection(*args):
+        raise RuntimeError('Public projection unavailable')
+    monkeypatch.setattr(lobby_events, 'events_for_change', broken_projection)
+    with lobby(network) as socket:
+        room = api(network.client, 'POST', '/rooms', user=owner, body=room_body(sport['id']), expected=201)
+        with pytest.raises(TimeoutError):
+            socket.recv(timeout=.1)
+    with db() as session:
+        assert session.get(RoomModel, room['id']).status == 'open'
+
+
+@pytest.mark.parametrize('kind', ['room', 'group'])
+def test_prepared_message_event_rechecks_access_after_membership_revocation(network, factory, db, kind):
+    owner, member = factory.user(), factory.user()
+    target = factory.room(owner, visibility='private') if kind == 'room' else factory.group(owner)
+    factory.member(member, **{kind: target})
+    saved = factory.message(owner, **{kind: target})
+    with db() as session:
+        prepared = message_events(session, session.get(MessageModel, saved['id']))
+    with user_socket(network, member) as removed, user_socket(network, owner) as own:
+        api(network.client, 'PATCH', f"/{kind}s/{target['id']}/members/{member['id']}", user=owner, body={'status': 'removed'})
+        network.run(realtime.send_events(prepared))
+        assert receive(own, 'message.created')['message']['id'] == saved['id']
+        assert_no_message(removed)
+        api(network.client, 'GET', '/messages', user=member, params={kind+'_id': target['id']}, expected=403)

@@ -3,7 +3,7 @@ import random
 from datetime import datetime, timezone
 from typing import List, Literal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 
 # DB
 from sqlalchemy import or_
@@ -16,6 +16,7 @@ from models.cup import CupModel, CUP_FORMATS, NO_CUP_SPORTS
 from models.group import GroupModel
 from models.sport import SportModel
 from models.user import UserModel
+from models.membership import MembershipModel
 
 # Serializers
 from serializers.cup import (
@@ -30,6 +31,9 @@ from serializers.cup import (
 
 from dependencies.get_current_user import get_current_user
 from dependencies.get_optional_user import get_optional_user
+from services.changes import change_events
+from services.memberships import commit
+from services.realtime import queue_events
 
 router = APIRouter(tags=["Cups Management"])
 
@@ -107,12 +111,15 @@ def check_team_count(cup_format: str, team_count: int):
         )
 
 
-def save(db: Session, cup: CupModel):
+def save(db: Session, cup: CupModel, background_tasks, actor_id):
     cup.revision += 1
     flag_modified(cup, "entries")
     flag_modified(cup, "fixtures")
-    db.commit()
+    events = change_events(db, {"type": "cup", "id": cup.id}, "cup.updated",
+                          "A cup you participate in was updated", actor_id)
+    commit(db)
     db.refresh(cup)
+    queue_events(background_tasks, events)
     return cup
 
 
@@ -288,6 +295,7 @@ def get_cup(
 @router.post("/cups", response_model=CupSchema, status_code=201)
 def create_cup(
     cup: CreateCupSchema,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: UserModel = Depends(get_current_user),
 ):
@@ -305,8 +313,12 @@ def create_cup(
         fixtures=[],
     )
     db.add(new_cup)
-    db.commit()
+    db.flush()
+    events = change_events(db, {"type": "cup", "id": new_cup.id}, "cup.created",
+                          "A cup was created", current_user.id, notify=False)
+    commit(db)
     db.refresh(new_cup)
+    queue_events(background_tasks, events)
     return new_cup
 
 
@@ -314,6 +326,7 @@ def create_cup(
 def update_cup(
     cup_id: int,
     cup: UpdateCupSchema,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: UserModel = Depends(get_current_user),
 ):
@@ -403,7 +416,7 @@ def update_cup(
             )
         record_race_results(db_cup, cup.race_results)
 
-    return save(db, db_cup)
+    return save(db, db_cup, background_tasks, current_user.id)
 
 
 @router.delete("/cups/{cup_id}", status_code=204)
@@ -418,8 +431,10 @@ def delete_cup(
     if db_cup.status != "draft":
         raise HTTPException(status_code=400, detail="Only draft cups can be deleted")
 
+    if db.query(MembershipModel).filter(MembershipModel.cup_id == cup_id).first():
+        raise HTTPException(409, "Remove roster memberships before deleting this cup")
     db.delete(db_cup)
-    db.commit()
+    commit(db)
     return None
 
 
@@ -427,6 +442,7 @@ def delete_cup(
 def create_entry(
     cup_id: int,
     entry: CreateEntrySchema,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: UserModel = Depends(get_current_user),
 ):
@@ -472,7 +488,7 @@ def create_entry(
         }
     )
     db_cup.entries = entries
-    return save(db, db_cup)
+    return save(db, db_cup, background_tasks, current_user.id)
 
 
 @router.put("/cups/{cup_id}/entries/{group_id}", response_model=CupSchema)
@@ -480,6 +496,7 @@ def update_entry(
     cup_id: int,
     group_id: int,
     entry: UpdateEntrySchema,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: UserModel = Depends(get_current_user),
 ):
@@ -520,4 +537,4 @@ def update_entry(
 
     db_entry["status"] = entry.status
     db_cup.entries = entries
-    return save(db, db_cup)
+    return save(db, db_cup, background_tasks, current_user.id)

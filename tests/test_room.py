@@ -1,668 +1,211 @@
-from datetime import datetime, timedelta, timezone
-
-from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
-
-from models.room import DISTRICTS, RoomModel
-from tests.lib import login, get_user_id
-
-# Seeded users all use the password "123" (see data/users_data.py)
-# Seeded rooms (data/rooms_data.py): 1 Football/user1, 2 Basketball/user2,
-# 3 Tennis group-only/user3, 4 Swimming/user4
-
-
-def future(days=1, hours=0):
-    return (datetime.now(timezone.utc) + timedelta(days=days, hours=hours)).isoformat()
-
-
-def room_data(**overrides):
-    # A valid Football 5v5 room; tests override only what they check
-    data = {
-        "sport_id": 1,
-        "title": "Test room",
-        "starts_at": future(days=1),
-        "ends_at": future(days=1, hours=1),
-        "capacity": 10,
-        "district": "capital",
-        "public_area": "Manama",
-        "venue_details": "Court 1",
-    }
-    data.update(overrides)
-    return data
-
-
-def create_room(test_app: TestClient, headers, **overrides):
-    response = test_app.post("/api/v1/rooms", headers=headers, json=room_data(**overrides))
-    assert response.status_code == 201, response.text
-    return response.json()
-
-
-# ---------- discovery and details ----------
-
-
-def test_get_rooms(test_app: TestClient, test_db: Session, override_get_db):
-    response = test_app.get("/api/v1/rooms")
-    assert response.status_code == 200
-    rooms = response.json()
-    assert len(rooms) >= 3
-
-    ids = [room["id"] for room in rooms]
-    assert 3 not in ids  # the group-only room is not listed
-    for room in rooms:
-        assert room["status"] == "open"
-        assert room["visibility"] == "public"
-        assert "venue_details" not in room  # exact venue stays private
-
-    # Sorted by start time
-    starts = [room["starts_at"] for room in rooms]
-    assert starts == sorted(starts)
-
-
-def test_get_rooms_filter_by_sport(test_app: TestClient, override_get_db):
-    response = test_app.get("/api/v1/rooms?sport_id=2")
-    assert response.status_code == 200
-    rooms = response.json()
-    assert len(rooms) >= 1
-    assert all(room["sport_id"] == 2 for room in rooms)
-
-
-def test_get_rooms_filter_by_difficulty(test_app: TestClient, override_get_db):
-    response = test_app.get("/api/v1/rooms?difficulty=medium")
-    assert response.status_code == 200
-    assert all(room["difficulty"] == "medium" for room in response.json())
-
-
-def test_get_rooms_filter_by_district(test_app: TestClient, override_get_db):
-    response = test_app.get("/api/v1/rooms?district=capital")
-    assert response.status_code == 200
-    rooms = response.json()
-    assert len(rooms) >= 1
-    assert all(room["district"] == "capital" for room in rooms)
-
-    # The seed has a public Riffa room in the southern district
-    southern = test_app.get("/api/v1/rooms?district=southern").json()
-    assert southern
-    assert all(room["district"] == "southern" for room in southern)
-    assert not {room["id"] for room in rooms} & {room["id"] for room in southern}
-
-
-def test_get_rooms_without_district_lists_all_districts(
-    test_app: TestClient, override_get_db
-):
-    rooms = test_app.get("/api/v1/rooms").json()
-    assert len({room["district"] for room in rooms}) >= 2
-
-
-def test_get_rooms_district_hides_non_public_rooms(
-    test_app: TestClient, override_get_db
-):
-    # The only muharraq room in the seed is group-only, so it is not listed
-    response = test_app.get("/api/v1/rooms?district=muharraq")
-    assert response.status_code == 200
-    assert all(room["visibility"] == "public" for room in response.json())
-    assert 3 not in [room["id"] for room in response.json()]
-
-
-def test_get_rooms_invalid_district(test_app: TestClient, override_get_db):
-    response = test_app.get("/api/v1/rooms?district=mars")
-    assert response.status_code == 422
-
-
-def test_get_rooms_district_combines_with_other_filters(
-    test_app: TestClient, override_get_db
-):
-    response = test_app.get("/api/v1/rooms?district=southern&sport_id=2")
-    assert response.status_code == 200
-    rooms = response.json()
-    assert rooms
-    assert all(r["district"] == "southern" and r["sport_id"] == 2 for r in rooms)
-
-    # Right district, wrong sport: nothing matches
-    assert test_app.get("/api/v1/rooms?district=southern&sport_id=1").json() == []
-
-
-def test_get_room_hides_venue_from_visitors(test_app: TestClient, override_get_db):
-    response = test_app.get("/api/v1/rooms/1")
-    assert response.status_code == 200
-    assert response.json()["title"] == "Friday 5-a-side"
-    assert "venue_details" not in response.json()
-
-
-def test_get_room_shows_venue_to_host(test_app: TestClient, override_get_db):
-    headers = login(test_app, "user1@example.com", "123")
-    response = test_app.get("/api/v1/rooms/1", headers=headers)
-    assert response.status_code == 200
-    assert response.json()["venue_details"] == "Pitch 3, Bahrain Sports Hall"
-
-
-def test_get_room_hides_venue_from_other_users(test_app: TestClient, override_get_db):
-    headers = login(test_app, "user2@example.com", "123")
-    response = test_app.get("/api/v1/rooms/1", headers=headers)
-    assert response.status_code == 200
-    assert "venue_details" not in response.json()
-
-
-def test_get_room_not_found(test_app: TestClient, override_get_db):
-    response = test_app.get("/api/v1/rooms/9999")
-    assert response.status_code == 404
-
-
-def test_get_group_room_hidden_from_non_host(test_app: TestClient, override_get_db):
-    assert test_app.get("/api/v1/rooms/3").status_code == 404
-
-    other = login(test_app, "user1@example.com", "123")
-    assert test_app.get("/api/v1/rooms/3", headers=other).status_code == 404
-
-    host = login(test_app, "user3@example.com", "123")
-    response = test_app.get("/api/v1/rooms/3", headers=host)
-    assert response.status_code == 200
-    assert response.json()["venue_details"] == "Court 2"
-
-
-# ---------- create ----------
-
-
-def test_create_room(test_app: TestClient, test_db: Session, override_get_db):
-    headers = login(test_app, "user1@example.com", "123")
-    response = test_app.post("/api/v1/rooms", headers=headers, json=room_data())
-
-    assert response.status_code == 201
-    room = response.json()
-    assert room["host_id"] == get_user_id(headers)
-    assert room["status"] == "open"
-    assert room["visibility"] == "public"
-    assert room["difficulty"] == "beginners"
-    assert room["revision"] == 0
-    assert room["venue_details"] == "Court 1"
-    assert room["district"] == "capital"
-
-    db_room = test_db.query(RoomModel).filter(RoomModel.id == room["id"]).first()
-    assert db_room is not None
-    assert db_room.title == "Test room"
-    assert db_room.capacity == 10
-
-
-def test_create_room_requires_district(test_app: TestClient, override_get_db):
-    headers = login(test_app, "user1@example.com", "123")
-    data = room_data()
-    del data["district"]
-    response = test_app.post("/api/v1/rooms", headers=headers, json=data)
-    assert response.status_code == 422
-
-
-def test_get_rooms_include_district(test_app: TestClient, override_get_db):
-    rooms = test_app.get("/api/v1/rooms").json()
-    assert rooms
-    assert all(room["district"] in DISTRICTS for room in rooms)
-
-
-def test_create_room_requires_login(test_app: TestClient, override_get_db):
-    response = test_app.post("/api/v1/rooms", json=room_data())
-    assert response.status_code in (401, 403)
-
-
-def test_create_room_ignores_server_fields(test_app: TestClient, override_get_db):
-    headers = login(test_app, "user1@example.com", "123")
-    room = create_room(test_app, headers, host_id=4, status="cancelled", revision=9)
-    assert room["host_id"] == get_user_id(headers)
-    assert room["status"] == "open"
-    assert room["revision"] == 0
-
-
-def test_create_room_capacity_must_match_format(test_app: TestClient, override_get_db):
-    headers = login(test_app, "user1@example.com", "123")
-    response = test_app.post(
-        "/api/v1/rooms", headers=headers, json=room_data(capacity=9)
-    )
-    assert response.status_code == 422
-    assert "does not match" in response.json()["detail"]
-
-
-def test_create_room_sport_without_formats_accepts_any_capacity(
-    test_app: TestClient, override_get_db
-):
-    headers = login(test_app, "user1@example.com", "123")
-    room = create_room(test_app, headers, sport_id=4, capacity=3)
-    assert room["capacity"] == 3
-
-
-def test_create_room_unknown_sport(test_app: TestClient, override_get_db):
-    headers = login(test_app, "user1@example.com", "123")
-    response = test_app.post(
-        "/api/v1/rooms", headers=headers, json=room_data(sport_id=999)
-    )
-    assert response.status_code == 404
-
-
-def test_create_room_start_too_soon(test_app: TestClient, override_get_db):
-    headers = login(test_app, "user1@example.com", "123")
-    response = test_app.post(
-        "/api/v1/rooms",
-        headers=headers,
-        json=room_data(
-            starts_at=(datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
-        ),
-    )
-    assert response.status_code == 422
-
-
-def test_create_room_start_too_far(test_app: TestClient, override_get_db):
-    headers = login(test_app, "user1@example.com", "123")
-    response = test_app.post(
-        "/api/v1/rooms",
-        headers=headers,
-        json=room_data(starts_at=future(days=30), ends_at=future(days=30, hours=1)),
-    )
-    assert response.status_code == 422
-
-
-def test_create_room_requires_timezone(test_app: TestClient, override_get_db):
-    headers = login(test_app, "user1@example.com", "123")
-    naive = (datetime.now() + timedelta(days=1)).replace(tzinfo=None).isoformat()
-    response = test_app.post(
-        "/api/v1/rooms", headers=headers, json=room_data(starts_at=naive)
-    )
-    assert response.status_code == 422
-
-
-def test_create_room_end_before_start(test_app: TestClient, override_get_db):
-    headers = login(test_app, "user1@example.com", "123")
-    response = test_app.post(
-        "/api/v1/rooms",
-        headers=headers,
-        json=room_data(starts_at=future(days=2), ends_at=future(days=1)),
-    )
-    assert response.status_code == 422
-
-
-def test_create_room_invalid_choices(test_app: TestClient, override_get_db):
-    headers = login(test_app, "user1@example.com", "123")
-    for field, value in [
-        ("difficulty", "expert"),
-        ("visibility", "secret"),
-        ("admission_policy", "anyone"),
-        ("district", "mars"),
-    ]:
-        response = test_app.post(
-            "/api/v1/rooms", headers=headers, json=room_data(**{field: value})
-        )
-        assert response.status_code == 422, field
-
-
-def test_create_room_group_visibility_needs_group(
-    test_app: TestClient, override_get_db
-):
-    headers = login(test_app, "user1@example.com", "123")
-    response = test_app.post(
-        "/api/v1/rooms", headers=headers, json=room_data(visibility="group")
-    )
-    assert response.status_code == 422
-
-
-def test_create_room_for_own_group(test_app: TestClient, override_get_db):
-    # Group 1 is owned by user1
-    headers = login(test_app, "user1@example.com", "123")
-    room = create_room(test_app, headers, group_id=1, visibility="group")
-    assert room["group_id"] == 1
-    assert room["visibility"] == "group"
-
-
-def test_create_room_for_someone_elses_group(test_app: TestClient, override_get_db):
-    headers = login(test_app, "user1@example.com", "123")
-    response = test_app.post(
-        "/api/v1/rooms", headers=headers, json=room_data(group_id=2)
-    )
-    assert response.status_code == 403
-
-
-def test_create_room_unknown_group(test_app: TestClient, override_get_db):
-    headers = login(test_app, "user1@example.com", "123")
-    response = test_app.post(
-        "/api/v1/rooms", headers=headers, json=room_data(group_id=999)
-    )
-    assert response.status_code == 404
-
-
-# ---------- update ----------
-
-
-def test_update_room(test_app: TestClient, override_get_db):
-    headers = login(test_app, "user1@example.com", "123")
-    room = create_room(test_app, headers)
-
-    response = test_app.put(
-        f"/api/v1/rooms/{room['id']}",
-        headers=headers,
-        json={"revision": room["revision"], "title": "New title", "capacity": 14},
-    )
-    assert response.status_code == 200
-    assert response.json()["title"] == "New title"
-    assert response.json()["capacity"] == 14
-    assert response.json()["public_area"] == "Manama"  # untouched
-    assert response.json()["revision"] == room["revision"] + 1
-
-
-def test_update_room_district(test_app: TestClient, override_get_db):
-    headers = login(test_app, "user1@example.com", "123")
-    room = create_room(test_app, headers)
-
-    response = test_app.put(
-        f"/api/v1/rooms/{room['id']}",
-        headers=headers,
-        json={"revision": room["revision"], "district": "northern"},
-    )
-    assert response.status_code == 200
-    assert response.json()["district"] == "northern"
-
-
-def test_update_room_district_must_be_valid(test_app: TestClient, override_get_db):
-    headers = login(test_app, "user1@example.com", "123")
-    room = create_room(test_app, headers)
-
-    for value in ["mars", None]:
-        response = test_app.put(
-            f"/api/v1/rooms/{room['id']}",
-            headers=headers,
-            json={"revision": room["revision"], "district": value},
-        )
-        assert response.status_code == 422, value
-
-
-def test_update_room_only_host(test_app: TestClient, override_get_db):
-    host = login(test_app, "user1@example.com", "123")
-    other = login(test_app, "user2@example.com", "123")
-    room = create_room(test_app, host)
-
-    response = test_app.put(
-        f"/api/v1/rooms/{room['id']}",
-        headers=other,
-        json={"revision": 0, "title": "Hijacked"},
-    )
-    assert response.status_code == 403
-
-
-def test_update_room_requires_login(test_app: TestClient, override_get_db):
-    response = test_app.put("/api/v1/rooms/1", json={"revision": 0, "title": "x"})
-    assert response.status_code in (401, 403)
-
-
-def test_update_room_not_found(test_app: TestClient, override_get_db):
-    headers = login(test_app, "user1@example.com", "123")
-    response = test_app.put(
-        "/api/v1/rooms/9999", headers=headers, json={"revision": 0, "title": "x"}
-    )
-    assert response.status_code == 404
-
-
-def test_update_room_stale_revision(test_app: TestClient, override_get_db):
-    headers = login(test_app, "user1@example.com", "123")
-    room = create_room(test_app, headers)
-
-    response = test_app.put(
-        f"/api/v1/rooms/{room['id']}",
-        headers=headers,
-        json={"revision": 5, "title": "Stale"},
-    )
-    assert response.status_code == 409
-
-
-def test_update_room_required_field_cannot_be_null(
-    test_app: TestClient, override_get_db
-):
-    headers = login(test_app, "user1@example.com", "123")
-    room = create_room(test_app, headers)
-
-    response = test_app.put(
-        f"/api/v1/rooms/{room['id']}",
-        headers=headers,
-        json={"revision": 0, "title": None},
-    )
-    assert response.status_code == 422
-
-
-def test_update_room_end_before_stored_start(test_app: TestClient, override_get_db):
-    headers = login(test_app, "user1@example.com", "123")
-    room = create_room(test_app, headers)
-
-    # Only ends_at is sent, so it is compared with the stored start
-    response = test_app.put(
-        f"/api/v1/rooms/{room['id']}",
-        headers=headers,
-        json={"revision": 0, "ends_at": future(days=1, hours=-1)},
-    )
-    assert response.status_code == 422
-
-
-def test_update_room_group_visibility_needs_group(
-    test_app: TestClient, override_get_db
-):
-    headers = login(test_app, "user1@example.com", "123")
-    room = create_room(test_app, headers)
-
-    response = test_app.put(
-        f"/api/v1/rooms/{room['id']}",
-        headers=headers,
-        json={"revision": 0, "visibility": "group"},
-    )
-    assert response.status_code == 422
-
-
-def test_update_room_capacity_must_match_format(
-    test_app: TestClient, test_db: Session, override_get_db
-):
-    headers = login(test_app, "user1@example.com", "123")
-    room = create_room(test_app, headers)
-
-    response = test_app.put(
-        f"/api/v1/rooms/{room['id']}",
-        headers=headers,
-        json={"revision": 0, "capacity": 11},
-    )
-    assert response.status_code == 422
-
-    # Nothing was saved
-    test_db.expire_all()
-    db_room = test_db.query(RoomModel).filter(RoomModel.id == room["id"]).first()
-    assert db_room.capacity == 10
-    assert db_room.revision == 0
-
-
-def test_update_room_changing_sport_rechecks_capacity(
-    test_app: TestClient, override_get_db
-):
-    headers = login(test_app, "user1@example.com", "123")
-    room = create_room(test_app, headers)  # Football, capacity 10
-
-    # Tennis only allows 2 or 4
-    response = test_app.put(
-        f"/api/v1/rooms/{room['id']}",
-        headers=headers,
-        json={"revision": 0, "sport_id": 3},
-    )
-    assert response.status_code == 422
-
-
-def test_update_room_unknown_sport(test_app: TestClient, override_get_db):
-    headers = login(test_app, "user1@example.com", "123")
-    room = create_room(test_app, headers)
-
-    response = test_app.put(
-        f"/api/v1/rooms/{room['id']}",
-        headers=headers,
-        json={"revision": 0, "sport_id": 999},
-    )
-    assert response.status_code == 404
-
-
-# ---------- the 15 minute cutoff ----------
-
-
-def add_room_starting_in(test_db: Session, minutes: int, host_id=1):
-    now = datetime.now(timezone.utc)
-    room = RoomModel(
-        host_id=host_id,
-        sport_id=4,
-        title="Starting soon",
-        starts_at=now + timedelta(minutes=minutes),
-        ends_at=now + timedelta(minutes=minutes + 60),
-        capacity=5,
-        district="capital",
-        public_area="Manama",
-        venue_details="Pool 1",
-    )
-    test_db.add(room)
-    test_db.commit()
-    test_db.refresh(room)
-    return room.id
-
-
-def test_rooms_past_cutoff_are_not_listed(
-    test_app: TestClient, test_db: Session, override_get_db
-):
-    soon_id = add_room_starting_in(test_db, minutes=10)
-    ids = [room["id"] for room in test_app.get("/api/v1/rooms").json()]
-    assert soon_id not in ids
-
-    # Still reachable by link
-    assert test_app.get(f"/api/v1/rooms/{soon_id}").status_code == 200
-
-
-def test_update_frozen_after_cutoff(
-    test_app: TestClient, test_db: Session, override_get_db
-):
-    headers = login(test_app, "user1@example.com", "123")
-    soon_id = add_room_starting_in(test_db, minutes=10)
-
-    for change in [
-        {"capacity": 6},
-        {"venue_details": "Pool 2"},
-        {"public_area": "X"},
-        {"district": "muharraq"},
-    ]:
-        response = test_app.put(
-            f"/api/v1/rooms/{soon_id}", headers=headers, json={"revision": 0, **change}
-        )
-        assert response.status_code == 409, change
-
-
-def test_update_other_fields_allowed_after_cutoff(
-    test_app: TestClient, test_db: Session, override_get_db
-):
-    headers = login(test_app, "user1@example.com", "123")
-    soon_id = add_room_starting_in(test_db, minutes=10)
-
-    response = test_app.put(
-        f"/api/v1/rooms/{soon_id}",
-        headers=headers,
-        json={"revision": 0, "title": "Still editable"},
-    )
-    assert response.status_code == 200
-    assert response.json()["title"] == "Still editable"
-
-
-# ---------- cancel ----------
-
-
-def test_cancel_room(test_app: TestClient, override_get_db):
-    headers = login(test_app, "user1@example.com", "123")
-    room = create_room(test_app, headers)
-
-    response = test_app.post(
-        f"/api/v1/rooms/{room['id']}/cancel",
-        headers=headers,
-        json={"reason": "Rain"},
-    )
-    assert response.status_code == 200
-    assert response.json()["status"] == "cancelled"
-    assert response.json()["revision"] == room["revision"] + 1
-
-    # No longer listed
-    ids = [r["id"] for r in test_app.get("/api/v1/rooms").json()]
-    assert room["id"] not in ids
-
-
-def test_cancel_room_posts_system_message(test_app: TestClient, override_get_db):
-    headers = login(test_app, "user1@example.com", "123")
-    room = create_room(test_app, headers, venue_details="Secret court 9")
-    test_app.post(
-        f"/api/v1/rooms/{room['id']}/cancel",
-        headers=headers,
-        json={"reason": "Heavy rain"},
-    )
-
-    response = test_app.get(f"/api/v1/messages?room_id={room['id']}", headers=headers)
-    assert response.status_code == 200
-    messages = response.json()
-    assert len(messages) == 1
-    notice = messages[0]
-    assert notice["type"] == "system"
-    assert notice["sender_id"] is None
-    assert notice["room_id"] == room["id"]
-    assert "Heavy rain" in notice["body"]
-    assert "Secret court 9" not in notice["body"]  # the venue stays private
-
-    # It also shows up as the last message of the host's conversation
-    inbox = test_app.get("/api/v1/messages/conversations", headers=headers).json()
-    entry = next(c for c in inbox if c["room_id"] == room["id"])
-    assert entry["last_message"]["type"] == "system"
-
-
-def test_cancel_room_notice_hidden_from_outsiders(
-    test_app: TestClient, override_get_db
-):
-    host = login(test_app, "user1@example.com", "123")
-    outsider = login(test_app, "user4@example.com", "123")
-    room = create_room(test_app, host)
-    test_app.post(
-        f"/api/v1/rooms/{room['id']}/cancel", headers=host, json={"reason": "Rain"}
-    )
-
-    response = test_app.get(
-        f"/api/v1/messages?room_id={room['id']}", headers=outsider
-    )
-    assert response.status_code == 403
-
-
-def test_cancel_room_requires_reason(test_app: TestClient, override_get_db):
-    headers = login(test_app, "user1@example.com", "123")
-    room = create_room(test_app, headers)
-
-    response = test_app.post(
-        f"/api/v1/rooms/{room['id']}/cancel", headers=headers, json={}
-    )
-    assert response.status_code == 422
-    response = test_app.post(
-        f"/api/v1/rooms/{room['id']}/cancel", headers=headers, json={"reason": ""}
-    )
-    assert response.status_code == 422
-
-
-def test_cancel_room_only_host(test_app: TestClient, override_get_db):
-    host = login(test_app, "user1@example.com", "123")
-    other = login(test_app, "user2@example.com", "123")
-    room = create_room(test_app, host)
-
-    response = test_app.post(
-        f"/api/v1/rooms/{room['id']}/cancel", headers=other, json={"reason": "No"}
-    )
-    assert response.status_code == 403
-
-
-def test_cancel_room_requires_login(test_app: TestClient, override_get_db):
-    response = test_app.post("/api/v1/rooms/1/cancel", json={"reason": "No"})
-    assert response.status_code in (401, 403)
-
-
-def test_cancelled_room_cannot_be_cancelled_or_edited(
-    test_app: TestClient, override_get_db
-):
-    headers = login(test_app, "user1@example.com", "123")
-    room = create_room(test_app, headers)
-    url = f"/api/v1/rooms/{room['id']}"
-    test_app.post(f"{url}/cancel", headers=headers, json={"reason": "Rain"})
-
-    again = test_app.post(f"{url}/cancel", headers=headers, json={"reason": "Rain"})
-    assert again.status_code == 409
-
-    edit = test_app.put(url, headers=headers, json={"revision": 1, "title": "x"})
-    assert edit.status_code == 409
+from datetime import timedelta
+import pytest
+from models.room import RoomModel
+from models.membership import MembershipModel
+from models.message import MessageModel
+from tests.lib import api, future, room_body
+
+
+def test_discovery_filters_have_exact_results_and_private_projection(client,factory):
+    host=factory.user()
+    first,second=factory.sport(),factory.sport('Running')
+    capital=factory.room(host,first,district='capital',difficulty='medium')
+    southern=factory.room(host,second,district='southern',starts_at=future(30),ends_at=future(31))
+    factory.room(host,first,visibility='private')
+    factory.room(host,first,status='cancelled')
+    factory.room(host,first,starts_at=future(0.1),ends_at=future(1))
+    assert [row['id'] for row in api(client,'GET','/rooms')]==[capital['id'],southern['id']]
+    queries=[({'sport_id':first['id']},[capital['id']]),({'difficulty':'medium'},[capital['id']]),({'district':'southern'},[southern['id']]),
+             ({'district':'capital','sport_id':second['id']},[]),({'starts_from':future(27).isoformat()},[southern['id']]),
+             ({'starts_to':future(27).isoformat()},[capital['id']])]
+    for query,ids in queries:
+        rows=api(client,'GET','/rooms',params=query)
+        assert [row['id'] for row in rows]==ids
+        assert all('venue_details' not in row for row in rows)
+    api(client,'GET','/rooms',params={'district':'mars'},expected=422)
+
+
+def test_detail_and_roster_require_actual_admission(client,factory):
+    host,accepted,pending,outsider=[factory.user() for _ in range(4)]
+    room=factory.room(host,visibility='private')
+    accepted_row=factory.member(accepted,room=room)
+    pending_row=factory.member(pending,room=room,status='pending',requested=False)
+    for user in [host,accepted]:
+        assert api(client,'GET',f"/rooms/{room['id']}",user=user)['venue_details']=='Private Court 7'
+    assert 'venue_details' not in api(client,'GET',f"/rooms/{room['id']}",user=pending)
+    api(client,'GET',f"/rooms/{room['id']}",user=outsider,expected=404)
+    api(client,'GET',f"/rooms/{room['id']}",expected=404)
+    assert {row['id'] for row in api(client,'GET',f"/rooms/{room['id']}/members",user=host)}=={accepted_row['id'],pending_row['id']}
+    assert [row['id'] for row in api(client,'GET',f"/rooms/{room['id']}/members",user=accepted)]==[accepted_row['id']]
+    assert [row['id'] for row in api(client,'GET',f"/rooms/{room['id']}/members",user=pending)]==[pending_row['id']]
+    public=factory.room(host)
+    assert api(client,'GET',f"/rooms/{public['id']}/members")==[]
+    api(client,'GET','/rooms/999999',expected=404)
+
+
+def test_create_edit_ignore_server_fields_and_preserve_canonical_values(client,factory,db):
+    host,outsider=factory.user(),factory.user()
+    sport=factory.sport()
+    created=api(client,'POST','/rooms',user=host,body=room_body(sport['id'],host_id=outsider['id'],status='cancelled',revision=100,host_generation=100),expected=201)
+    assert (created['host_id'],created['status'],created['revision'],created['host_generation'])==(host['id'],'open',0,0)
+    api(client,'PUT',f"/rooms/{created['id']}",user=outsider,body={'revision':0,'title':'Denied'},expected=403)
+    updated=api(client,'PUT',f"/rooms/{created['id']}",user=host,body={'revision':0,'title':'Changed','district':'northern','description':'New'})
+    assert (updated['title'],updated['district'],updated['revision'])==('Changed','northern',1)
+    api(client,'PUT',f"/rooms/{created['id']}",user=host,body={'revision':0,'title':'Stale'},expected=409)
+    with db() as session:
+        row=session.get(RoomModel,created['id'])
+        assert (row.title,row.district,row.revision)==('Changed','northern',1)
+
+
+@pytest.mark.parametrize('change', [
+    {'capacity':0},{'difficulty':'expert'},{'district':'mars'},{'visibility':'hidden'},{'admission_policy':'auto'},
+    {'visibility':'group'},{'starts_at':future(0.5).isoformat()},{'starts_at':future(24*15).isoformat()},
+    {'starts_at':'2026-10-10T18:00:00'},{'ends_at':future(1).isoformat()},{'title':''},{'distance_km':-1},
+])
+def test_invalid_room_creation_leaves_database_empty(client,factory,db,change):
+    host,sport=factory.user(),factory.sport()
+    api(client,'POST','/rooms',user=host,body=room_body(sport['id'],**change),expected=422)
+    with db() as session: assert session.query(RoomModel).count()==0
+
+
+@pytest.mark.parametrize('field',['sport_id','title','difficulty','starts_at','ends_at','capacity','slot_layout','visibility','admission_policy','district','public_area'])
+def test_required_update_fields_cannot_be_null(client,factory,db,field):
+    host=factory.user()
+    room=factory.room(host)
+    api(client,'PUT',f"/rooms/{room['id']}",user=host,body={'revision':0,field:None},expected=422)
+    with db() as session: assert session.get(RoomModel,room['id']).revision==0
+
+
+def test_group_room_ownership_and_unknown_entities(client,factory,db):
+    host,outsider=factory.user(),factory.user()
+    sport=factory.sport()
+    own=factory.group(host,sport)
+    foreign=factory.group(outsider,sport)
+    created=api(client,'POST','/rooms',user=host,body=room_body(sport['id'],visibility='group',group_id=own['id']),expected=201)
+    assert created['group_id']==own['id']
+    api(client,'POST','/rooms',user=host,body=room_body(sport['id'],group_id=foreign['id']),expected=403)
+    api(client,'POST','/rooms',user=host,body=room_body(sport['id'],group_id=99999),expected=404)
+    api(client,'POST','/rooms',user=host,body=room_body(99999),expected=404)
+    with db() as session: assert session.query(RoomModel).count()==1
+
+
+def test_capacity_format_change_revalidates_and_declining_capacity_never_overbooks(client,factory,db):
+    host,member=factory.user(),factory.user()
+    swimming=factory.sport()
+    football=factory.sport('Football',formats=[{'key':'5v5','capacity':10}])
+    api(client,'POST','/rooms',user=host,body=room_body(football['id'],capacity=7),expected=422)
+    room=factory.room(host,swimming,capacity=4)
+    factory.member(member,room=room)
+    api(client,'PUT',f"/rooms/{room['id']}",user=host,body={'revision':0,'sport_id':football['id']},expected=422)
+    api(client,'PUT',f"/rooms/{room['id']}",user=host,body={'revision':0,'capacity':1},expected=409)
+    with db() as session:
+        row=session.get(RoomModel,room['id'])
+        assert (row.capacity,row.sport_id,row.revision)==(4,swimming['id'],0)
+
+
+def test_cutoff_freezes_schedule_but_allows_description_and_admission_stays_closed(client,factory,db):
+    host,member=factory.user(),factory.user()
+    room=factory.room(host,starts_at=future(0.1),ends_at=future(1))
+    assert api(client,'GET','/rooms')==[]
+    api(client,'PUT',f"/rooms/{room['id']}",user=host,body={'revision':0,'venue_details':'Changed'},expected=409)
+    edited=api(client,'PUT',f"/rooms/{room['id']}",user=host,body={'revision':0,'description':'Weather note'})
+    assert edited['description']=='Weather note'
+    api(client,'POST',f"/rooms/{room['id']}/members",user=member,body={},expected=409)
+    with db() as session: assert session.query(MembershipModel).count()==0
+
+
+def test_cancel_is_atomic_with_system_message_and_private_history(client,factory,db):
+    host,member,outsider=[factory.user() for _ in range(3)]
+    room=factory.room(host)
+    factory.member(member,room=room)
+    api(client,'POST',f"/rooms/{room['id']}/cancel",user=outsider,body={'reason':'Denied'},expected=403)
+    api(client,'POST',f"/rooms/{room['id']}/cancel",user=host,body={},expected=422)
+    cancelled=api(client,'POST',f"/rooms/{room['id']}/cancel",user=host,body={'reason':' Rain '})
+    assert cancelled['status']=='cancelled' and cancelled['revision']==1
+    messages=api(client,'GET','/messages',user=member,params={'room_id':room['id']})
+    assert len(messages)==1 and messages[0]['body']=='Room cancelled: Rain' and messages[0]['sender_id'] is None
+    api(client,'GET','/messages',user=outsider,params={'room_id':room['id']},expected=403)
+    api(client,'POST',f"/rooms/{room['id']}/cancel",user=host,body={'reason':'Again'},expected=409)
+    api(client,'PUT',f"/rooms/{room['id']}",user=host,body={'revision':1,'title':'Closed'},expected=409)
+    with db() as session:
+        assert session.get(RoomModel,room['id']).status=='cancelled'
+        assert session.query(MessageModel).filter_by(room_id=room['id']).count()==1
+
+
+def test_request_approve_position_attendance_rating_leave_are_persisted(client,factory,db):
+    host,player,outsider=[factory.user() for _ in range(3)]
+    room=factory.room(host)
+    requested=api(client,'POST',f"/rooms/{room['id']}/members",user=player,body={},expected=201)
+    assert requested['status']=='pending' and requested['requested'] is True and requested['accepted'] is False
+    api(client,'PATCH',f"/rooms/{room['id']}/members/{player['id']}",user=player,body={'status':'accepted'},expected=403)
+    api(client,'PATCH',f"/rooms/{room['id']}/members/{player['id']}",user=outsider,body={'status':'accepted'},expected=403)
+    accepted=api(client,'PATCH',f"/rooms/{room['id']}/members/{player['id']}",user=host,body={'status':'accepted'})
+    assert accepted['accepted'] is True
+    api(client,'PATCH',f"/rooms/{room['id']}/members/{player['id']}",user=player,body={'position':'lane-1'})
+    api(client,'PATCH',f"/rooms/{room['id']}/members/{player['id']}",user=player,body={'attendance':'present'},expected=403)
+    api(client,'PATCH',f"/rooms/{room['id']}/members/{player['id']}",user=host,body={'rating':4},expected=409)
+    rated=api(client,'PATCH',f"/rooms/{room['id']}/members/{player['id']}",user=host,body={'attendance':'present','rating':4})
+    assert rated['rating']==4
+    before=api(client,'GET',f"/rooms/{room['id']}")
+    api(client,'DELETE',f"/rooms/{room['id']}/members/me",user=player,expected=204)
+    api(client,'DELETE',f"/rooms/{room['id']}/members/me",user=player,expected=204)
+    after=api(client,'GET',f"/rooms/{room['id']}")
+    assert after['revision']==before['revision']+1 and after['slots_left']==3
+    with db() as session:
+        row=session.get(MembershipModel,requested['id'])
+        assert row.status=='left' and row.accepted is False and row.position is None and row.rating==4
+
+
+@pytest.mark.parametrize('status',['left','removed','declined'])
+def test_terminal_room_members_cannot_rejoin_or_be_approved(client,factory,db,status):
+    host,player=factory.user(),factory.user()
+    room=factory.room(host)
+    row=factory.member(player,room=room,status=status)
+    api(client,'POST',f"/rooms/{room['id']}/members",user=player,body={},expected=409)
+    api(client,'PATCH',f"/rooms/{room['id']}/members/{player['id']}",user=host,body={'status':'accepted'},expected=403)
+    with db() as session: assert session.get(MembershipModel,row['id']).status==status
+
+
+def test_host_invitation_acceptance_capacity_and_slot_collision(client,factory,db):
+    host,first,second=[factory.user() for _ in range(3)]
+    room=factory.room(host,capacity=2)
+    api(client,'POST',f"/rooms/{room['id']}/members",user=host,body={'user_id':host['id']},expected=409)
+    invited=api(client,'POST',f"/rooms/{room['id']}/members",user=host,body={'user_id':first['id']},expected=201)
+    assert invited['requested'] is False
+    second_row=factory.member(second,room=room,status='pending',requested=True)
+    api(client,'PATCH',f"/rooms/{room['id']}/members/{first['id']}",user=first,body={'status':'accepted','position':'slot-a'})
+    api(client,'PATCH',f"/rooms/{room['id']}/members/{second['id']}",user=host,body={'status':'accepted'},expected=409)
+    listing=api(client,'GET','/rooms')
+    assert len(listing)==1 and listing[0]['id']==room['id'] and listing[0]['slots_left']==0
+    with db() as session: assert session.get(MembershipModel,second_row['id']).status=='pending'
+    roomy=factory.room(host,capacity=4)
+    a=factory.member(first,room=roomy,position='slot-a')
+    b=factory.member(second,room=roomy)
+    api(client,'PATCH',f"/rooms/{roomy['id']}/members/{second['id']}",user=second,body={'position':'slot-a'},expected=409)
+    with db() as session: assert session.get(MembershipModel,b['id']).position is None
+
+
+@pytest.mark.parametrize('field',['title','public_area'])
+def test_whitespace_only_room_fields_are_rejected_without_persisting(client,factory,db,field):
+    host,sport=factory.user(),factory.sport()
+    api(client,'POST','/rooms',user=host,body=room_body(sport['id'],**{field:'   '}),expected=422)
+    room=factory.room(host,sport)
+    api(client,'PUT',f"/rooms/{room['id']}",user=host,body={'revision':0,field:'  '},expected=422)
+    with db() as session:
+        row=session.get(RoomModel,room['id'])
+        assert row.revision==0 and row.status=='open'
+        assert session.query(RoomModel).count()==1
+        assert session.query(MessageModel).count()==0
+        from models.notification import NotificationModel
+        assert session.query(NotificationModel).count()==0
+
+
+def test_whitespace_cancel_reason_changes_neither_room_nor_notices(client,factory,db):
+    host=factory.user();room=factory.room(host)
+    api(client,'POST',f"/rooms/{room['id']}/cancel",user=host,body={'reason':'   '},expected=422)
+    with db() as session:
+        row=session.get(RoomModel,room['id'])
+        assert row.status=='open' and row.revision==0
+        assert session.query(MessageModel).count()==0
+        from models.notification import NotificationModel
+        assert session.query(NotificationModel).count()==0

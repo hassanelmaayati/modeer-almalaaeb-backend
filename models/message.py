@@ -16,7 +16,7 @@ from .room import RoomModel
 from .user import UserModel
 
 # Allowed values for type, used by the serializers later
-MESSAGE_TYPES = ("room", "direct", "system")
+MESSAGE_TYPES = ("room", "direct", "group", "system")
 MAX_BODY_LENGTH = 2000
 
 
@@ -25,15 +25,13 @@ class MessageModel(BaseModel):
 
     id = Column(Integer, primary_key=True, index=True)
 
-    '''
-    Who sent it (NULL for system messages) and where it goes:
-    a room (chat or system notice) OR a user (direct message), never both
-    '''
+    # A room, group or direct recipient; system messages have no sender.
     sender_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     recipient_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     room_id = Column(Integer, ForeignKey("rooms.id"), nullable=True)
+    group_id = Column(Integer, ForeignKey("groups.id", name="fk_messages_group_id_groups"), nullable=True)
 
-    # room, direct or system
+    # room, group, direct or system
     type = Column(String, nullable=False)
     body = Column(Text, nullable=False)
 
@@ -42,19 +40,21 @@ class MessageModel(BaseModel):
 
     __table_args__ = (
         CheckConstraint(
-            "type IN ('room', 'direct', 'system')",
+            "type IN ('room', 'direct', 'group', 'system')",
             name="ck_messages_type",
         ),
-        # Exactly one target: a room OR a recipient, not both
+        # Exactly one target.
         CheckConstraint(
-            "(room_id IS NOT NULL AND recipient_id IS NULL) "
-            "OR (room_id IS NULL AND recipient_id IS NOT NULL)",
+            "(room_id IS NOT NULL AND recipient_id IS NULL AND group_id IS NULL) "
+            "OR (room_id IS NULL AND recipient_id IS NOT NULL AND group_id IS NULL) "
+            "OR (room_id IS NULL AND recipient_id IS NULL AND group_id IS NOT NULL)",
             name="ck_messages_exactly_one_target",
         ),
         # The type must agree with the target and the sender
         CheckConstraint(
             "(type = 'room' AND room_id IS NOT NULL AND sender_id IS NOT NULL) "
             "OR (type = 'direct' AND recipient_id IS NOT NULL AND sender_id IS NOT NULL) "
+            "OR (type = 'group' AND group_id IS NOT NULL AND sender_id IS NOT NULL) "
             "OR (type = 'system' AND room_id IS NOT NULL AND sender_id IS NULL)",
             name="ck_messages_type_matches_target",
         ),
@@ -70,6 +70,7 @@ class MessageModel(BaseModel):
             "sender_id", "client_request_id", name="uq_messages_sender_request"
         ),
         Index("ix_messages_room_created", "room_id", "created_at"),
+        Index("ix_messages_group_created", "group_id", "created_at"),
         Index("ix_messages_recipient_created", "recipient_id", "created_at"),
     )
 
@@ -81,3 +82,4 @@ class MessageModel(BaseModel):
         "UserModel", foreign_keys=[recipient_id], back_populates="received_messages"
     )
     room = relationship("RoomModel", back_populates="messages")
+    group = relationship("GroupModel")
