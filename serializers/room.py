@@ -76,6 +76,7 @@ class RoomSchema(BaseModel):
     group_id: int | None = None
     title: str
     description: str | None = None
+    notes: str | None = None
     difficulty: str
     starts_at: datetime
     ends_at: datetime
@@ -115,6 +116,7 @@ class CreateRoomSchema(BaseModel):
     group_id: int | None = None
     title: NonBlank = Field(min_length=1)
     description: str | None = None
+    notes: str | None = None
     difficulty: str = "beginners"
     starts_at: datetime
     ends_at: datetime
@@ -189,6 +191,7 @@ class UpdateRoomSchema(BaseModel):
     group_id: int | None = None
     title: NonBlank | None = Field(default=None, min_length=1)
     description: str | None = None
+    notes: str | None = None
     difficulty: str | None = None
     starts_at: datetime | None = None
     ends_at: datetime | None = None
