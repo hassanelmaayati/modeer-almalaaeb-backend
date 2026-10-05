@@ -110,6 +110,31 @@ class MyRoomsPageSchema(BaseModel):
     has_more: bool
 
 
+class JoinedMembershipSchema(BaseModel):
+    status: str
+    requested: bool | None = None
+    position: str | None = None
+    attendance: str | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class JoinedRoomSchema(RoomSchema):
+    membership: JoinedMembershipSchema
+
+
+class JoinedRoomDetailSchema(RoomDetailSchema):
+    membership: JoinedMembershipSchema
+
+
+class JoinedRoomsPageSchema(BaseModel):
+    items: list[JoinedRoomDetailSchema | JoinedRoomSchema]
+    total: int
+    limit: int
+    offset: int
+    has_more: bool
+
+
 # POST body: host_id, status and the counters are set by the server
 class CreateRoomSchema(BaseModel):
     sport_id: int

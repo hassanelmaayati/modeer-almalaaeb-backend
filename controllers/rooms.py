@@ -5,19 +5,14 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 # DB
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 from database import get_db
 
 # Models
 from models.areas import is_area_in_district
 from models.districts import DISTRICTS
-from models.room import (
-    DIFFICULTY,
-    ROOM_STATUSES,
-    ROOM_VISIBILITIES,
-    RoomModel,
-    make_point,
-)
+from models.room import RoomModel, make_point
 from models.sport import SportModel
 from models.group import GroupModel
 from models.user import UserModel
@@ -28,6 +23,10 @@ from serializers.room import (
     RoomSchema,
     RoomDetailSchema,
     MyRoomsPageSchema,
+    JoinedMembershipSchema,
+    JoinedRoomDetailSchema,
+    JoinedRoomSchema,
+    JoinedRoomsPageSchema,
     CreateRoomSchema,
     UpdateRoomSchema,
     CancelRoomSchema,
@@ -37,6 +36,7 @@ from dependencies.get_current_user import get_current_user
 from services.lobby_events import lobby_state, queue_room_events
 from services.messages import create_system_message
 from services.room_rules import CUTOFF, as_utc, is_past_cutoff
+from services.room_queries import RoomListParams, joined_statuses, page_payload, page_rooms, room_list_params
 from services.room_rules import count_slots_left
 from services.memberships import commit, load
 from services.changes import change_events
@@ -173,57 +173,48 @@ def room_snapshot(db, room, *, detailed=False):
 
 @router.get("/rooms/mine", response_model=MyRoomsPageSchema)
 def get_my_rooms(
-    status: List[str] | None = Query(default=None),
-    sport_id: int | None = None,
-    visibility: str | None = None,
-    difficulty: str | None = None,
-    starts_from: datetime | None = None,
-    starts_to: datetime | None = None,
-    order: str = "asc",
-    limit: int = Query(default=20, ge=1, le=100),
-    offset: int = Query(default=0, ge=0),
+    params: RoomListParams = Depends(room_list_params),
     db: Session = Depends(get_db),
     current_user: UserModel = Depends(get_current_user),
 ):
-
-    for values, allowed, name in (
-        (status or [], ROOM_STATUSES, "status"),
-        ([visibility] if visibility else [], ROOM_VISIBILITIES, "visibility"),
-        ([difficulty] if difficulty else [], DIFFICULTY, "difficulty"),
-        ([order], ("asc", "desc"), "order"),
-    ):
-        if any(value not in allowed for value in values):
-            raise HTTPException(
-                status_code=422,
-                detail=f"{name} must be one of: {', '.join(allowed)}",
-            )
-
     query = db.query(RoomModel).filter(RoomModel.host_id == current_user.id)
-    if status:
-        query = query.filter(RoomModel.status.in_(status))
-    if sport_id is not None:
-        query = query.filter(RoomModel.sport_id == sport_id)
-    if visibility is not None:
-        query = query.filter(RoomModel.visibility == visibility)
-    if difficulty is not None:
-        query = query.filter(RoomModel.difficulty == difficulty)
-    if starts_from is not None:
-        query = query.filter(RoomModel.starts_at >= as_utc(starts_from))
-    if starts_to is not None:
-        query = query.filter(RoomModel.starts_at <= as_utc(starts_to))
+    rooms, total = page_rooms(query, params)
+    items = [room_snapshot(db, room, detailed=True) for room in rooms]
+    return page_payload(items, total, params)
 
-    total = query.count()
 
-    # The id breaks ties, so paging never repeats or skips a room that shares a start time
-    starts_at = RoomModel.starts_at.desc() if order == "desc" else RoomModel.starts_at
-    rooms = query.order_by(starts_at, RoomModel.id).offset(offset).limit(limit).all()
-    return {
-        "items": [room_snapshot(db, room, detailed=True) for room in rooms],
-        "total": total,
-        "limit": limit,
-        "offset": offset,
-        "has_more": offset + len(rooms) < total,
-    }
+def joined_snapshot(db, room, member):
+    detailed = member.status == "accepted"
+    room_view = room_snapshot(db, room, detailed=detailed)
+    schema = JoinedRoomDetailSchema if detailed else JoinedRoomSchema
+    return schema(**room_view.model_dump(), membership=JoinedMembershipSchema.model_validate(member))
+
+
+@router.get("/rooms/joined", response_model=JoinedRoomsPageSchema)
+def get_joined_rooms(
+    membership: List[str] | None = Query(default=None),
+    requested: bool | None = None,
+    params: RoomListParams = Depends(room_list_params),
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(get_current_user),
+):
+    statuses = joined_statuses(membership)
+    invited = and_(MembershipModel.status == "pending", MembershipModel.requested.is_(False))
+    query = (
+        db.query(RoomModel, MembershipModel)
+        .join(MembershipModel, MembershipModel.room_id == RoomModel.id)
+        .filter(
+            MembershipModel.user_id == current_user.id,
+            MembershipModel.status.in_(statuses),
+            RoomModel.host_id != current_user.id,
+            or_(RoomModel.visibility == "public", MembershipModel.status == "accepted", invited),
+        )
+    )
+    if requested is not None:
+        query = query.filter(MembershipModel.requested == requested)
+    rows, total = page_rooms(query, params)
+    items = [joined_snapshot(db, room, member) for room, member in rows]
+    return page_payload(items, total, params)
 
 
 @router.get("/rooms/{room_id}", response_model=None)
