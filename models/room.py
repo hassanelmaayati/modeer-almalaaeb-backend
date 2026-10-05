@@ -119,6 +119,8 @@ class RoomModel(BaseModel):
         ),
         # Matches the discovery query: district, open status, upcoming start
         Index("ix_rooms_district_status_starts_at", "district", "status", "starts_at"),
+        # Matches the host's own room list: one host, ordered or filtered by start time
+        Index("ix_rooms_host_id_starts_at", "host_id", "starts_at"),
         # Spatial index for distance queries (ignored on SQLite)
         Index("ix_rooms_venue_point", "venue_point", postgresql_using="gist"),
     )
