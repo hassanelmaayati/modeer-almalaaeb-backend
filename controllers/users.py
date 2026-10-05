@@ -5,6 +5,7 @@ from typing import List
 from models.user import UserModel
 from serializers.user import (
     UserSchema,
+    UserPrivateSchema,
     UserUpdateSchema,
 )
 from database import get_db
@@ -20,12 +21,12 @@ def get_users(
     return db.query(UserModel).all()
 
 
-@router.get("/users/me", response_model=UserSchema)
+@router.get("/users/me", response_model=UserPrivateSchema)
 def get_me(current_user: UserModel = Depends(get_current_user)):
     return current_user
 
 
-@router.put("/users/me", response_model=UserSchema)
+@router.put("/users/me", response_model=UserPrivateSchema)
 def update_me(
     user: UserUpdateSchema,
     db: Session = Depends(get_db),

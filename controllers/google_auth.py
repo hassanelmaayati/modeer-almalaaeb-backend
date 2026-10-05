@@ -10,7 +10,7 @@ from config.environment import GOOGLE_CLIENT_ID
 from database import get_db
 from dependencies.get_current_user import get_current_user
 from models.user import UserModel
-from serializers.user import GoogleCredentialSchema, UserSchema, UserTokenSchema
+from serializers.user import GoogleCredentialSchema, UserPrivateSchema, UserTokenSchema
 
 router = APIRouter(tags=["Auth"])
 
@@ -99,7 +99,7 @@ def google_sign_in(
     return {"token": token, "msg": "User registered successfully", "user": new_user}
 
 
-@router.post("/auth/google/link", response_model=UserSchema)
+@router.post("/auth/google/link", response_model=UserPrivateSchema)
 def link_google(
     google: GoogleCredentialSchema,
     db: Session = Depends(get_db),
