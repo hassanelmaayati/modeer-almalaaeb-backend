@@ -254,3 +254,14 @@ def test_venue_location_can_be_updated_until_the_cutoff(client,factory):
     assert updated['venue_location']==PIN
     soon=factory.room(host,starts_at=future(0.1),ends_at=future(1))
     api(client,'PUT',f"/rooms/{soon['id']}",user=host,body={'revision':0,'venue_location':PIN},expected=409)
+
+
+def test_general_notes_are_public_and_editable(client,factory):
+    host,sport=factory.user(),factory.sport()
+    created=api(client,'POST','/rooms',user=host,body=room_body(sport['id'],notes='Bring water'),expected=201)
+    assert created['notes']=='Bring water'
+    # Unlike the private venue notes, general notes are part of the public view
+    public=api(client,'GET',f"/rooms/{created['id']}")
+    assert public['notes']=='Bring water' and 'venue_notes' not in public
+    updated=api(client,'PUT',f"/rooms/{created['id']}",user=host,body={'revision':0,'notes':'Bring water and a towel'})
+    assert updated['notes']=='Bring water and a towel'
