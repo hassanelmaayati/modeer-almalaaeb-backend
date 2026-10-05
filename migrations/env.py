@@ -5,6 +5,7 @@ from alembic import context
 from sqlalchemy import engine_from_config, pool
 import models
 from models.base import Base
+from migrations.autogenerate import migration_options
 
 config = context.config
 target_metadata = Base.metadata
@@ -20,16 +21,8 @@ def configure_url():
 
 
 def run_on_connection(connection):
-    context.configure(connection=connection, target_metadata=target_metadata)
-    migration = context.get_context()
-    operation = migration.opts.get('fn')
-    if operation and operation.__name__ == 'downgrade':
-        # Historical revisions assume tables predating Alembic. Replaying those
-        # downgrades cannot safely undo a fully initialized application schema.
-        forbidden = {'f837b871ec81', '7382d258d28d', 'c00a640ed5c7'}
-        steps = operation(migration.get_current_heads(), migration)
-        if any(not step.to_revisions or forbidden.intersection(step.to_revisions) for step in steps):
-            raise ValueError('Downgrade below the frozen baseline 0a029e480f8f is unsupported')
+    context.configure(connection=connection, target_metadata=target_metadata,
+                      **migration_options(connection))
     with context.begin_transaction():
         context.run_migrations()
 
@@ -37,7 +30,8 @@ def run_on_connection(connection):
 if context.is_offline_mode():
     configure_url()
     context.configure(url=config.get_main_option('sqlalchemy.url'), target_metadata=target_metadata,
-                      literal_binds=True, dialect_opts={'paramstyle': 'named'})
+                      literal_binds=True, dialect_opts={'paramstyle': 'named'},
+                      **migration_options())
     with context.begin_transaction():
         context.run_migrations()
 elif config.attributes.get('connection') is not None:
@@ -47,7 +41,7 @@ else:
     engine = engine_from_config(config.get_section(config.config_ini_section, {}),
                                 prefix='sqlalchemy.', poolclass=pool.NullPool)
     try:
-        with engine.connect() as connection:
+        with engine.begin() as connection:
             run_on_connection(connection)
     finally:
         engine.dispose()

@@ -24,7 +24,7 @@ def test_public_rest_create_update_move_cancel_delivers_exact_safe_events(networ
         assert set(event['room'])=={'id','title','sport_id','sport_name','district','area','starts_at','capacity','slots_left','difficulty','revision'}
         assert receive(all_districts,'room_created')==event
         with pytest.raises(TimeoutError): southern.recv(timeout=.1)
-        moved=api(network.client,'PUT',f"/rooms/{room['id']}",user=owner,body={'revision':0,'title':'Moved','district':'southern'})
+        moved=api(network.client,'PUT',f"/rooms/{room['id']}",user=owner,body={'revision':0,'title':'Moved','district':'southern','area':'Riffa'})
         removed=receive(capital,'room_removed')
         assert removed['room_id']==room['id'] and removed['reason']=='moved'
         assert receive(southern,'room_created')['room']['title']=='Moved'
@@ -57,7 +57,7 @@ def test_private_changes_are_silent_and_district_switch_unsubscribe_cleanup_work
         api(network.client,'POST','/rooms',user=host,body=room_body(sport['id'],district='capital'),expected=201)
         with pytest.raises(TimeoutError): socket.recv(timeout=.1)
         socket.send(json.dumps({'action':'unsubscribe'}));assert receive(socket,'unsubscribed')=={'type':'unsubscribed'}
-        api(network.client,'POST','/rooms',user=host,body=room_body(sport['id'],district='southern'),expected=201)
+        api(network.client,'POST','/rooms',user=host,body=room_body(sport['id'],district='southern',area='Riffa'),expected=201)
         with pytest.raises(TimeoutError): socket.recv(timeout=.1)
     deadline=time.monotonic()+2
     while lobby_ws.open_total and time.monotonic()<deadline: time.sleep(.01)
