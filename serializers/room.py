@@ -85,6 +85,8 @@ class RoomSchema(BaseModel):
     status: str
     visibility: str
     admission_policy: str
+    cancellation_reason: str | None = None
+    cancelled_at: datetime | None = None
     district: str
     area: str
     distance_km: float | None = None

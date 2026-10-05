@@ -371,6 +371,8 @@ def cancel_room(
     before = lobby_state(db, db_room)
 
     db_room.status = "cancelled"
+    db_room.cancellation_reason = cancellation.reason.strip()
+    db_room.cancelled_at = datetime.now(timezone.utc)
     db_room.revision += 1
 
     # Tell the room's members why it was cancelled. The message is saved in the
