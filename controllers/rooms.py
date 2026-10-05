@@ -164,16 +164,13 @@ def room_snapshot(db, room, *, detailed=False):
     return schema.model_validate(room).model_copy(update={"slots_left": count_slots_left(db, room)})
 
 
-# Declared before /rooms/{room_id}, otherwise "mine" would be read as a room id.
-# Unlike the public list, this includes the host's private and group rooms and rooms
-# in any status (cancelled, started, completed) or inside the cutoff window.
-@router.get("/rooms/mine", response_model=List[RoomSchema])
+@router.get("/rooms/mine", response_model=List[RoomDetailSchema])
 def get_my_rooms(
     db: Session = Depends(get_db),
     current_user: UserModel = Depends(get_current_user),
 ):
     query = db.query(RoomModel).filter(RoomModel.host_id == current_user.id)
-    return [room_snapshot(db, room) for room in query.order_by(RoomModel.starts_at)]
+    return [room_snapshot(db, room, detailed=True) for room in query.order_by(RoomModel.starts_at)]
 
 
 @router.get("/rooms/{room_id}", response_model=None)

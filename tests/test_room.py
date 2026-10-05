@@ -269,3 +269,6 @@ def test_my_rooms_lists_only_the_hosts_rooms_in_every_status(client,factory):
     # Soonest first; includes rooms the public list hides, and nobody else's rooms
     assert [row['id'] for row in rooms]==[soon['id'],first['id'],private['id'],cancelled['id']]
     assert [row['id'] for row in api(client,'GET','/rooms/mine',user=other)]==[theirs['id']]
+    # The host's own rooms include the private venue details that the public list leaves out
+    assert all(row['venue_notes']=='Private Court 7' and 'venue_location' in row for row in rooms)
+    assert all('venue_notes' not in row for row in api(client,'GET','/rooms'))
