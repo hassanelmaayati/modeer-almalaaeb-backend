@@ -254,3 +254,18 @@ def test_venue_location_can_be_updated_until_the_cutoff(client,factory):
     assert updated['venue_location']==PIN
     soon=factory.room(host,starts_at=future(0.1),ends_at=future(1))
     api(client,'PUT',f"/rooms/{soon['id']}",user=host,body={'revision':0,'venue_location':PIN},expected=409)
+
+
+def test_my_rooms_lists_only_the_hosts_rooms_in_every_status(client,factory):
+    host,other=factory.user(),factory.user()
+    sport=factory.sport()
+    soon=factory.room(host,sport,starts_at=future(0.1),ends_at=future(1))
+    private=factory.room(host,sport,visibility='private',starts_at=future(30),ends_at=future(31))
+    cancelled=factory.room(host,sport,status='cancelled',starts_at=future(40),ends_at=future(41))
+    first=factory.room(host,sport,starts_at=future(5),ends_at=future(6))
+    theirs=factory.room(other,sport)
+    api(client,'GET','/rooms/mine',expected=401)
+    rooms=api(client,'GET','/rooms/mine',user=host)
+    # Soonest first; includes rooms the public list hides, and nobody else's rooms
+    assert [row['id'] for row in rooms]==[soon['id'],first['id'],private['id'],cancelled['id']]
+    assert [row['id'] for row in api(client,'GET','/rooms/mine',user=other)]==[theirs['id']]
