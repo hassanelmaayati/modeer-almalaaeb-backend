@@ -1,5 +1,24 @@
 # Modeer Almalaaeb
 
+## Deployment
+
+In Render, connect this repository with **New → Blueprint**. `render.yaml`
+builds the Dockerfile on the Free plan in Frankfurt and deploys commits to
+`main`. Keep the Docker command unchanged: it binds Render's `PORT` and starts
+`main:app` with one worker. Use one backend instance for the in-memory socket hubs.
+
+Supply `DATABASE_URL` (Supabase session pooler, port 5432, `sslmode=require`),
+a stable private `JWT_SECRET`, and `CORS_ORIGINS` (the exact Vercel frontend
+origin, without a path or trailing slash). `.env.example` documents these
+settings. `LIFECYCLE_WORKER` is enabled by the Blueprint; Google sign-in is
+optional and requires matching backend and frontend client IDs.
+
+Use the already initialized database. Startup does not migrate or import data.
+Do not run `seed.py`, reset commands, or empty-database initialization against
+an existing project. Apply future Alembic migrations separately after a backup;
+run `python -m scripts.import_sports` separately for deliberate catalogue updates.
+Check `/health` and `/api/v1/sports` after deployment.
+
 ## Project idea
 
 A community website for people in Bahrain to organize activities, make friends, build groups and chat.

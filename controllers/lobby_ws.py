@@ -10,7 +10,7 @@ router = APIRouter()
 
 # Safety limits, the lobby is public so nobody has to log in to use it
 MAX_CONNECTIONS = 500
-MAX_CONNECTIONS_PER_IP = 10
+MAX_CONNECTIONS_PER_IP = 100
 MAX_MESSAGE_BYTES = 1024
 
 # Close codes from the WebSocket standard
@@ -100,7 +100,11 @@ async def lobby_socket(websocket: WebSocket):
             if payload is None:
                 continue
 
-            size = len(payload.encode("utf-8")) if isinstance(payload, str) else len(payload)
+            size = (
+                len(payload.encode("utf-8"))
+                if isinstance(payload, str)
+                else len(payload)
+            )
             if size > MAX_MESSAGE_BYTES:
                 await websocket.close(code=CLOSE_MESSAGE_TOO_BIG)
                 break
