@@ -37,7 +37,8 @@ cups_list = [
     ),
     CupModel(
         organizer_user_id=3,
-        sport_id=9,
+        # id 4 is Swimming, a race format sport
+        sport_id=4,
         name="Seef Sunrise 10K",
         rules="10 km road race. Everyone starts together; ranked by finishing time.",
         team_count=40,
