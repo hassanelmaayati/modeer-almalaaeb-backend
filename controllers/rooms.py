@@ -23,6 +23,9 @@ from serializers.room import (
     RoomSchema,
     RoomDetailSchema,
     MyRoomsPageSchema,
+    JoinedMembershipSchema,
+    JoinedRoomDetailSchema,
+    JoinedRoomSchema,
     JoinedRoomsPageSchema,
     CreateRoomSchema,
     UpdateRoomSchema,
@@ -180,6 +183,13 @@ def get_my_rooms(
     return page_payload(items, total, params)
 
 
+def joined_snapshot(db, room, member):
+    detailed = member.status == "accepted"
+    room_view = room_snapshot(db, room, detailed=detailed)
+    schema = JoinedRoomDetailSchema if detailed else JoinedRoomSchema
+    return schema(**room_view.model_dump(), membership=JoinedMembershipSchema.model_validate(member))
+
+
 @router.get("/rooms/joined", response_model=JoinedRoomsPageSchema)
 def get_joined_rooms(
     membership: List[str] | None = Query(default=None),
@@ -203,7 +213,7 @@ def get_joined_rooms(
     if requested is not None:
         query = query.filter(MembershipModel.requested == requested)
     rows, total = page_rooms(query, params)
-    items = [room_snapshot(db, room, detailed=member.status == "accepted") for room, member in rows]
+    items = [joined_snapshot(db, room, member) for room, member in rows]
     return page_payload(items, total, params)
 
 

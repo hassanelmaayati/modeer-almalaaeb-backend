@@ -60,6 +60,26 @@ def test_joined_rooms_show_venue_details_only_for_accepted_memberships(client,fa
         assert 'venue_notes' not in rows[room['id']] and 'venue_location' not in rows[room['id']]
 
 
+def test_joined_rooms_include_the_users_membership(client,factory):
+    host,player=factory.user(),factory.user()
+    sport=factory.sport()
+    seated=factory.room(host,sport,starts_at=future(10),ends_at=future(11))
+    asked=factory.room(host,sport,starts_at=future(20),ends_at=future(21))
+    invited=factory.room(host,sport,starts_at=future(30),ends_at=future(31))
+    factory.member(player,room=seated,position='goalkeeper',attendance='present',requested=True)
+    factory.member(player,room=asked,status='pending',requested=True)
+    factory.member(player,room=invited,status='pending',requested=False)
+    page=api(client,'GET','/rooms/joined',user=player,params={'membership':['accepted','pending']})
+    memberships=[row['membership'] for row in page['items']]
+    assert memberships==[
+        {'status':'accepted','requested':True,'position':'goalkeeper','attendance':'present'},
+        {'status':'pending','requested':True,'position':None,'attendance':None},
+        {'status':'pending','requested':False,'position':None,'attendance':None},
+    ]
+    assert set(page['items'][0])>={'id','title','slots_left','venue_notes','membership'}
+    assert 'venue_notes' not in page['items'][1]
+
+
 @pytest.mark.parametrize('params',[
     {'status':'archived'},{'visibility':'hidden'},{'difficulty':'expert'},{'order':'sideways'},{'membership':'banned'},{'requested':'maybe'},
     {'limit':0},{'limit':101},{'offset':-1},

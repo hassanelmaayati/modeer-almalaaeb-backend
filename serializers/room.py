@@ -110,8 +110,25 @@ class MyRoomsPageSchema(BaseModel):
     has_more: bool
 
 
+class JoinedMembershipSchema(BaseModel):
+    status: str
+    requested: bool | None = None
+    position: str | None = None
+    attendance: str | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class JoinedRoomSchema(RoomSchema):
+    membership: JoinedMembershipSchema
+
+
+class JoinedRoomDetailSchema(RoomDetailSchema):
+    membership: JoinedMembershipSchema
+
+
 class JoinedRoomsPageSchema(BaseModel):
-    items: list[RoomDetailSchema | RoomSchema]
+    items: list[JoinedRoomDetailSchema | JoinedRoomSchema]
     total: int
     limit: int
     offset: int
