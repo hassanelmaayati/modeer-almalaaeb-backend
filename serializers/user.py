@@ -1,6 +1,7 @@
 from datetime import datetime
+from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, field_validator
 
 from models.districts import DISTRICTS
 
@@ -27,10 +28,19 @@ class UserSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class UserPrivateSchema(UserSchema):
+    # The signed-in user's own account; only for /users/me and auth responses
+    email: str
+    # Read from google_subject, but only says whether Google is linked
+    google_linked: Annotated[bool, BeforeValidator(lambda value: value is not None)] = (
+        Field(default=False, validation_alias="google_subject")
+    )
+
+
 class UserTokenSchema(BaseModel):
     token: str
     msg: str
-    user: UserSchema
+    user: UserPrivateSchema
 
 
 # Form Schemas
