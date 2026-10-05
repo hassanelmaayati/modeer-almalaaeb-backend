@@ -121,6 +121,8 @@ def upgrade() -> None:
     sa.Column('status', sa.String(), server_default='open', nullable=False),
     sa.Column('visibility', sa.String(), server_default='public', nullable=False),
     sa.Column('admission_policy', sa.String(), server_default='approval', nullable=False),
+    sa.Column('cancellation_reason', sa.Text(), nullable=True),
+    sa.Column('cancelled_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('district', sa.String(), nullable=False),
     sa.Column('area', sa.String(), nullable=False),
     sa.Column('venue_point', Geography(geometry_type='POINT', srid=4326, dimension=2, spatial_index=False, from_text='ST_GeogFromText', name='geography'), nullable=True),

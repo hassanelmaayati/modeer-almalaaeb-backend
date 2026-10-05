@@ -74,6 +74,8 @@ class RoomModel(BaseModel):
     status = Column(String, nullable=False, default="open", server_default="open")
     visibility = Column(String, nullable=False, default="public", server_default="public")
     admission_policy = Column(String, nullable=False, default="approval", server_default="approval")
+    cancellation_reason = Column(Text, nullable=True)
+    cancelled_at = Column(DateTime(timezone=True), nullable=True)
 
     # District is the Bahrain governorate used to find rooms near the user
     district = Column(String, nullable=False)

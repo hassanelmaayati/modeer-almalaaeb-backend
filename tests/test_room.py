@@ -315,3 +315,31 @@ def test_my_rooms_filters_ordering_and_paging(client,factory):
 def test_my_rooms_rejects_invalid_filters(client,factory,params):
     host=factory.user()
     api(client,'GET','/rooms/mine',user=host,params=params,expected=422)
+
+
+def test_cancellation_is_recorded_on_the_room_and_visible_to_everyone(client,factory,db):
+    host=factory.user()
+    room=factory.room(host)
+    open_view=api(client,'GET',f"/rooms/{room['id']}")
+    assert open_view['cancellation_reason'] is None and open_view['cancelled_at'] is None
+    cancelled=api(client,'POST',f"/rooms/{room['id']}/cancel",user=host,body={'reason':'  Venue closed  '})
+    assert cancelled['cancellation_reason']=='Venue closed' and cancelled['cancelled_at'] is not None
+    visitor=api(client,'GET',f"/rooms/{room['id']}")
+    assert (visitor['status'],visitor['cancellation_reason'],visitor['cancelled_at'])==('cancelled','Venue closed',cancelled['cancelled_at'])
+    with db() as session:
+        row=session.get(RoomModel,room['id'])
+        assert row.cancellation_reason=='Venue closed' and row.cancelled_at is not None
+
+
+def test_rejected_cancellations_record_nothing(client,factory,db):
+    host,outsider=factory.user(),factory.user()
+    room=factory.room(host)
+    api(client,'POST',f"/rooms/{room['id']}/cancel",user=host,body={'reason':'   '},expected=422)
+    api(client,'POST',f"/rooms/{room['id']}/cancel",user=outsider,body={'reason':'Nope'},expected=403)
+    with db() as session:
+        row=session.get(RoomModel,room['id'])
+        assert (row.status,row.cancellation_reason,row.cancelled_at)==('open',None,None)
+    api(client,'POST',f"/rooms/{room['id']}/cancel",user=host,body={'reason':'First'})
+    api(client,'POST',f"/rooms/{room['id']}/cancel",user=host,body={'reason':'Second'},expected=409)
+    with db() as session:
+        assert session.get(RoomModel,room['id']).cancellation_reason=='First'
