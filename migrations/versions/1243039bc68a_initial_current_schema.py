@@ -146,6 +146,7 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index('ix_rooms_district_status_starts_at', 'rooms', ['district', 'status', 'starts_at'], unique=False)
+    op.create_index('ix_rooms_host_id_starts_at', 'rooms', ['host_id', 'starts_at'], unique=False)
     op.create_index(op.f('ix_rooms_id'), 'rooms', ['id'], unique=False)
     op.create_index('ix_rooms_venue_point', 'rooms', ['venue_point'], unique=False, postgresql_using='gist')
     op.create_table('memberships',
@@ -221,6 +222,7 @@ def downgrade() -> None:
     op.drop_table('memberships')
     op.drop_index('ix_rooms_venue_point', table_name='rooms', postgresql_using='gist')
     op.drop_index(op.f('ix_rooms_id'), table_name='rooms')
+    op.drop_index('ix_rooms_host_id_starts_at', table_name='rooms')
     op.drop_index('ix_rooms_district_status_starts_at', table_name='rooms')
     op.drop_table('rooms')
     op.drop_index('ix_notifications_user_unread', table_name='notifications')
