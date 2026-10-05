@@ -272,3 +272,34 @@ def test_my_rooms_lists_only_the_hosts_rooms_in_every_status(client,factory):
     # The host's own rooms include the private venue details that the public list leaves out
     assert all(row['venue_notes']=='Private Court 7' and 'venue_location' in row for row in rooms)
     assert all('venue_notes' not in row for row in api(client,'GET','/rooms'))
+
+
+def test_my_rooms_filters_ordering_and_paging(client,factory):
+    host=factory.user()
+    football,swimming=factory.sport('Football'),factory.sport('Swimming')
+    early=factory.room(host,swimming,starts_at=future(5),ends_at=future(6),difficulty='beginners')
+    private=factory.room(host,football,visibility='private',starts_at=future(30),ends_at=future(31),difficulty='advanced')
+    cancelled=factory.room(host,football,status='cancelled',starts_at=future(50),ends_at=future(51),difficulty='medium')
+    done=factory.room(host,swimming,status='completed',starts_at=future(70),ends_at=future(71))
+    def ids(**params): return [row['id'] for row in api(client,'GET','/rooms/mine',user=host,params=params)]
+    assert ids()==[early['id'],private['id'],cancelled['id'],done['id']]
+    assert ids(status='cancelled')==[cancelled['id']]
+    # Repeating the parameter asks for several statuses: the "history" view
+    assert ids(status=['completed','cancelled'])==[cancelled['id'],done['id']]
+    assert ids(visibility='private')==[private['id']]
+    assert ids(sport_id=swimming['id'])==[early['id'],done['id']]
+    assert ids(difficulty='medium')==[cancelled['id']]
+    assert ids(starts_from=future(40).isoformat(),starts_to=future(60).isoformat())==[cancelled['id']]
+    assert ids(order='desc')==[done['id'],cancelled['id'],private['id'],early['id']]
+    assert ids(limit=2)==[early['id'],private['id']]
+    assert ids(limit=2,offset=2)==[cancelled['id'],done['id']]
+    assert ids(status='completed',limit=5,offset=1)==[]
+
+
+@pytest.mark.parametrize('params',[
+    {'status':'archived'},{'visibility':'hidden'},{'difficulty':'expert'},{'order':'sideways'},
+    {'limit':0},{'limit':101},{'offset':-1},
+])
+def test_my_rooms_rejects_invalid_filters(client,factory,params):
+    host=factory.user()
+    api(client,'GET','/rooms/mine',user=host,params=params,expected=422)
