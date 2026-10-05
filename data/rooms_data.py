@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
-from models.room import RoomModel
+from models.room import RoomModel, make_point
 
 # Capacities match the sport formats in sports_data.py
 def build_rooms():
@@ -17,6 +17,7 @@ def build_rooms():
             capacity=10,
             district="capital",
             area="Manama",
+            venue_point=make_point(26.2285, 50.5860),
             venue_notes="Pitch 3, Bahrain Sports Hall",
         ),
         RoomModel(
@@ -29,6 +30,7 @@ def build_rooms():
             capacity=6,
             district="southern",
             area="Riffa",
+            venue_point=make_point(26.1300, 50.5550),
             venue_notes="Outdoor court behind the mall",
         ),
         # Group-only room, owned by the host of group 3
@@ -44,6 +46,7 @@ def build_rooms():
             visibility="group",
             district="muharraq",
             area="Muharraq",
+            venue_point=make_point(26.2572, 50.6119),
             venue_notes="Court 2",
         ),
         # Swimming has no formats, so any capacity is accepted
