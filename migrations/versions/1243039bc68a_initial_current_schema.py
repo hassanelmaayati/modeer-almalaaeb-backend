@@ -112,6 +112,7 @@ def upgrade() -> None:
     sa.Column('group_id', sa.Integer(), nullable=True),
     sa.Column('title', sa.String(), nullable=False),
     sa.Column('description', sa.Text(), nullable=True),
+    sa.Column('notes', sa.Text(), nullable=True),
     sa.Column('difficulty', sa.String(), server_default='beginners', nullable=False),
     sa.Column('starts_at', sa.DateTime(timezone=True), nullable=False),
     sa.Column('ends_at', sa.DateTime(timezone=True), nullable=False),

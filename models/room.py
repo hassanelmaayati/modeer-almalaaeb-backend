@@ -58,6 +58,8 @@ class RoomModel(BaseModel):
     # room details
     title = Column(String, nullable=False)
     description = Column(Text, nullable=True)
+    # General notes for everyone who can see the room (the private venue notes are separate)
+    notes = Column(Text, nullable=True)
     difficulty = Column(String, nullable=False, default="beginners", server_default="beginners")
 
     # Schedule (stored in UTC, shown in Bahrain time)

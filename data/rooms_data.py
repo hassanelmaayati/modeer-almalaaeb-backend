@@ -11,6 +11,7 @@ def build_rooms():
             sport_id=1,
             title="Friday 5-a-side",
             description="Friendly football match",
+            notes="Bring a light and a dark shirt.",
             difficulty="beginners",
             starts_at=now + timedelta(days=1),
             ends_at=now + timedelta(days=1, hours=1),
