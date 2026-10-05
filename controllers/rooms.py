@@ -5,7 +5,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 # DB
-from sqlalchemy import or_
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 from database import get_db
 
@@ -189,20 +189,21 @@ def get_joined_rooms(
     current_user: UserModel = Depends(get_current_user),
 ):
     statuses = joined_statuses(membership)
+    invited = and_(MembershipModel.status == "pending", MembershipModel.requested.is_(False))
     query = (
-        db.query(RoomModel)
+        db.query(RoomModel, MembershipModel)
         .join(MembershipModel, MembershipModel.room_id == RoomModel.id)
         .filter(
             MembershipModel.user_id == current_user.id,
             MembershipModel.status.in_(statuses),
             RoomModel.host_id != current_user.id,
-            or_(MembershipModel.status == "accepted", RoomModel.visibility == "public"),
+            or_(RoomModel.visibility == "public", MembershipModel.status == "accepted", invited),
         )
     )
     if requested is not None:
         query = query.filter(MembershipModel.requested == requested)
-    rooms, total = page_rooms(query, params)
-    items = [room_snapshot(db, room) for room in rooms]
+    rows, total = page_rooms(query, params)
+    items = [room_snapshot(db, room, detailed=member.status == "accepted") for room, member in rows]
     return page_payload(items, total, params)
 
 

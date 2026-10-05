@@ -44,12 +44,20 @@ def test_joined_rooms_use_the_shared_filters_ordering_and_paging(client,factory)
     assert ids(limit=2,offset=2)==[third['id']]
 
 
-def test_joined_rooms_show_the_public_view_only(client,factory):
+def test_joined_rooms_show_venue_details_only_for_accepted_memberships(client,factory):
     host,player=factory.user(),factory.user()
-    room=factory.room(host)
-    factory.member(player,room=room)
-    row=api(client,'GET','/rooms/joined',user=player)['items'][0]
-    assert 'venue_notes' not in row and 'venue_location' not in row
+    sport=factory.sport()
+    accepted=factory.room(host,sport,starts_at=future(10),ends_at=future(11))
+    requested=factory.room(host,sport,starts_at=future(20),ends_at=future(21))
+    declined=factory.room(host,sport,starts_at=future(30),ends_at=future(31))
+    factory.member(player,room=accepted)
+    factory.member(player,room=requested,status='pending',requested=True)
+    factory.member(player,room=declined,status='declined')
+    page=api(client,'GET','/rooms/joined',user=player,params={'membership':['accepted','pending','declined']})
+    rows={row['id']:row for row in page['items']}
+    assert rows[accepted['id']]['venue_notes']=='Private Court 7' and 'venue_location' in rows[accepted['id']]
+    for room in (requested,declined):
+        assert 'venue_notes' not in rows[room['id']] and 'venue_location' not in rows[room['id']]
 
 
 @pytest.mark.parametrize('params',[
@@ -87,15 +95,27 @@ def test_joined_rooms_membership_and_requested_filters(client,factory):
     assert ids(membership=['accepted','pending','declined','removed','left'],limit=3,offset=3)==[declined['id'],removed['id'],left['id']]
 
 
-def test_joined_rooms_hide_private_rooms_unless_the_membership_is_accepted(client,factory):
+def test_joined_rooms_show_private_rooms_only_to_accepted_or_invited_users(client,factory):
     host,player=factory.user(),factory.user()
     sport=factory.sport()
-    mine=factory.room(host,sport,visibility='private',starts_at=future(10),ends_at=future(11))
-    gone=factory.room(host,sport,visibility='private',starts_at=future(20),ends_at=future(21))
-    public=factory.room(host,sport,starts_at=future(30),ends_at=future(31))
-    factory.member(player,room=mine)
-    factory.member(player,room=gone,status='removed')
+    def private(hours): return factory.room(host,sport,visibility='private',starts_at=future(hours),ends_at=future(hours+1))
+    accepted,invited,asked,declined,removed,left=(private(hours) for hours in (10,20,30,40,50,60))
+    public=factory.room(host,sport,starts_at=future(70),ends_at=future(71))
+    factory.member(player,room=accepted)
+    factory.member(player,room=invited,status='pending',requested=False)
+    factory.member(player,room=asked,status='pending',requested=True)
+    factory.member(player,room=declined,status='declined')
+    factory.member(player,room=removed,status='removed')
+    factory.member(player,room=left,status='left')
     factory.member(player,room=public,status='removed')
+    everything=['accepted','pending','declined','removed','left']
     def ids(**params): return [row['id'] for row in api(client,'GET','/rooms/joined',user=player,params=params)['items']]
-    assert ids()==[mine['id']]
-    assert ids(membership='removed')==[public['id']]
+    assert ids()==[accepted['id']]
+    assert ids(membership='pending')==[invited['id']]
+    assert ids(membership='declined')==[]
+    assert ids(membership=['removed','left'])==[public['id']]
+    assert ids(membership=everything)==[accepted['id'],invited['id'],public['id']]
+    invitation=api(client,'GET','/rooms/joined',user=player,params={'membership':'pending'})['items'][0]
+    assert 'venue_notes' not in invitation
+
+

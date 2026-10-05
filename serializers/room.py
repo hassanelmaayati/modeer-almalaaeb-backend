@@ -111,7 +111,7 @@ class MyRoomsPageSchema(BaseModel):
 
 
 class JoinedRoomsPageSchema(BaseModel):
-    items: list[RoomSchema]
+    items: list[RoomDetailSchema | RoomSchema]
     total: int
     limit: int
     offset: int
