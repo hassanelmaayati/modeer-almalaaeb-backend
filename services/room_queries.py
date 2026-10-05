@@ -9,6 +9,7 @@ from services.room_rules import as_utc
 
 DEFAULT_PAGE_SIZE = 20
 MAX_PAGE_SIZE = 100
+MEMBERSHIP_STATUSES = ("accepted", "pending", "declined", "removed", "left")
 
 
 @dataclass
@@ -91,3 +92,14 @@ def page_payload(items, total: int, params: RoomListParams) -> dict:
         "offset": params.offset,
         "has_more": params.offset + len(items) < total,
     }
+
+
+def joined_statuses(membership: List[str] | None) -> List[str]:
+    if not membership:
+        return ["accepted"]
+    if any(value not in MEMBERSHIP_STATUSES for value in membership):
+        raise HTTPException(
+            status_code=422,
+            detail=f"membership must be one of: {', '.join(MEMBERSHIP_STATUSES)}",
+        )
+    return membership

@@ -53,8 +53,49 @@ def test_joined_rooms_show_the_public_view_only(client,factory):
 
 
 @pytest.mark.parametrize('params',[
-    {'status':'archived'},{'visibility':'hidden'},{'difficulty':'expert'},{'order':'sideways'},
+    {'status':'archived'},{'visibility':'hidden'},{'difficulty':'expert'},{'order':'sideways'},{'membership':'banned'},{'requested':'maybe'},
     {'limit':0},{'limit':101},{'offset':-1},
 ])
 def test_joined_rooms_rejects_invalid_filters(client,factory,params):
     api(client,'GET','/rooms/joined',user=factory.user(),params=params,expected=422)
+
+
+def test_joined_rooms_membership_and_requested_filters(client,factory):
+    host,player=factory.user(),factory.user()
+    sport=factory.sport()
+    def room(**changes): return factory.room(host,sport,**changes)
+    accepted=room(starts_at=future(10),ends_at=future(11))
+    requested=room(starts_at=future(20),ends_at=future(21))
+    invited=room(starts_at=future(30),ends_at=future(31))
+    declined=room(starts_at=future(40),ends_at=future(41))
+    removed=room(starts_at=future(50),ends_at=future(51))
+    left=room(starts_at=future(60),ends_at=future(61))
+    factory.member(player,room=accepted)
+    factory.member(player,room=requested,status='pending',requested=True)
+    factory.member(player,room=invited,status='pending',requested=False)
+    factory.member(player,room=declined,status='declined',requested=True)
+    factory.member(player,room=removed,status='removed')
+    factory.member(player,room=left,status='left')
+    def ids(**params): return [row['id'] for row in api(client,'GET','/rooms/joined',user=player,params=params)['items']]
+    assert ids()==[accepted['id']]
+    assert ids(membership='pending')==[requested['id'],invited['id']]
+    assert ids(membership='pending',requested='true')==[requested['id']]
+    assert ids(membership='pending',requested='false')==[invited['id']]
+    assert ids(membership='declined')==[declined['id']]
+    assert ids(membership=['removed','left'])==[removed['id'],left['id']]
+    assert ids(membership=['accepted','pending'])==[accepted['id'],requested['id'],invited['id']]
+    assert ids(membership=['accepted','pending','declined','removed','left'],limit=3,offset=3)==[declined['id'],removed['id'],left['id']]
+
+
+def test_joined_rooms_hide_private_rooms_unless_the_membership_is_accepted(client,factory):
+    host,player=factory.user(),factory.user()
+    sport=factory.sport()
+    mine=factory.room(host,sport,visibility='private',starts_at=future(10),ends_at=future(11))
+    gone=factory.room(host,sport,visibility='private',starts_at=future(20),ends_at=future(21))
+    public=factory.room(host,sport,starts_at=future(30),ends_at=future(31))
+    factory.member(player,room=mine)
+    factory.member(player,room=gone,status='removed')
+    factory.member(player,room=public,status='removed')
+    def ids(**params): return [row['id'] for row in api(client,'GET','/rooms/joined',user=player,params=params)['items']]
+    assert ids()==[mine['id']]
+    assert ids(membership='removed')==[public['id']]

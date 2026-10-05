@@ -1,10 +1,11 @@
 from datetime import datetime, timedelta, timezone
 from typing import List
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 # DB
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from database import get_db
 
@@ -32,7 +33,7 @@ from dependencies.get_current_user import get_current_user
 from services.lobby_events import lobby_state, queue_room_events
 from services.messages import create_system_message
 from services.room_rules import CUTOFF, as_utc, is_past_cutoff
-from services.room_queries import RoomListParams, page_payload, page_rooms, room_list_params
+from services.room_queries import RoomListParams, joined_statuses, page_payload, page_rooms, room_list_params
 from services.room_rules import count_slots_left
 from services.memberships import commit, load
 from services.changes import change_events
@@ -181,19 +182,25 @@ def get_my_rooms(
 
 @router.get("/rooms/joined", response_model=JoinedRoomsPageSchema)
 def get_joined_rooms(
+    membership: List[str] | None = Query(default=None),
+    requested: bool | None = None,
     params: RoomListParams = Depends(room_list_params),
     db: Session = Depends(get_db),
     current_user: UserModel = Depends(get_current_user),
 ):
+    statuses = joined_statuses(membership)
     query = (
         db.query(RoomModel)
         .join(MembershipModel, MembershipModel.room_id == RoomModel.id)
         .filter(
             MembershipModel.user_id == current_user.id,
-            MembershipModel.status == "accepted",
+            MembershipModel.status.in_(statuses),
             RoomModel.host_id != current_user.id,
+            or_(MembershipModel.status == "accepted", RoomModel.visibility == "public"),
         )
     )
+    if requested is not None:
+        query = query.filter(MembershipModel.requested == requested)
     rooms, total = page_rooms(query, params)
     items = [room_snapshot(db, room) for room in rooms]
     return page_payload(items, total, params)
