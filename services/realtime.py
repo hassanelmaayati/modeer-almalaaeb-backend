@@ -15,13 +15,14 @@ session_factory = SessionLocal
 TICKET_TTL_SECONDS = 30
 SEND_TIMEOUT_SECONDS = 5
 MAX_CONNECTIONS = 500
-MAX_CONNECTIONS_PER_IP = 10
+MAX_CONNECTIONS_PER_IP = 100
 MAX_MESSAGE_BYTES = 1024
 MAX_TICKETS = 1000
 
 
 class SocketTickets:
     """Single-use tickets; neither token nor ticket is written to logs."""
+
     def __init__(self):
         self.values = {}
         self.lock = threading.Lock()
@@ -29,9 +30,13 @@ class SocketTickets:
     def issue(self, token: str) -> str:
         with self.lock:
             now = time.monotonic()
-            self.values = {key: value for key, value in self.values.items() if value[1] > now}
+            self.values = {
+                key: value for key, value in self.values.items() if value[1] > now
+            }
             if len(self.values) >= MAX_TICKETS:
-                raise HTTPException(status_code=503, detail="Too many pending socket connections")
+                raise HTTPException(
+                    status_code=503, detail="Too many pending socket connections"
+                )
             ticket = secrets.token_urlsafe(32)
             self.values[ticket] = (token, now + TICKET_TTL_SECONDS)
             return ticket
@@ -60,12 +65,16 @@ class Connection:
 
 class RealtimeHub:
     """Process-local user channels; deploy with one serving worker."""
+
     def __init__(self):
         self.connections = {}
         self.by_ip = {}
 
     def reserve(self, ip: str) -> bool:
-        if sum(self.by_ip.values()) >= MAX_CONNECTIONS or self.by_ip.get(ip, 0) >= MAX_CONNECTIONS_PER_IP:
+        if (
+            sum(self.by_ip.values()) >= MAX_CONNECTIONS
+            or self.by_ip.get(ip, 0) >= MAX_CONNECTIONS_PER_IP
+        ):
             return False
         self.by_ip[ip] = self.by_ip.get(ip, 0) + 1
         return True
@@ -78,7 +87,9 @@ class RealtimeHub:
             self.by_ip.pop(ip, None)
 
     def connect(self, socket: WebSocket, user_id: int, token: str) -> Connection:
-        connection = Connection(socket, user_id, token, decode_access_token(token)["ver"])
+        connection = Connection(
+            socket, user_id, token, decode_access_token(token)["ver"]
+        )
         self.connections[socket] = connection
         return connection
 
@@ -86,12 +97,15 @@ class RealtimeHub:
         async def write():
             async with connection.lock:
                 await connection.socket.send_json(payload)
+
         try:
             await asyncio.wait_for(write(), SEND_TIMEOUT_SECONDS)
         except Exception:
             await self.disconnect(connection.socket, close=True)
 
-    async def disconnect(self, socket: WebSocket, close: bool = False, code: int = 1008):
+    async def disconnect(
+        self, socket: WebSocket, close: bool = False, code: int = 1008
+    ):
         self.connections.pop(socket, None)
         if close:
             try:
@@ -100,11 +114,22 @@ class RealtimeHub:
                 pass
 
     async def close_user(self, user_id: int, token_version: int | None = None):
-        await asyncio.gather(*(self.disconnect(item.socket, close=True) for item in list(self.connections.values())
-                               if item.user_id == user_id and (token_version is None or item.token_version <= token_version)))
+        await asyncio.gather(
+            *(
+                self.disconnect(item.socket, close=True)
+                for item in list(self.connections.values())
+                if item.user_id == user_id
+                and (token_version is None or item.token_version <= token_version)
+            )
+        )
 
     async def close(self):
-        await asyncio.gather(*(self.disconnect(item.socket, close=True, code=1001) for item in list(self.connections.values())))
+        await asyncio.gather(
+            *(
+                self.disconnect(item.socket, close=True, code=1001)
+                for item in list(self.connections.values())
+            )
+        )
         tickets.clear()
 
 
@@ -142,9 +167,19 @@ async def send_events(events: list[dict]):
     if not events or not realtime_hub.connections:
         return
     try:
-        deliveries, revoked = await asyncio.to_thread(_allowed_deliveries, events, list(realtime_hub.connections.values()))
-        await asyncio.gather(*(realtime_hub.disconnect(item.socket, close=True) for item in revoked))
-        await asyncio.gather(*(realtime_hub.send(connection, payload) for connection, payload in deliveries if connection.socket in realtime_hub.connections))
+        deliveries, revoked = await asyncio.to_thread(
+            _allowed_deliveries, events, list(realtime_hub.connections.values())
+        )
+        await asyncio.gather(
+            *(realtime_hub.disconnect(item.socket, close=True) for item in revoked)
+        )
+        await asyncio.gather(
+            *(
+                realtime_hub.send(connection, payload)
+                for connection, payload in deliveries
+                if connection.socket in realtime_hub.connections
+            )
+        )
     except Exception:
         logger.exception("Realtime event delivery failed")
 
