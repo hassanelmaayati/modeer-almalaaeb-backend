@@ -101,6 +101,13 @@ class RoomDetailSchema(RoomSchema):
     venue_location: Coordinate | None = None
     venue_notes: str | None = None
 
+class MyRoomsPageSchema(BaseModel):
+    items: list[RoomDetailSchema]
+    total: int
+    limit: int
+    offset: int
+    has_more: bool
+
 
 # POST body: host_id, status and the counters are set by the server
 class CreateRoomSchema(BaseModel):

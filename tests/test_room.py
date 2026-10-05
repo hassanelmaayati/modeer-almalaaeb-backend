@@ -265,10 +265,10 @@ def test_my_rooms_lists_only_the_hosts_rooms_in_every_status(client,factory):
     first=factory.room(host,sport,starts_at=future(5),ends_at=future(6))
     theirs=factory.room(other,sport)
     api(client,'GET','/rooms/mine',expected=401)
-    rooms=api(client,'GET','/rooms/mine',user=host)
+    rooms=api(client,'GET','/rooms/mine',user=host)['items']
     # Soonest first; includes rooms the public list hides, and nobody else's rooms
     assert [row['id'] for row in rooms]==[soon['id'],first['id'],private['id'],cancelled['id']]
-    assert [row['id'] for row in api(client,'GET','/rooms/mine',user=other)]==[theirs['id']]
+    assert [row['id'] for row in api(client,'GET','/rooms/mine',user=other)['items']]==[theirs['id']]
     # The host's own rooms include the private venue details that the public list leaves out
     assert all(row['venue_notes']=='Private Court 7' and 'venue_location' in row for row in rooms)
     assert all('venue_notes' not in row for row in api(client,'GET','/rooms'))
@@ -281,7 +281,8 @@ def test_my_rooms_filters_ordering_and_paging(client,factory):
     private=factory.room(host,football,visibility='private',starts_at=future(30),ends_at=future(31),difficulty='advanced')
     cancelled=factory.room(host,football,status='cancelled',starts_at=future(50),ends_at=future(51),difficulty='medium')
     done=factory.room(host,swimming,status='completed',starts_at=future(70),ends_at=future(71))
-    def ids(**params): return [row['id'] for row in api(client,'GET','/rooms/mine',user=host,params=params)]
+    def page(**params): return api(client,'GET','/rooms/mine',user=host,params=params)
+    def ids(**params): return [row['id'] for row in page(**params)['items']]
     assert ids()==[early['id'],private['id'],cancelled['id'],done['id']]
     assert ids(status='cancelled')==[cancelled['id']]
     # Repeating the parameter asks for several statuses: the "history" view
@@ -294,6 +295,17 @@ def test_my_rooms_filters_ordering_and_paging(client,factory):
     assert ids(limit=2)==[early['id'],private['id']]
     assert ids(limit=2,offset=2)==[cancelled['id'],done['id']]
     assert ids(status='completed',limit=5,offset=1)==[]
+
+    first=page(limit=3)
+    assert (first['total'],first['limit'],first['offset'],first['has_more'],len(first['items']))==(4,3,0,True,3)
+    last=page(limit=3,offset=3)
+    assert (last['total'],last['offset'],last['has_more'],len(last['items']))==(4,3,False,1)
+    exact=page(limit=4)
+    assert (exact['total'],exact['has_more'])==(4,False)
+    filtered=page(status=['completed','cancelled'],limit=1)
+    assert (filtered['total'],filtered['has_more'])==(2,True)
+    empty=page(status='started')
+    assert (empty['items'],empty['total'],empty['has_more'])==([],0,False)
 
 
 @pytest.mark.parametrize('params',[

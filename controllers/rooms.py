@@ -27,6 +27,7 @@ from models.membership import MembershipModel
 from serializers.room import (
     RoomSchema,
     RoomDetailSchema,
+    MyRoomsPageSchema,
     CreateRoomSchema,
     UpdateRoomSchema,
     CancelRoomSchema,
@@ -170,7 +171,7 @@ def room_snapshot(db, room, *, detailed=False):
     return schema.model_validate(room).model_copy(update={"slots_left": count_slots_left(db, room)})
 
 
-@router.get("/rooms/mine", response_model=List[RoomDetailSchema])
+@router.get("/rooms/mine", response_model=MyRoomsPageSchema)
 def get_my_rooms(
     status: List[str] | None = Query(default=None),
     sport_id: int | None = None,
@@ -211,10 +212,18 @@ def get_my_rooms(
     if starts_to is not None:
         query = query.filter(RoomModel.starts_at <= as_utc(starts_to))
 
+    total = query.count()
+
     # The id breaks ties, so paging never repeats or skips a room that shares a start time
     starts_at = RoomModel.starts_at.desc() if order == "desc" else RoomModel.starts_at
-    rooms = query.order_by(starts_at, RoomModel.id).offset(offset).limit(limit)
-    return [room_snapshot(db, room, detailed=True) for room in rooms]
+    rooms = query.order_by(starts_at, RoomModel.id).offset(offset).limit(limit).all()
+    return {
+        "items": [room_snapshot(db, room, detailed=True) for room in rooms],
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "has_more": offset + len(rooms) < total,
+    }
 
 
 @router.get("/rooms/{room_id}", response_model=None)
