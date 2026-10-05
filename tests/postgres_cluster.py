@@ -1,4 +1,4 @@
-"""A disposable PostgreSQL cluster; never reads the application's database URL."""
+"""A disposable PostgreSQL cluster that never reads the application database URL."""
 import atexit
 from pathlib import Path
 import shutil
@@ -6,6 +6,7 @@ import socket
 import subprocess
 import tempfile
 import uuid
+
 from sqlalchemy import create_engine, text
 
 
@@ -14,8 +15,13 @@ class TemporaryPostgres:
         self.directory = None
         self.engine = None
         self.url = None
-        self.binary = next((directory for directory in sorted(Path("/usr/lib/postgresql").glob("*/bin"), reverse=True)
-                            if (directory / "initdb").exists()), None)
+        candidates = Path("/usr/lib/postgresql").glob("*/bin")
+        self.binary = next(
+            (directory for directory in sorted(
+                candidates, key=lambda directory: int(directory.parent.name), reverse=True
+            ) if (directory / "initdb").exists() and (directory / "pg_ctl").exists()),
+            None,
+        )
         if self.binary is None:
             raise RuntimeError("PostgreSQL initdb/pg_ctl are required for the isolated test suite")
 
@@ -28,10 +34,28 @@ class TemporaryPostgres:
             probe.bind(("127.0.0.1", 0))
             port = probe.getsockname()[1]
         try:
-            subprocess.run([str(self.binary / "initdb"), "-D", str(data), "-U", "modeer_test", "-A", "trust", "--no-locale", "--encoding=UTF8"], check=True, capture_output=True, text=True)
-            subprocess.run([str(self.binary / "pg_ctl"), "-D", str(data), "-l", str(self.directory / "server.log"), "-o", f"-F -k {sockets} -p {port} -h 127.0.0.1", "-w", "-t", "30", "start"], check=True, capture_output=True, text=True)
+            subprocess.run(
+                [str(self.binary / "initdb"), "-D", str(data), "-U", "modeer_test",
+                 "-A", "trust", "--no-locale", "--encoding=UTF8"],
+                check=True, capture_output=True, text=True,
+            )
+            subprocess.run(
+                [str(self.binary / "pg_ctl"), "-D", str(data),
+                 "-l", str(self.directory / "server.log"),
+                 "-o", f"-F -k {sockets} -p {port} -h 127.0.0.1", "-w", "-t", "30", "start"],
+                check=True, capture_output=True, text=True,
+            )
             self.url = f"postgresql+psycopg2://modeer_test@127.0.0.1:{port}/postgres"
             self.engine = create_engine(self.url, isolation_level="AUTOCOMMIT")
+            with self.engine.connect() as connection:
+                available = connection.execute(text(
+                    "SELECT EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'postgis')"
+                )).scalar_one()
+                if not available:
+                    raise RuntimeError(
+                        f"PostGIS server extension for PostgreSQL {self.binary.parent.name} "
+                        "is required for the isolated test suite"
+                    )
             atexit.register(self.stop)
             return self
         except Exception:
@@ -60,6 +84,10 @@ class TemporaryPostgres:
             self.engine.dispose()
             self.engine = None
         if self.directory is not None:
-            subprocess.run([str(self.binary / "pg_ctl"), "-D", str(self.directory / "data"), "-m", "immediate", "-w", "stop"], capture_output=True)
+            subprocess.run(
+                [str(self.binary / "pg_ctl"), "-D", str(self.directory / "data"),
+                 "-m", "immediate", "-w", "stop"],
+                capture_output=True,
+            )
             shutil.rmtree(self.directory, ignore_errors=True)
             self.directory = None
