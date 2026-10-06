@@ -7,5 +7,6 @@ from . import room
 from . import membership
 from . import message
 from . import notification
+from . import player_rating
 
 __all__ = ["BaseModel"]

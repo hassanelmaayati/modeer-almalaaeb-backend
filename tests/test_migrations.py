@@ -16,14 +16,18 @@ from migrations.initialize import initialize_database, migration_config
 from models.base import Base
 from models.room import RoomModel
 
+INITIAL = "1243039bc68a"
+
 
 @pytest.fixture
 def head():
     script = ScriptDirectory.from_config(migration_config())
     heads = script.get_heads()
     assert len(heads) == 1
-    revision = script.get_revision(heads[0])
-    assert revision.down_revision is None
+    # One linear chain from the initial schema to the head, so upgrade/downgrade never branch
+    revisions = list(script.walk_revisions())
+    assert revisions[-1].revision == INITIAL and revisions[-1].down_revision is None
+    assert all(isinstance(revision.down_revision, (str, type(None))) for revision in revisions)
     return heads[0]
 
 
@@ -300,3 +304,18 @@ def test_empty_schema_downgrade_then_upgrade_rebuilds_baseline(empty_database, m
     with migration_engine.connect() as connection:
         assert_current_schema(connection, head)
         assert postgis_identity(connection) == before
+
+
+def test_player_ratings_downgrade_drops_only_that_table_and_upgrade_restores_it(empty_database, migration_engine, head):
+    initialize_database(empty_database)
+    with migration_engine.begin() as connection:
+        user = insert_user(connection)
+    command.downgrade(migration_config(database_url=empty_database), INITIAL)
+    with migration_engine.connect() as connection:
+        tables = application_tables(connection)
+        assert "player_ratings" not in tables and {"users", "rooms", "memberships"} <= tables
+        assert connection.execute(text("SELECT count(*) FROM public.users WHERE id = :id"), {"id": user}).scalar_one() == 1
+        assert connection.execute(text("SELECT version_num FROM public.alembic_version")).scalar_one() == INITIAL
+    command.upgrade(migration_config(database_url=empty_database), "head")
+    with migration_engine.connect() as connection:
+        assert_current_schema(connection, head)

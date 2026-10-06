@@ -21,6 +21,7 @@
     "test_migrations.py",
     "test_notifications.py",
     "test_offline_tooling.py",
+    "test_player_ratings.py",
     "test_realtime.py",
     "test_realtime_expiry_races.py",
     "test_realtime_hub.py",
