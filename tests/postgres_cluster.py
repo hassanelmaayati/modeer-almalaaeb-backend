@@ -1,5 +1,6 @@
 """A disposable PostgreSQL cluster that never reads the application database URL."""
 import atexit
+import os
 from pathlib import Path
 import shutil
 import socket
@@ -15,17 +16,46 @@ class TemporaryPostgres:
         self.directory = None
         self.engine = None
         self.url = None
-        candidates = Path("/usr/lib/postgresql").glob("*/bin")
-        self.binary = next(
-            (directory for directory in sorted(
-                candidates, key=lambda directory: int(directory.parent.name), reverse=True
-            ) if (directory / "initdb").exists() and (directory / "pg_ctl").exists()),
-            None,
-        )
+        self.binary = self.find_binaries()
         if self.binary is None:
-            raise RuntimeError("PostgreSQL initdb/pg_ctl are required for the isolated test suite")
+            raise RuntimeError(
+                "PostgreSQL initdb/pg_ctl are required. Install PostgreSQL and matching PostGIS, "
+                "or set MODEER_TEST_PG_BIN to their bin directory."
+            )
+
+    @staticmethod
+    def find_binaries():
+        def valid(directory):
+            return (directory / 'initdb').is_file() and (directory / 'pg_ctl').is_file()
+
+        explicit = os.environ.get('MODEER_TEST_PG_BIN')
+        if explicit:
+            directory = Path(explicit).expanduser().resolve()
+            if not valid(directory):
+                raise RuntimeError('MODEER_TEST_PG_BIN must contain both initdb and pg_ctl')
+            return directory
+        candidates = []
+        pg_config = shutil.which('pg_config')
+        if pg_config:
+            try:
+                result = subprocess.run([pg_config, '--bindir'], capture_output=True, text=True,
+                                        check=True, timeout=5)
+                candidates.append(Path(result.stdout.strip()))
+            except (OSError, subprocess.SubprocessError):
+                pass
+        initdb = shutil.which('initdb')
+        if initdb:
+            candidates.append(Path(initdb).resolve().parent)
+        candidates.extend(sorted(Path('/usr/lib/postgresql').glob('*/bin'),
+                                 key=lambda p: int(p.parent.name) if p.parent.name.isdigit() else 0,
+                                 reverse=True))
+        for root in ('/opt/homebrew/opt', '/usr/local/opt'):
+            candidates.extend(sorted(Path(root).glob('postgresql*/bin'), reverse=True))
+        return next((directory for directory in candidates if valid(directory)), None)
 
     def start(self):
+        if hasattr(os, 'geteuid') and os.geteuid() == 0:
+            raise RuntimeError('Run isolated PostgreSQL tests as a non-root user; initdb refuses root')
         self.directory = Path(tempfile.mkdtemp(prefix="modeer-pg-"))
         data = self.directory / "data"
         sockets = self.directory / "socket"
@@ -53,8 +83,8 @@ class TemporaryPostgres:
                 )).scalar_one()
                 if not available:
                     raise RuntimeError(
-                        f"PostGIS server extension for PostgreSQL {self.binary.parent.name} "
-                        "is required for the isolated test suite"
+                        f"PostGIS server extension for binaries at {self.binary} is required. "
+                        "Install matching PostGIS or select another version with MODEER_TEST_PG_BIN."
                     )
             atexit.register(self.stop)
             return self

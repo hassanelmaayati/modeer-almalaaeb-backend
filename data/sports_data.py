@@ -25,6 +25,10 @@ def build_sports():
             ],
         ),
         SportModel(name="Swimming"),
+        SportModel(name="Walking"),
+        SportModel(name="Marathon"),
+        SportModel(name="Cycling"),
+        SportModel(name="Handball"),
     ]
 
 

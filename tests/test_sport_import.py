@@ -20,7 +20,7 @@ def other_row_counts(session):
 
 
 def test_fresh_import_creates_only_exact_catalogue_sports(database_url, db):
-    assert import_sports(database_url) == 4
+    assert import_sports(database_url) == 8
     with db() as session:
         rows = session.query(SportModel).order_by(SportModel.id).all()
         assert [(row.name, row.formats) for row in rows] == [
@@ -28,6 +28,10 @@ def test_fresh_import_creates_only_exact_catalogue_sports(database_url, db):
             ('Basketball', [{'key': '3v3', 'capacity': 6}, {'key': '5v5', 'capacity': 10}]),
             ('Tennis', [{'key': 'singles', 'capacity': 2}, {'key': 'doubles', 'capacity': 4}]),
             ('Swimming', None),
+            ('Walking', None),
+            ('Marathon', None),
+            ('Cycling', None),
+            ('Handball', None),
         ]
         assert all(count == 0 for count in other_row_counts(session).values())
 
@@ -44,7 +48,7 @@ def test_repeat_import_preserves_existing_catalogue_custom_sports_and_applicatio
                     target={'type': 'room', 'id': room['id']}, text='Preserve this notice'))
     with db() as session:
         before = other_row_counts(session)
-    assert import_sports(database_url) == 3
+    assert import_sports(database_url) == 7
     with db() as session:
         identities = {row.name: row.id for row in session.query(SportModel)}
     assert import_sports(database_url) == 0
@@ -56,10 +60,10 @@ def test_repeat_import_preserves_existing_catalogue_custom_sports_and_applicatio
 
 def test_concurrent_imports_add_catalogue_once_without_duplicate_names(database_url, db):
     with ThreadPoolExecutor(max_workers=2) as pool:
-        assert sorted(pool.map(import_sports, [database_url, database_url])) == [0, 4]
+        assert sorted(pool.map(import_sports, [database_url, database_url])) == [0, 8]
     with db() as session:
-        assert session.query(SportModel).count() == 4
-        assert session.scalar(select(func.count(func.distinct(SportModel.name)))) == 4
+        assert session.query(SportModel).count() == 8
+        assert session.scalar(select(func.count(func.distinct(SportModel.name)))) == 8
 
 
 def test_import_failure_rolls_back_entire_catalogue_and_preserves_existing_data(database_url, db, factory):
@@ -75,14 +79,14 @@ def test_import_failure_rolls_back_entire_catalogue_and_preserves_existing_data(
 
 def test_cli_uses_explicit_environment_and_repeated_execution_is_safe(database_url, db):
     environment = {**os.environ, 'DATABASE_URL': database_url, 'PYTHONDONTWRITEBYTECODE': '1'}
-    for added in (4, 0):
+    for added in (8, 0):
         result = subprocess.run([sys.executable, '-m', 'scripts.import_sports'],
                     cwd=Path(__file__).resolve().parents[1], env=environment,
                     capture_output=True, text=True, timeout=10)
         assert result.returncode == 0, result.stderr
         assert result.stdout.strip() == f'Imported {added} missing sports.'
     with db() as session:
-        assert session.query(SportModel).count() == 4
+        assert session.query(SportModel).count() == 8
 
 
 def test_cli_connection_failure_does_not_echo_credentials():

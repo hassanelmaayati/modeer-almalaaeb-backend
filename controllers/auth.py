@@ -6,6 +6,7 @@ from serializers.user import UserSignupSchema, UserLoginSchema, UserTokenSchema
 from database import get_db
 from dependencies.get_current_user import get_current_user
 from services import realtime
+from services.accounts import commit_account
 
 router = APIRouter(tags=["Auth"])
 
@@ -28,7 +29,7 @@ def signup(user: UserSignupSchema, db: Session = Depends(get_db)):
     )
     new_user.set_password(user.password)
     db.add(new_user)
-    db.commit()
+    commit_account(db)
     db.refresh(new_user)
     token = new_user.generate_jwt()
     return {"token": token, "msg": "User registered successfully", "user": new_user}

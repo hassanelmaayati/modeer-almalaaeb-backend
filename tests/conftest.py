@@ -10,12 +10,14 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(Path(__file__).parent))
 from postgres_cluster import TemporaryPostgres
+from tests.offline_network import blocked_attempts, install
 
 _cluster = None
 
 
 def pytest_sessionstart(session):
     global _cluster
+    install()
     _cluster = TemporaryPostgres().start()
     os.environ.update(DATABASE_URL=_cluster.url, JWT_SECRET='modeer-isolated-backend-test-secret-2026',
                       LIFECYCLE_WORKER='off', GOOGLE_CLIENT_ID='isolated-client',
@@ -27,6 +29,15 @@ def pytest_sessionstart(session):
 def pytest_sessionfinish(session, exitstatus):
     if _cluster is not None:
         _cluster.stop()
+
+
+@pytest.fixture(autouse=True)
+def fail_on_unexpected_external_network():
+    before = len(blocked_attempts())
+    yield
+    unexpected = blocked_attempts()[before:]
+    if unexpected:
+        pytest.fail(f'Unexpected external networking was blocked: {unexpected}')
 
 
 @pytest.fixture(scope='session')
@@ -62,7 +73,10 @@ def db(database_url):
 def cheap_test_passwords(monkeypatch):
     from passlib.context import CryptContext
     import models.user
-    monkeypatch.setattr(models.user, 'pwd_context', CryptContext(schemes=['bcrypt'], bcrypt__rounds=4))
+    monkeypatch.setattr(models.user, 'pwd_context', CryptContext(
+        schemes=['bcrypt_sha256', 'bcrypt'], deprecated='auto',
+        bcrypt_sha256__rounds=4, bcrypt__rounds=4,
+    ))
 
 
 @pytest.fixture
