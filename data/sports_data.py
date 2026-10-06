@@ -27,5 +27,3 @@ def build_sports():
         SportModel(name="Kayak"),
     ]
 
-
-sports_list = build_sports()

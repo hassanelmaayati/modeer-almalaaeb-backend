@@ -128,14 +128,15 @@ class UpdateCupSchema(CupTextFields):
     # Knockout cups send one fixture result; race cups send finishing results
     result: FixtureResultSchema | None = None
     race_results: List[RaceResultSchema] | None = Field(default=None, min_length=1)
-    revision: int | None = None
+    # Required so a stale client gets 409 instead of overwriting newer changes
+    revision: int
 
 
 class CreateEntrySchema(BaseModel):
     group_id: int
-    revision: int | None = None
+    revision: int
 
 
 class UpdateEntrySchema(BaseModel):
     status: Literal["accepted", "declined", "withdrawn"]
-    revision: int | None = None
+    revision: int

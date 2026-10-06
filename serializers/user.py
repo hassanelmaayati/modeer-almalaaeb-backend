@@ -5,6 +5,8 @@ from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, field_valida
 
 from models.districts import DISTRICTS
 
+from .fields import PhotoUrl
+
 EMAIL_PATTERN = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
 
 
@@ -48,7 +50,7 @@ class UserSignupSchema(BaseModel):
     user_name: str = Field(min_length=3, max_length=60)
     email: str = Field(pattern=EMAIL_PATTERN)
     password: str = Field(min_length=8)
-    photo_url: str | None = None
+    photo_url: PhotoUrl = None
     bio: str | None = Field(default=None, max_length=500)
     district: str | None = None
 
@@ -80,7 +82,7 @@ class UserLoginSchema(BaseModel):
 
 class UserUpdateSchema(BaseModel):
     user_name: str = Field(min_length=3, max_length=60)
-    photo_url: str | None = None
+    photo_url: PhotoUrl = None
     bio: str | None = Field(default=None, max_length=500)
     district: str | None = None
 

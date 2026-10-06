@@ -122,3 +122,26 @@ def test_cli_connection_failure_does_not_echo_credentials():
                 capture_output=True, text=True, timeout=10)
     assert result.returncode == 1 and 'Sports import failed' in result.stderr
     assert password not in result.stdout + result.stderr
+
+
+def test_seed_fills_a_migrated_empty_database_once(database_url, db):
+    environment = {**os.environ, 'DATABASE_URL': database_url, 'PYTHON_DOTENV_DISABLED': '1', 'PYTHONDONTWRITEBYTECODE': '1'}
+    def run_seed():
+        return subprocess.run([sys.executable, 'seed.py'], cwd=Path(__file__).resolve().parents[1],
+                              env=environment, capture_output=True, text=True, timeout=60)
+    first = run_seed()
+    assert first.returncode == 0, first.stderr
+    from models.cup import CupModel
+    from models.room import RoomModel
+    from models.user import UserModel
+    with db() as session:
+        sports = {sport.id: sport.name for sport in session.query(SportModel)}
+        assert len(sports) == 10 and session.query(UserModel).count() == 4
+        assert all(user.verify_password('password123') for user in session.query(UserModel))
+        assert {(cup.name, sports[cup.sport_id]) for cup in session.query(CupModel)} >= {('Juffair Open Water 1500m', 'Swimming')}
+        assert ('Padel doubles (group only)', 'Padel') in {(room.title, sports[room.sport_id]) for room in session.query(RoomModel)}
+    # A second run refuses instead of mixing demo rows into existing data
+    second = run_seed()
+    assert second.returncode == 1 and 'Seeding refused' in second.stderr
+    with db() as session:
+        assert session.query(UserModel).count() == 4

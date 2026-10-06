@@ -14,3 +14,12 @@ CORS_ORIGINS = [
     if origin.strip()
 ]
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+
+
+def require_settings():
+    # Called by main.py before the app is built, so a misconfigured deploy fails
+    # at boot instead of on the first login. Alembic and scripts.import_sports
+    # import the models without calling this, so they only need DATABASE_URL.
+    missing = [name for name, value in (("DATABASE_URL", DATABASE_URL), ("JWT_SECRET", JWT_SECRET)) if not value]
+    if missing:
+        raise RuntimeError("Missing required environment variable(s): " + ", ".join(missing))

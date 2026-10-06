@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -17,9 +17,12 @@ router = APIRouter(tags=["Users Management"])
 
 @router.get("/users", response_model=List[UserSchema])
 def get_users(
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
 ):
-    return db.query(UserModel).all()
+    # Ordered by id so pages stay stable as users sign up
+    return db.query(UserModel).order_by(UserModel.id).offset(offset).limit(limit).all()
 
 
 @router.get("/users/me", response_model=UserPrivateSchema)

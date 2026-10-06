@@ -13,21 +13,43 @@ origin, without a path or trailing slash). `.env.example` documents these
 settings. `LIFECYCLE_WORKER` is enabled by the Blueprint; Google sign-in is
 optional and requires matching backend and frontend client IDs.
 
+The app refuses to start if `DATABASE_URL` or `JWT_SECRET` is missing.
+
 Use the already initialized database. Startup does not migrate or import data.
 Do not run `seed.py`, reset commands, or empty-database initialization against
-an existing project. Apply future Alembic migrations separately after a backup;
-run `python -m scripts.import_sports` separately for deliberate catalogue updates.
+an existing project. Apply new Alembic migrations separately after a backup with
+`DATABASE_URL=... pipenv run alembic upgrade head`; run
+`python -m scripts.import_sports` separately for deliberate catalogue updates.
 Check `/health` and `/api/v1/sports` after deployment.
+
+## Local database setup
+
+Install PostgreSQL with PostGIS, create an empty database, copy `.env.example`
+to `.env` and point `DATABASE_URL` at it. Then:
+
+```bash
+PIPENV_DONT_LOAD_ENV=1 pipenv sync --dev
+pipenv run python -m migrations.initialize --database-url "$DATABASE_URL"  # schema + PostGIS
+pipenv run python -m scripts.import_sports                                 # sports catalogue
+pipenv run python seed.py                                                  # optional demo data
+```
+
+`migrations.initialize` only accepts an empty schema (`--reset-existing` drops the
+app tables first). `seed.py` imports the sports, then adds demo users, groups, cups
+and rooms only when there are no users yet; it exits with status 1 on any failure.
+Demo accounts are `user1@example.com` to `user4@example.com` with password `password123`.
+
+Run the tests the way CI does: `PIPENV_DONT_LOAD_ENV=1 pipenv run python -m tests.run_offline`.
 
 ## Project idea
 
 A community website for people in Bahrain to organize activities, make friends, build groups and chat.
 
-Activities: football, basketball, padel, tennis, volleyball, badminton, **walking together, running and cycling**. Outings use participant lists with optional distance, pace and route notes.
+Activities (seeded catalogue): football, basketball, padel, swimming, **walking together, running and cycling**, handball, billiards and kayak. Outings use participant lists with optional distance, pace and route notes.
 
-**Scope:** Six core models plus Cup — seven models total. News comes from an external API. [Implementation phases](plan.md).
+**Scope:** Eight tables: users, sports, rooms, memberships, messages, groups, cups and notifications. [Implementation phases](plan.md).
 
-**Status:** Planning only; English-first desktop/mobile website. **Stack:** React/Vite (JavaScript/JSX), FastAPI, SQLAlchemy/Alembic, PostgreSQL, WebSockets, Redis and a background worker.
+**Status:** Backend implemented and deployed; English-first desktop/mobile website. **Stack:** React/Vite (JavaScript/JSX), FastAPI, SQLAlchemy/Alembic, PostgreSQL with PostGIS, and WebSockets. Realtime hubs live in memory and the lifecycle worker runs inside the app process, so the backend runs as one instance with one worker.
 
 Original project idea:
 
@@ -47,14 +69,12 @@ https://docs.google.com/document/d/146Ux37oZdEJnZHlKk3vzWZATzfPnYqUf0dR-ri5tRlU/
 - As a completion host, I want to record attendance and rate attended players so history reflects participation.
 - As a player, I want accepted friendships and direct messages so I can coordinate privately.
 - As a group owner/member, I want invitations and reusable groups so we can meet again.
-- As a captain/organizer, I want football cups with accepted rosters and fixtures so teams can compete.
-- As a visitor, I want sports news from an external API so I can follow updates.
-- As an administrator, I want user role/status controls so I can manage access.
+- As a captain/organizer, I want cups with accepted rosters, knockout brackets or races so teams can compete.
 
 ## Wireframes
 
 
-Main planning screens, organized by journey. Editable originals are in `assets/wireframes/`.
+Main planning screens, organized by journey.
 
 ### Discover
 
@@ -94,23 +114,25 @@ https://excalidraw.com/#json=mm8VWN_xrBNjyhHDay83Q,RyXy2F4vY2rYgb8-3t7_Xw
 
 ## ERDs
 
-**Six core models + one Cup model:**
-
 | Model | Stores |
 | --- | --- |
-| User | Accounts, profiles and roles |
-| Sport | Activities and format presets |
-| Room | Schedule, privacy, capacity and slot layout |
+| User | Accounts, profiles, home district and optional Google link (no roles) |
+| Sport | Activities and format presets; each sport's cup format comes from the server |
+| Room | Schedule, privacy, capacity, slot layout, venue point (PostGIS) and cancellation |
 | Membership | Room/group members, friend connections and cup rosters |
-| Message | Room chat and direct messages |
+| Message | Room chat, group chat, direct messages and system notices |
 | Group | Social groups and persistent teams |
-| Cup — seventh model | Teams, bracket, fixtures and results |
+| Cup | Entries, knockout bracket or race results |
+| Notification | Per-user notices and read state |
 
-Membership uses a checked `kind` (room/group/friend/cup). Room slots and cup fixtures are embedded data, validated by the server. **News has no database model.**
+Membership has no `kind` column: the row type follows from which target is set
+(`room_id`, `group_id`, `cup_id` with `group_id`, or `other_user_id` for friends).
+Friend rows carry one block flag per side (`user_blocked_other`, `other_blocked_user`). Room slots and cup
+entries/fixtures are JSON validated by the server.
 
-![Six core models plus Cup ERD](assets/previews/erd.png)
+![ERD](assets/previews/erd.png)
 
-[Editable ERD](assets/diagrams/erd.svg) · [Model details](assets/models.json)
+[Editable ERD](assets/diagrams/erd.svg) (the diagram predates notifications and the room venue and cancellation fields)
 
 ## Routes/endpoints
 
@@ -118,22 +140,24 @@ Each model shares a small set of pages and scoped endpoints. Use `/api/v1` befor
 
 | Model / feature | Main frontend routes | Main API endpoints |
 | --- | --- | --- |
-| User | `/sign-in`, `/sign-up`, `/users/:userId`, `/settings`, `/admin/users` | `POST /auth/signup`, `/auth/login`, `/auth/google`<br>`GET/PATCH /users/me` |
-| Sport | `/`, `/rooms` | `GET /sports` |
-| Room | `/rooms`, `/rooms/new`, `/rooms/:roomId`, `/my-rooms` | `GET/POST /rooms`<br>`GET/PATCH /rooms/{room_id}`<br>`POST /rooms/{room_id}/cancel` |
-| Membership | Room/after-game pages, `/friends`, group/cup pages | `GET/POST /rooms/{room_id}/members`<br>`GET/POST /friends`<br>`GET/POST /groups/{group_id}/members`<br>`POST /cups/{cup_id}/roster` |
-| Message | Room chat, `/messages`, `/messages/:userId` | `GET/POST /messages` |
-| Group | `/groups`, `/groups/new`, `/groups/:groupId` | `GET/POST /groups`<br>`GET/PATCH /groups/{group_id}` |
-| Cup | `/cups`, `/cups/new`, `/cups/:cupId` | `GET/POST /cups`<br>`GET/PATCH /cups/{cup_id}`<br>`POST /cups/{cup_id}/entries` |
-| News — external | `/news` | `GET /news` (server-side external API adapter) |
+| User | `/sign-in`, `/sign-up`, `/users/:userId`, `/settings` | `POST /auth/signup`, `/auth/login`, `/auth/logout`<br>`POST /auth/google`, `/auth/google/link`<br>`GET /users?limit=&offset=`, `GET /users/{user_id}`<br>`GET/PUT /users/me` |
+| Sport | `/`, `/rooms` | `GET /sports`, `GET /sports/{sport_id}` |
+| Room | `/rooms`, `/rooms/new`, `/rooms/:roomId`, `/my-rooms` | `GET/POST /rooms`, `GET /rooms/mine`, `GET /rooms/joined`<br>`GET/PUT /rooms/{room_id}`<br>`POST /rooms/{room_id}/cancel` |
+| Membership | Room/after-game pages, `/friends`, group/cup pages | `GET/POST /rooms/{room_id}/members`, `PATCH /rooms/{room_id}/members/{user_id}`, `DELETE /rooms/{room_id}/members/me`<br>`GET/POST /friends`, `PATCH /friends/{user_id}`<br>`GET/POST /groups/{group_id}/members`, `PATCH /groups/{group_id}/members/{user_id}`<br>`GET/POST /cups/{cup_id}/roster`, `PATCH /cups/{cup_id}/roster/{user_id}` |
+| Message | Room chat, `/messages`, `/messages/:userId` | `GET/POST /messages`, `GET /messages/conversations` |
+| Group | `/groups`, `/groups/new`, `/groups/:groupId` | `GET/POST /groups`<br>`GET/PUT /groups/{group_id}` |
+| Cup | `/cups`, `/cups/new`, `/cups/:cupId` | `GET /cups?status=&limit=&offset=`, `POST /cups`<br>`GET/PATCH/DELETE /cups/{cup_id}`<br>`POST /cups/{cup_id}/entries`, `PUT /cups/{cup_id}/entries/{group_id}` |
+| Notification | Header bell | `GET /notifications`, `PATCH /notifications`, `PATCH /notifications/{notification_id}` |
+| Realtime | Shared provider | `POST /socket-ticket`, then `WS /ws?ticket=`; public `WS /ws/lobby` |
 
-Membership routes handle requests, consent, slots, readiness, attendance and ratings with action-specific permissions. Rooms open on creation and start/finish automatically. WebSockets deliver room and message updates.
+Cup, entry and room writes send the `revision` they last read; a stale one returns 409. Invalid state changes return 409; invalid input returns 400 or 422.
+Membership routes handle requests, consent, slots, attendance and ratings with action-specific permissions. Rooms open on creation and start/finish automatically. WebSockets deliver room, message and notification updates.
 
-[Route map](assets/diagrams/endpoints.svg) · [Methods and permissions](assets/interfaces.json)
+[Route map](assets/diagrams/endpoints.svg)
 
 ## Component hierarchy
 
-Shared account/live providers support room pages, friends, groups, messaging, cups and external news.
+Shared account/live providers support room pages, friends, groups, messaging and cups.
 
 ![Compact React component hierarchy](assets/previews/component-hierarchy.png)
 

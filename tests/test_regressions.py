@@ -100,7 +100,7 @@ def test_new_password_hashes_distinguish_the_entire_password(client, db, passwor
         assert stored.verify_password(password)
         assert not stored.verify_password(password[:-1] + 'z')
     api(client, 'POST', '/auth/login', body={'email': 'long@example.test', 'password': password})
-    api(client, 'POST', '/auth/login', body={'email': 'long@example.test', 'password': password[:-1] + 'z'}, expected=400)
+    api(client, 'POST', '/auth/login', body={'email': 'long@example.test', 'password': password[:-1] + 'z'}, expected=401)
 
 
 def test_production_password_context_uses_v2_and_verifies_legacy_without_rewriting(monkeypatch):
@@ -175,7 +175,7 @@ def test_google_link_race_has_one_owner_and_preserves_loser(client, configured_a
                                   headers=user['headers'], json={'credential': 'verified'}), users))
     finally:
         configured_app.dependency_overrides[get_db] = previous
-    assert sorted(response.status_code for response in responses) == [200, 400]
+    assert sorted(response.status_code for response in responses) == [200, 409]
     with db() as session:
         rows = session.query(UserModel).filter(UserModel.id.in_([user['id'] for user in users])).all()
         assert sum(row.google_subject == 'one-google-account' for row in rows) == 1
@@ -207,6 +207,6 @@ def test_legacy_bcrypt_account_can_log_in_without_hash_rewriting(client, factory
         session.commit()
     signed_in = api(client, 'POST', '/auth/login', body={'email': user['email'], 'password': PASSWORD})
     assert signed_in['user']['id'] == user['id']
-    api(client, 'POST', '/auth/login', body={'email': user['email'], 'password': 'wrong-password'}, expected=400)
+    api(client, 'POST', '/auth/login', body={'email': user['email'], 'password': 'wrong-password'}, expected=401)
     with db() as session:
         assert session.get(UserModel, user['id']).password == legacy

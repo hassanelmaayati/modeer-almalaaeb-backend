@@ -55,7 +55,7 @@ def test_live_catalogue_cup_policy_and_format_capacity_guards(client, factory, d
 def test_required_cup_details_cannot_be_cleared_and_rejected_updates_leave_no_events(client, factory, db, field):
     organizer = factory.user()
     cup = factory.cup(organizer)
-    api(client, 'PATCH', f"/cups/{cup['id']}", user=organizer, body={field: None}, expected=422)
+    api(client, 'PATCH', f"/cups/{cup['id']}", user=organizer, body={field: None, 'revision': 0}, expected=422)
     with db() as session:
         stored = session.get(CupModel, cup['id'])
         assert stored.revision == 0 and stored.name == cup['name']
@@ -66,8 +66,8 @@ def test_required_cup_details_cannot_be_cleared_and_rejected_updates_leave_no_ev
 def test_cup_status_transition_guard_persists_only_idempotent_registration(client, factory, db, old, new):
     organizer = factory.user()
     cup = factory.cup(organizer, status=old, registration_closes_at=future().replace(tzinfo=None))
-    expected = 200 if old == new else 400
-    api(client, 'PATCH', f"/cups/{cup['id']}", user=organizer, body={'status': new}, expected=expected)
+    expected = 200 if old == new else 409
+    api(client, 'PATCH', f"/cups/{cup['id']}", user=organizer, body={'status': new, 'revision': 0}, expected=expected)
     with db() as session:
         stored = session.get(CupModel, cup['id'])
         assert stored.status == old and stored.revision == (1 if expected == 200 else 0)
@@ -93,7 +93,7 @@ def test_complete_brackets_contain_each_entrant_once_and_every_winner_advances(t
     assert all(fixture['winner_group_id'] is not None for fixture in cup.fixtures)
 
 
-@pytest.mark.parametrize('problem,status', [('missing', 404), ('not-ready', 400), ('already-scored', 400), ('tie-no-winner', 400), ('tie-wrong-winner', 400), ('contradicted-winner', 400)])
+@pytest.mark.parametrize('problem,status', [('missing', 404), ('not-ready', 409), ('already-scored', 409), ('tie-no-winner', 400), ('tie-wrong-winner', 400), ('contradicted-winner', 400)])
 def test_invalid_knockout_result_leaves_the_bracket_unchanged(problem, status):
     fixture = {'id': 'R2-M1', 'round': 2, 'match': 1, 'home_group_id': 1, 'away_group_id': 2,
                'home_score': None, 'away_score': None, 'winner_group_id': None}
@@ -159,7 +159,9 @@ def test_invalid_cup_publication_and_results_leave_all_rows_and_notices_unchange
     if case in ('early-knockout-result', 'race-with-fixture-result'):
         change = {'result': {'fixture_id': 'R1-M1', 'home_score': 1, 'away_score': 0}}
     if case == 'early-race-result': change = {'race_results': [{'group_id': 1, 'position': 1}]}
-    api(client, 'PATCH', f"/cups/{cup['id']}", user=organizer, body=change, expected=400)
+    # Only sending a fixture result to a race is bad input; the rest conflict with the cup's state
+    expected = 400 if case == 'race-with-fixture-result' else 409
+    api(client, 'PATCH', f"/cups/{cup['id']}", user=organizer, body={**change, 'revision': 0}, expected=expected)
     with db() as session:
         stored = session.get(CupModel, cup['id'])
         assert stored.status == cup['status'] and stored.team_count == cup['team_count']
@@ -167,14 +169,14 @@ def test_invalid_cup_publication_and_results_leave_all_rows_and_notices_unchange
         assert stored.rosters_locked_at is None and session.query(NotificationModel).count() == 0
 
 
-@pytest.mark.parametrize('case,expected', [('closed-status', 400), ('closed-deadline', 400), ('stale-revision', 409)])
+@pytest.mark.parametrize('case,expected', [('closed-status', 409), ('closed-deadline', 409), ('stale-revision', 409)])
 def test_cup_entry_creation_obeys_registration_and_revision_guards(client, factory, db, case, expected):
     organizer, captain, sport = factory.user(), factory.user(), factory.sport('Football')
     group = factory.group(captain, sport)
     cup = factory.cup(organizer, sport, status='published' if case == 'closed-status' else 'registration',
                       registration_closes_at=future(-1 if case == 'closed-deadline' else 1).replace(tzinfo=None))
     api(client, 'POST', f"/cups/{cup['id']}/entries", user=captain,
-        body={'group_id': group['id'], **({'revision': 99} if case == 'stale-revision' else {})}, expected=expected)
+        body={'group_id': group['id'], 'revision': 99 if case == 'stale-revision' else 0}, expected=expected)
     with db() as session:
         assert session.get(CupModel, cup['id']).entries == [] and session.get(CupModel, cup['id']).revision == 0
         assert session.query(NotificationModel).count() == 0

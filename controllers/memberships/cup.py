@@ -1,8 +1,11 @@
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
+from controllers.cups import find_cup
 from database import get_db
 from dependencies.get_current_user import get_current_user
+from dependencies.get_optional_user import get_optional_user
 from models.cup import CupModel
 from models.group import GroupModel
 from models.membership import MembershipModel
@@ -36,6 +39,23 @@ def require_team_member(db, group, user_id):
 def require_entry(cup, group_id):
     if not any(e["group_id"] == group_id and e["status"] in ("pending", "accepted") for e in cup.entries):
         raise HTTPException(409, "The team is not entered in this cup")
+
+
+@router.get("/cups/{cup_id}/roster", response_model=list[CupMemberSchema])
+def get_cup_roster(cup_id: int, db: Session = Depends(get_db),
+                   current_user: UserModel | None = Depends(get_optional_user)):
+    # Same draft rule as GET /cups/{id}: other people's drafts are 404
+    cup = find_cup(db, cup_id, current_user)
+    query = roster(db, cup_id)
+    if current_user is None:
+        return query.filter(MembershipModel.status == "accepted").all()
+    if current_user.id == cup.organizer_user_id:
+        return query.all()
+    # Pending invites stay private to the invitee and the team owner
+    owned_groups = db.query(GroupModel.id).filter(GroupModel.owner_id == current_user.id)
+    return query.filter(or_(MembershipModel.status == "accepted",
+                            MembershipModel.user_id == current_user.id,
+                            MembershipModel.group_id.in_(owned_groups))).all()
 
 
 @router.post("/cups/{cup_id}/roster", response_model=CupMemberSchema, status_code=201)

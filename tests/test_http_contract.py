@@ -1,3 +1,8 @@
+import os
+from pathlib import Path
+import subprocess
+import sys
+
 import pytest
 from tests.lib import api
 
@@ -35,3 +40,14 @@ def test_public_routes_return_real_empty_database_and_health(client):
         assert api(client,'GET',route)==[]
     specification=client.get('/openapi.json').json()
     assert '/api/v1/notifications' in specification['paths'] and '/api/v1/socket-ticket' in specification['paths']
+
+
+@pytest.mark.parametrize('missing', ['DATABASE_URL', 'JWT_SECRET'])
+def test_app_refuses_to_start_without_required_settings(missing):
+    environment = {**os.environ, 'PYTHON_DOTENV_DISABLED': '1', 'DATABASE_URL': 'postgresql+psycopg2://unused@127.0.0.1:1/unused',
+                   'JWT_SECRET': 'startup-check-secret', 'LIFECYCLE_WORKER': 'off'}
+    environment.pop(missing)
+    result = subprocess.run([sys.executable, '-c', 'import main'], cwd=Path(__file__).resolve().parents[1],
+                            env=environment, capture_output=True, text=True, timeout=10)
+    assert result.returncode != 0
+    assert f'Missing required environment variable(s): {missing}' in result.stderr

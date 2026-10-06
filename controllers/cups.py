@@ -3,11 +3,11 @@ import random
 from datetime import datetime, timezone
 from typing import List, Literal
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 
 # DB
 from sqlalchemy import or_
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.orm.attributes import flag_modified
 from database import get_db
 
@@ -16,7 +16,6 @@ from models.cup import CupModel, CUP_FORMATS, NO_CUP_SPORTS
 from models.group import GroupModel
 from models.sport import SportModel
 from models.user import UserModel
-from models.membership import MembershipModel
 
 # Serializers
 from serializers.cup import (
@@ -162,11 +161,11 @@ def record_result(cup: CupModel, result: FixtureResultSchema):
 
     if fixture["home_group_id"] is None or fixture["away_group_id"] is None:
         raise HTTPException(
-            status_code=400, detail="Both teams for this fixture are not known yet"
+            status_code=409, detail="Both teams for this fixture are not known yet"
         )
     if fixture["winner_group_id"] is not None:
         raise HTTPException(
-            status_code=400, detail="A result is already recorded for this fixture"
+            status_code=409, detail="A result is already recorded for this fixture"
         )
 
     teams = (fixture["home_group_id"], fixture["away_group_id"])
@@ -261,10 +260,15 @@ def record_race_results(cup: CupModel, results: List[RaceResultSchema]):
 @router.get("/cups", response_model=List[CupSchema])
 def get_cups(
     status: Literal["draft", "registration", "published", "completed"] | None = None,
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
     current_user: UserModel | None = Depends(get_optional_user),
 ):
-    query = db.query(CupModel)
+    # Load organizer and sport (used by format) with the cups instead of per row
+    query = db.query(CupModel).options(
+        joinedload(CupModel.organizer), joinedload(CupModel.sport)
+    )
 
     # Other people's drafts stay hidden
     if current_user:
@@ -280,7 +284,12 @@ def get_cups(
     if status:
         query = query.filter(CupModel.status == status)
 
-    return query.order_by(CupModel.created_at.desc(), CupModel.id.desc()).all()
+    return (
+        query.order_by(CupModel.created_at.desc(), CupModel.id.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
 
 
 @router.get("/cups/{cup_id}", response_model=CupSchema)
@@ -338,7 +347,7 @@ def update_cup(
     if details:
         if db_cup.status not in ("draft", "registration"):
             raise HTTPException(
-                status_code=400, detail="Cup details are locked after publishing"
+                status_code=409, detail="Cup details are locked after publishing"
             )
         for key in REQUIRED_FIELDS:
             if key in details and details[key] is None:
@@ -347,8 +356,18 @@ def update_cup(
             check_team_count(db_cup.format, details["team_count"])
         if details.get("team_count", db_cup.team_count) < len(accepted_entries(db_cup)):
             raise HTTPException(
-                status_code=400,
+                status_code=409,
                 detail="team_count cannot be lower than the accepted entries",
+            )
+        # Entries compare against the close time, so an open registration needs one
+        if (
+            "registration_closes_at" in details
+            and details["registration_closes_at"] is None
+            and db_cup.status == "registration"
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail="Registration close time is required while registration is open",
             )
         check_future(details.get("registration_closes_at"))
         for key, value in details.items():
@@ -357,14 +376,14 @@ def update_cup(
     if cup.status and cup.status != db_cup.status:
         if NEXT_STATUS.get(db_cup.status) != cup.status:
             raise HTTPException(
-                status_code=400,
+                status_code=409,
                 detail=f"A {db_cup.status} cup cannot move to {cup.status}",
             )
 
         if cup.status == "registration":
             if db_cup.registration_closes_at is None:
                 raise HTTPException(
-                    status_code=400,
+                    status_code=409,
                     detail="Set registration_closes_at before opening registration",
                 )
             check_future(db_cup.registration_closes_at)
@@ -375,7 +394,7 @@ def update_cup(
                 # Every bracket slot must be filled before the draw
                 if accepted_count != db_cup.team_count:
                     raise HTTPException(
-                        status_code=400,
+                        status_code=409,
                         detail=f"Publishing needs exactly {db_cup.team_count} accepted teams",
                     )
                 db_cup.fixtures = draw_fixtures(db_cup)
@@ -383,7 +402,7 @@ def update_cup(
                 # A race needs at least two entrants; everyone starts together,
                 # so nobody is paired and the fixtures stay empty
                 raise HTTPException(
-                    status_code=400,
+                    status_code=409,
                     detail="Publishing a race needs at least 2 accepted entrants",
                 )
             db_cup.rosters_locked_at = utc_now()
@@ -399,7 +418,7 @@ def update_cup(
             )
         if db_cup.status != "published":
             raise HTTPException(
-                status_code=400, detail="Results can only be recorded once published"
+                status_code=409, detail="Results can only be recorded once published"
             )
         record_result(db_cup, cup.result)
 
@@ -412,7 +431,7 @@ def update_cup(
             )
         if db_cup.status != "published":
             raise HTTPException(
-                status_code=400, detail="Results can only be recorded once published"
+                status_code=409, detail="Results can only be recorded once published"
             )
         record_race_results(db_cup, cup.race_results)
 
@@ -429,10 +448,8 @@ def delete_cup(
     check_organizer(db_cup, current_user)
 
     if db_cup.status != "draft":
-        raise HTTPException(status_code=400, detail="Only draft cups can be deleted")
+        raise HTTPException(status_code=409, detail="Only draft cups can be deleted")
 
-    if db.query(MembershipModel).filter(MembershipModel.cup_id == cup_id).first():
-        raise HTTPException(409, "Remove roster memberships before deleting this cup")
     db.delete(db_cup)
     commit(db)
     return None
@@ -450,9 +467,10 @@ def create_entry(
     check_revision(db_cup, entry.revision)
 
     if db_cup.status != "registration":
-        raise HTTPException(status_code=400, detail="Registration is not open")
-    if db_cup.registration_closes_at <= utc_now():
-        raise HTTPException(status_code=400, detail="Registration has closed")
+        raise HTTPException(status_code=409, detail="Registration is not open")
+    # A missing close time counts as closed rather than crashing the comparison
+    if db_cup.registration_closes_at is None or db_cup.registration_closes_at <= utc_now():
+        raise HTTPException(status_code=409, detail="Registration has closed")
 
     group = db.query(GroupModel).filter(GroupModel.id == entry.group_id).first()
     if not group:
@@ -462,9 +480,8 @@ def create_entry(
             status_code=403, detail="Only the group owner can enter this team"
         )
 
-    # A group is formed for one sport, so it only enters cups of that sport;
-    # groups with no sport set may enter any cup
-    if group.sports_id is not None and group.sports_id != db_cup.sport_id:
+    # A group is formed for one sport, so it only enters cups of that sport
+    if group.sports_id != db_cup.sport_id:
         raise HTTPException(
             status_code=400, detail="This group plays a different sport than this cup"
         )
@@ -473,7 +490,7 @@ def create_entry(
     if len(entries) != len(db_cup.entries):
         previous = next(e for e in db_cup.entries if e["group_id"] == group.id)
         if previous["status"] in ("pending", "accepted"):
-            raise HTTPException(status_code=400, detail="This team is already entered")
+            raise HTTPException(status_code=409, detail="This team is already entered")
 
     # Snapshot of the team at entry time. Entrants are groups in every format:
     # a solo runner enters a race through a one-person group, which keeps a
@@ -510,7 +527,7 @@ def update_entry(
 
     if db_cup.status != "registration":
         raise HTTPException(
-            status_code=400, detail="Entries can only change while registration is open"
+            status_code=409, detail="Entries can only change while registration is open"
         )
 
     if entry.status == "withdrawn":
@@ -522,18 +539,18 @@ def update_entry(
             )
         if db_entry["status"] == "withdrawn":
             raise HTTPException(
-                status_code=400, detail="This team has already withdrawn"
+                status_code=409, detail="This team has already withdrawn"
             )
     else:
         check_organizer(db_cup, current_user)
         if db_entry["status"] == "withdrawn":
-            raise HTTPException(status_code=400, detail="This team has withdrawn")
+            raise HTTPException(status_code=409, detail="This team has withdrawn")
         if (
             entry.status == "accepted"
             and db_entry["status"] != "accepted"
             and len(accepted_entries(db_cup)) >= db_cup.team_count
         ):
-            raise HTTPException(status_code=400, detail="All team places are taken")
+            raise HTTPException(status_code=409, detail="All team places are taken")
 
     db_entry["status"] = entry.status
     db_cup.entries = entries
