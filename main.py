@@ -26,6 +26,7 @@ from controllers.messages import router as MessagesRouter
 from controllers.lobby_ws import router as LobbyWsRouter
 from controllers.realtime_ws import router as RealtimeRouter
 from controllers.notifications import router as NotificationsRouter
+from controllers.player_ratings import router as PlayerRatingsRouter
 from services import realtime
 from controllers.memberships.room import router as RoomMembersRouter
 from controllers.memberships.friends import router as FriendsRouter
@@ -85,6 +86,10 @@ tags = [
         "name": "Notifications",
         "description": "The signed-in user's notifications and read state",
     },
+    {
+        "name": "Player Ratings",
+        "description": "Final 1-5 star ratings between players of a completed room, and profile averages",
+    },
 ]
 
 
@@ -119,6 +124,7 @@ app.include_router(MessagesRouter, prefix="/api/v1")
 app.include_router(LobbyWsRouter, prefix="/api/v1")
 app.include_router(RealtimeRouter, prefix="/api/v1")
 app.include_router(NotificationsRouter, prefix="/api/v1")
+app.include_router(PlayerRatingsRouter, prefix="/api/v1")
 app.include_router(RoomMembersRouter, prefix="/api/v1")
 app.include_router(FriendsRouter, prefix="/api/v1")
 app.include_router(GroupMembersRouter, prefix="/api/v1")

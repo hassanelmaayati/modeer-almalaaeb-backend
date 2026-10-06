@@ -27,6 +27,11 @@ def require_admission(room):
         raise HTTPException(409, "Admission is closed")
 
 
+def without_rating(member):
+    # Host ratings are private to the host; everyone else, even the rated player, sees null
+    return RoomMemberSchema.model_validate(member).model_copy(update={"rating": None})
+
+
 def finish(db, background_tasks, room, before, actor_id, member, text):
     room.revision += 1
     events = change_events(db, {"type": "room", "id": room.id}, "room.membership",
@@ -35,7 +40,7 @@ def finish(db, background_tasks, room, before, actor_id, member, text):
     db.refresh(member)
     queue_room_events(background_tasks, db, room, before)
     queue_events(background_tasks, events)
-    return member
+    return member if actor_id == room.host_id else without_rating(member)
 
 
 @router.get("/rooms/{room_id}/members", response_model=list[RoomMemberSchema])
@@ -51,9 +56,8 @@ def get_room_members(room_id: int, db: Session = Depends(get_db),
         raise HTTPException(404, "Room not found")
     if is_host:
         return query.all()
-    if admitted:
-        return query.filter(MembershipModel.status == "accepted").all()
-    return [own] if own else []
+    visible = query.filter(MembershipModel.status == "accepted").all() if admitted else [own] if own else []
+    return [without_rating(row) for row in visible]
 
 
 @router.post("/rooms/{room_id}/members", response_model=RoomMemberSchema, status_code=201)

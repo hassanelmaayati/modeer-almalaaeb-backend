@@ -47,7 +47,7 @@ A community website for people in Bahrain to organize activities, make friends, 
 
 Activities (seeded catalogue): football, basketball, padel, swimming, **walking together, running and cycling**, handball, billiards and kayak. Outings use participant lists with optional distance, pace and route notes.
 
-**Scope:** Eight tables: users, sports, rooms, memberships, messages, groups, cups and notifications. [Implementation phases](plan.md).
+**Scope:** Nine tables: users, sports, rooms, memberships, messages, groups, cups, notifications and player ratings. [Implementation phases](plan.md).
 
 **Status:** Backend implemented and deployed; English-first desktop/mobile website. **Stack:** React/Vite (JavaScript/JSX), FastAPI, SQLAlchemy/Alembic, PostgreSQL with PostGIS, and WebSockets. Realtime hubs live in memory and the lifecycle worker runs inside the app process, so the backend runs as one instance with one worker.
 
@@ -124,6 +124,7 @@ https://excalidraw.com/#json=mm8VWN_xrBNjyhHDay83Q,RyXy2F4vY2rYgb8-3t7_Xw
 | Group | Social groups and persistent teams |
 | Cup | Entries, knockout bracket or race results |
 | Notification | Per-user notices and read state |
+| Player rating | A final 1–5 star rating from one player to another for one completed room |
 
 Membership has no `kind` column: the row type follows from which target is set
 (`room_id`, `group_id`, `cup_id` with `group_id`, or `other_user_id` for friends).
@@ -148,9 +149,11 @@ Each model shares a small set of pages and scoped endpoints. Use `/api/v1` befor
 | Group | `/groups`, `/groups/new`, `/groups/:groupId` | `GET/POST /groups`<br>`GET/PUT /groups/{group_id}` |
 | Cup | `/cups`, `/cups/new`, `/cups/:cupId` | `GET /cups?status=&limit=&offset=`, `POST /cups`<br>`GET/PATCH/DELETE /cups/{cup_id}`<br>`POST /cups/{cup_id}/entries`, `PUT /cups/{cup_id}/entries/{group_id}` |
 | Notification | Header bell | `GET /notifications`, `PATCH /notifications`, `PATCH /notifications/{notification_id}` |
+| Player rating | After-game page, profiles | `POST /rooms/{room_id}/ratings`, `GET /rooms/{room_id}/ratings/mine`<br>`GET /users/{user_id}/rating` |
 | Realtime | Shared provider | `POST /socket-ticket`, then `WS /ws?ticket=`; public `WS /ws/lobby` |
 
 Cup, entry and room writes send the `revision` they last read; a stale one returns 409. Invalid state changes return 409; invalid input returns 400 or 422.
+Players rate each other 1–5 stars once per room after it completes (host and accepted members take part, no-shows do not). Ratings are final, and only the rater can list the ratings they gave. A profile average counts these ratings plus the host ratings recorded through attendance, which only the host sees in `GET /rooms/{room_id}/members`. The host rates through attendance, not the ratings endpoint.
 Membership routes handle requests, consent, slots, attendance and ratings with action-specific permissions. Rooms open on creation and start/finish automatically. WebSockets deliver room, message and notification updates.
 
 [Route map](assets/diagrams/endpoints.svg)
