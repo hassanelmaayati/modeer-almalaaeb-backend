@@ -10,6 +10,7 @@ from serializers.user import (
 )
 from database import get_db
 from dependencies.get_current_user import get_current_user
+from services.accounts import commit_account
 
 router = APIRouter(tags=["Users Management"])
 
@@ -50,7 +51,7 @@ def update_me(
             raise HTTPException(status_code=422, detail=f"{key} cannot be empty")
         setattr(db_user, key, value)
 
-    db.commit()
+    commit_account(db)
     db.refresh(db_user)
     return db_user
 

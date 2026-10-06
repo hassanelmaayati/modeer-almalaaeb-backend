@@ -155,7 +155,7 @@ class CreateRoomSchema(BaseModel):
     area: NonBlank = Field(min_length=1)
     venue_location: Coordinate | None = None
     venue_notes: str | None = None
-    distance_km: float | None = Field(default=None, gt=0)
+    distance_km: float | None = Field(default=None, gt=0, allow_inf_nan=False)
     pace_notes: str | None = None
     route_notes: str | None = None
 
@@ -230,7 +230,7 @@ class UpdateRoomSchema(BaseModel):
     area: NonBlank | None = Field(default=None, min_length=1)
     venue_location: Coordinate | None = None
     venue_notes: str | None = None
-    distance_km: float | None = Field(default=None, gt=0)
+    distance_km: float | None = Field(default=None, gt=0, allow_inf_nan=False)
     pace_notes: str | None = None
     route_notes: str | None = None
 

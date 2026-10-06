@@ -105,9 +105,12 @@ def get_host_room(db: Session, room_id: int, current_user: UserModel) -> RoomMod
 
 def split_location(data: dict) -> dict:
     # The API takes venue_location as latitude/longitude, the table stores a PostGIS point
-    location = data.pop("venue_location", None)
-    if location is not None:
-        data["venue_point"] = make_point(location["latitude"], location["longitude"])
+    if "venue_location" in data:
+        location = data.pop("venue_location")
+        data["venue_point"] = (
+            make_point(location["latitude"], location["longitude"])
+            if location is not None else None
+        )
     return data
 
 
