@@ -343,3 +343,32 @@ def test_rejected_cancellations_record_nothing(client,factory,db):
     api(client,'POST',f"/rooms/{room['id']}/cancel",user=host,body={'reason':'Second'},expected=409)
     with db() as session:
         assert session.get(RoomModel,room['id']).cancellation_reason=='First'
+
+
+def test_room_members_list_shows_host_ratings_only_to_the_host(client,factory,db):
+    host,rated,other=[factory.user() for _ in range(3)]
+    room=factory.room(host)
+    factory.member(rated,room=room,attendance='present',rating=5)
+    factory.member(other,room=room)
+    def ratings(viewer):
+        return {member['user_id']:member['rating'] for member in api(client,'GET',f"/rooms/{room['id']}/members",user=viewer)}
+    assert ratings(host)=={rated['id']:5,other['id']:None}
+    # Even the rated player and other players get null, and guests see no members
+    assert ratings(rated)=={rated['id']:None,other['id']:None}
+    assert ratings(other)=={rated['id']:None,other['id']:None}
+    assert api(client,'GET',f"/rooms/{room['id']}/members")==[]
+    with db() as session:
+        assert session.query(MembershipModel).filter_by(user_id=rated['id']).one().rating==5
+
+
+def test_member_updates_return_the_host_rating_only_to_the_host(client,factory,db):
+    host,player=factory.user(),factory.user()
+    room=factory.room(host)
+    factory.member(player,room=room,attendance='present',rating=3)
+    url=f"/rooms/{room['id']}/members/{player['id']}"
+    own=api(client,'PATCH',url,user=player,body={'position':'lane-1'})
+    assert own['position']=='lane-1' and own['rating'] is None
+    assert api(client,'PATCH',url,user=host,body={'attendance':'present'})['rating']==3
+    assert api(client,'PATCH',url,user=player,body={'status':'left'})['rating'] is None
+    with db() as session:
+        assert session.query(MembershipModel).filter_by(user_id=player['id']).one().rating==3
