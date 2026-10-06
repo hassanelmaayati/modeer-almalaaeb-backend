@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import Annotated, List, Literal
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from .user import UserSchema
 
@@ -71,7 +71,14 @@ class CupSchema(BaseModel):
 
 
 # Form Schemas
-class CreateCupSchema(BaseModel):
+class CupTextFields(BaseModel):
+    @field_validator('name', 'rules', mode='before', check_fields=False)
+    @classmethod
+    def normalize_text(cls, value):
+        return value.strip() if isinstance(value, str) else value
+
+
+class CreateCupSchema(CupTextFields):
     sport_id: int
     name: str = Field(min_length=1, max_length=100)
     rules: str = Field(min_length=1)
@@ -91,7 +98,7 @@ class FixtureResultSchema(BaseModel):
 
 class RaceResultSchema(BaseModel):
     group_id: int
-    finish_time_seconds: float | None = Field(default=None, gt=0)
+    finish_time_seconds: float | None = Field(default=None, gt=0, allow_inf_nan=False)
     position: int | None = Field(default=None, ge=1)
     did_not_finish: bool = False
 
@@ -110,7 +117,7 @@ class RaceResultSchema(BaseModel):
         return self
 
 
-class UpdateCupSchema(BaseModel):
+class UpdateCupSchema(CupTextFields):
     name: str | None = Field(default=None, min_length=1, max_length=100)
     rules: str | None = Field(default=None, min_length=1)
     team_count: int | None = Field(default=None, ge=2, le=100)

@@ -26,14 +26,14 @@ def test_fresh_import_creates_only_exact_catalogue_sports(database_url, db):
         assert [(row.name, row.formats) for row in rows] == [
             ('Football', [{'key': '5v5', 'capacity': 10}, {'key': '7v7', 'capacity': 14}, {'key': '11v11', 'capacity': 22}]),
             ('Basketball', [{'key': '3v3', 'capacity': 6}, {'key': '5v5', 'capacity': 10}]),
-            ('Tennis', [{'key': 'singles', 'capacity': 2}, {'key': 'doubles', 'capacity': 4}]),
+            ('Padel', None),
             ('Swimming', None),
             ('Walking', None),
             ('Running', None),
             ('Cycling', None),
-            ('Handball', [{'key': '7v7', 'capacity': 14}]),
-            ('Padel', [{'key': 'singles', 'capacity': 2}, {'key': 'doubles', 'capacity': 4}]),
-            ('Kayaking', None),
+            ('Handball', None),
+            ('Billiards', None),
+            ('Kayak', None),
         ]
         assert all(count == 0 for count in other_row_counts(session).values())
 
@@ -71,7 +71,7 @@ def test_concurrent_imports_add_catalogue_once_without_duplicate_names(database_
 def test_import_failure_rolls_back_entire_catalogue_and_preserves_existing_data(database_url, db, factory):
     sentinel = factory.sport('Existing custom sport')
     with db() as session:
-        session.execute(text("ALTER TABLE public.sports ADD CONSTRAINT test_no_tennis CHECK (name != 'Tennis')"))
+        session.execute(text("ALTER TABLE public.sports ADD CONSTRAINT test_no_padel CHECK (name != 'Padel')"))
         session.commit()
     with pytest.raises(DBAPIError):
         import_sports(database_url)
@@ -89,6 +89,28 @@ def test_cli_uses_explicit_environment_and_repeated_execution_is_safe(database_u
         assert result.stdout.strip() == f'Imported {added} missing sports.'
     with db() as session:
         assert session.query(SportModel).count() == 10
+
+
+def test_catalogue_upgrade_retains_legacy_tennis_marathon_ids_formats_and_application_data(database_url, db, factory):
+    names = ['Football', 'Basketball', 'Tennis', 'Swimming', 'Walking', 'Marathon', 'Cycling', 'Handball']
+    original = {name: factory.sport(name, formats=[{'key': 'legacy-capacity', 'capacity': 4}] if name == 'Tennis' else None)
+                for name in names}
+    owner = factory.user()
+    group = factory.group(owner, original['Tennis'])
+    room = factory.room(owner, original['Marathon'])
+    factory.member(owner, group=group)
+    factory.message(owner, room=room)
+    with db() as session:
+        before = other_row_counts(session)
+    assert import_sports(database_url) == 4
+    assert import_sports(database_url) == 0
+    with db() as session:
+        persisted = {sport.name: sport for sport in session.query(SportModel)}
+        assert set(persisted) == set(names) | {'Padel', 'Running', 'Billiards', 'Kayak'}
+        for name, previous in original.items():
+            assert persisted[name].id == previous['id'] and persisted[name].formats == previous['formats']
+        assert all(persisted[name].formats is None for name in ['Padel', 'Running', 'Billiards', 'Kayak'])
+        assert other_row_counts(session) == before
 
 
 def test_cli_connection_failure_does_not_echo_credentials():

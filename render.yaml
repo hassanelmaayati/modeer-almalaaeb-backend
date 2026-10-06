@@ -5,7 +5,7 @@ services:
     plan: free
     region: frankfurt
     branch: main
-    autoDeployTrigger: commit
+    autoDeployTrigger: checksPass
     dockerfilePath: ./Dockerfile
     dockerContext: .
     numInstances: 1

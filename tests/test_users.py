@@ -10,7 +10,9 @@ from tests.lib import PASSWORD, api
 def test_signup_login_profile_update_and_logout_are_persisted(client, db):
     registered = api(client, 'POST', '/auth/signup', body={'user_name': 'new_player', 'email': 'new@example.test', 'password': PASSWORD, 'bio': 'Striker', 'district': 'northern'}, expected=201)
     assert registered['user']['user_name'] == 'new_player'
-    assert {'password', 'email', 'google_subject'}.isdisjoint(registered['user'])
+    assert {'password', 'google_subject', 'token_version'}.isdisjoint(registered['user'])
+    assert registered['user']['email'] == 'new@example.test'
+    assert registered['user']['google_linked'] is False
     user = {'id': registered['user']['id'], 'headers': {'Authorization': 'Bearer ' + registered['token']}}
     with db() as session:
         stored = session.get(UserModel, user['id'])
@@ -23,8 +25,13 @@ def test_signup_login_profile_update_and_logout_are_persisted(client, db):
     assert api(client, 'GET', '/users/me', user=user)['bio'] == 'Midfielder'
     with db() as session:
         assert session.get(UserModel, user['id']).user_name == 'changed_player'
-    assert api(client, 'GET', f"/users/{user['id']}")['user_name'] == 'changed_player'
-    assert [item['id'] for item in api(client, 'GET', '/users')] == [user['id']]
+    public = api(client, 'GET', f"/users/{user['id']}")
+    assert public['user_name'] == 'changed_player'
+    private_fields = {'password', 'email', 'google_subject', 'google_linked', 'token_version'}
+    assert private_fields.isdisjoint(public)
+    profiles = api(client, 'GET', '/users')
+    assert [item['id'] for item in profiles] == [user['id']]
+    assert all(private_fields.isdisjoint(item) for item in profiles)
     api(client, 'POST', '/auth/logout', user=user, expected=204)
     api(client, 'GET', '/users/me', user=user, expected=401)
     with db() as session:

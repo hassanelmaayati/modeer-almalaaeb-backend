@@ -25,6 +25,8 @@ shapely = "*"
 pytest = "*"
 starlette = "*"
 httpx = "*"
+pytest-cov = "*"
+pytest-timeout = "*"
 
 [requires]
 python_version = "3.14"

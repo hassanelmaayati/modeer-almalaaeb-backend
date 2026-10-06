@@ -5,12 +5,14 @@ from google.auth.exceptions import GoogleAuthError
 from google.auth.transport.requests import Request
 from google.oauth2 import id_token
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 
 from config.environment import GOOGLE_CLIENT_ID
 from database import get_db
 from dependencies.get_current_user import get_current_user
 from models.user import UserModel
 from serializers.user import GoogleCredentialSchema, UserPrivateSchema, UserTokenSchema
+from services.accounts import commit_account, unique_constraint
 
 router = APIRouter(tags=["Auth"])
 
@@ -81,17 +83,36 @@ def google_sign_in(
             detail="Sign in with your password, then link Google in Settings",
         )
 
-    new_user = UserModel(
-        user_name=unique_user_name(db, email),
-        email=email,
-        photo_url=claims.get("picture"),
-        google_subject=subject,
-    )
     # Password is required on User; a hash of a discarded random secret means
     # password sign-in can never succeed for a Google-only account
-    new_user.set_password(secrets.token_urlsafe(32))
-    db.add(new_user)
-    db.commit()
+    password = secrets.token_urlsafe(32)
+    for attempt in range(3):
+        new_user = UserModel(
+            user_name=unique_user_name(db, email),
+            email=email,
+            photo_url=claims.get("picture"),
+            google_subject=subject,
+        )
+        new_user.set_password(password)
+        db.add(new_user)
+        try:
+            db.commit()
+            break
+        except IntegrityError as error:
+            db.rollback()
+            constraint = unique_constraint(error)
+            if constraint is None:
+                raise
+            # Another request may have completed the same Google sign-in.
+            existing = db.query(UserModel).filter(UserModel.google_subject == subject).first()
+            if existing:
+                return {"token": existing.generate_jwt(), "msg": "Login successful", "user": existing}
+            if db.query(UserModel).filter(UserModel.email == email).first():
+                raise HTTPException(409, "Sign in with your password, then link Google in Settings") from error
+            # Different Google users can share the same email prefix. Regenerate
+            # the public name after the winning transaction becomes visible.
+            if constraint != 'users_user_name_key' or attempt == 2:
+                raise HTTPException(409, "Account creation conflicted, please try again") from error
     db.refresh(new_user)
 
     response.status_code = 201
@@ -108,6 +129,10 @@ def link_google(
     claims = verify_google_credential(google.credential)
     subject = claims["sub"]
 
+    # Refresh under a row lock: simultaneous links to this account cannot
+    # overwrite the first accepted Google identity.
+    current_user = db.query(UserModel).filter(UserModel.id == current_user.id).with_for_update().populate_existing().one()
+
     # One Google account can only sign in to one of our users
     owner = db.query(UserModel).filter(UserModel.google_subject == subject).first()
     if owner and owner.id != current_user.id:
@@ -121,6 +146,6 @@ def link_google(
         )
 
     current_user.google_subject = subject
-    db.commit()
+    commit_account(db, google_status=400)
     db.refresh(current_user)
     return current_user

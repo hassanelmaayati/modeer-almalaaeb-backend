@@ -6,7 +6,9 @@ import jwt
 from config.environment import JWT_SECRET
 from sqlalchemy.orm import relationship
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# SHA-256 preprocessing preserves the whole UTF-8 password, including bytes
+# after bcrypt's 72-byte limit. Legacy bcrypt hashes still verify unchanged.
+pwd_context = CryptContext(schemes=["bcrypt_sha256", "bcrypt"], deprecated="auto")
 
 
 class UserModel(BaseModel):
