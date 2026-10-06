@@ -1,5 +1,8 @@
 from models.user import UserModel
 
+# Demo accounts only; meets the 8-character signup minimum so they can sign in normally
+SEED_PASSWORD = "password123"
+
 
 def build_users():
     users = [
@@ -9,8 +12,5 @@ def build_users():
         UserModel(user_name="Test4", email="user4@example.com", district="northern"),
     ]
     for user in users:
-        user.set_password("123")
+        user.set_password(SEED_PASSWORD)
     return users
-
-
-user_list = build_users()

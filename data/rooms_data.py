@@ -2,13 +2,14 @@ from datetime import datetime, timedelta, timezone
 
 from models.room import RoomModel, make_point
 
-# Capacities match the sport formats in sports_data.py
-def build_rooms():
+# Capacities match the sport formats in sports_data.py.
+# users and groups: the seeded rows in order; sports: sport id by name
+def build_rooms(users, sports, groups):
     now = datetime.now(timezone.utc)
     return [
         RoomModel(
-            host_id=1,
-            sport_id=1,
+            host_id=users[0].id,
+            sport_id=sports["Football"],
             title="Friday 5-a-side",
             description="Friendly football match",
             notes="Bring a light and a dark shirt.",
@@ -22,8 +23,8 @@ def build_rooms():
             venue_notes="Pitch 3, Bahrain Sports Hall",
         ),
         RoomModel(
-            host_id=2,
-            sport_id=2,
+            host_id=users[1].id,
+            sport_id=sports["Basketball"],
             title="Basketball 3v3",
             difficulty="medium",
             starts_at=now + timedelta(days=2),
@@ -34,12 +35,12 @@ def build_rooms():
             venue_point=make_point(26.1300, 50.5550),
             venue_notes="Outdoor court behind the mall",
         ),
-        # Group-only room, owned by the host of group 3
+        # Group-only room, owned by the host of group 3 (a Padel group)
         RoomModel(
-            host_id=3,
-            sport_id=3,
-            group_id=3,
-            title="Tennis doubles (group only)",
+            host_id=users[2].id,
+            sport_id=sports["Padel"],
+            group_id=groups[2].id,
+            title="Padel doubles (group only)",
             difficulty="advanced",
             starts_at=now + timedelta(days=3),
             ends_at=now + timedelta(days=3, hours=1),
@@ -52,8 +53,8 @@ def build_rooms():
         ),
         # Swimming has no formats, so any capacity is accepted
         RoomModel(
-            host_id=4,
-            sport_id=4,
+            host_id=users[3].id,
+            sport_id=sports["Swimming"],
             title="Morning swim",
             starts_at=now + timedelta(days=4),
             ends_at=now + timedelta(days=4, hours=1),
@@ -65,5 +66,3 @@ def build_rooms():
         ),
     ]
 
-
-rooms_list = build_rooms()

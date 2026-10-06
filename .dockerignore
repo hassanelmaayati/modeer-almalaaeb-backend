@@ -27,5 +27,4 @@
 **/__pycache__/**
 **/*.pyc
 **/.env*
-migrations/baseline_*.sql
 migrations/README
