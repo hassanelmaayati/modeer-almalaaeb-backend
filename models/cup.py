@@ -25,6 +25,7 @@ CUP_FORMATS = {
     "volleyball": "knockout",
     "tennis": "knockout",
     "padel": "knockout",
+    "handball": "knockout",
     "badminton": "knockout",
     "handball": "knockout",
     "billiards": "knockout",
