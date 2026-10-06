@@ -16,7 +16,7 @@ def test_sports_are_exact_isolated_fixtures_and_missing_id_is_404(client,factory
     api(client,'GET','/sports/987654',expected=404)
 
 
-@pytest.mark.parametrize('name', ['Walking', 'Marathon', 'Cycling', 'Handball'])
+@pytest.mark.parametrize('name', ['Padel', 'Swimming', 'Walking', 'Running', 'Cycling', 'Handball', 'Billiards', 'Kayak'])
 def test_live_catalogue_additions_support_free_capacity_rooms_and_exact_discovery(client, factory, db, database_url, name):
     import_sports(database_url)
     catalogue = api(client, 'GET', '/sports')

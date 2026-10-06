@@ -28,6 +28,8 @@ def test_every_supported_sport_creates_the_canonical_cup_format(client, factory,
 
 @pytest.mark.parametrize('sport_name,expected_format', [
     ('Walking', None), ('Marathon', 'race'), ('Cycling', 'race'), ('Handball', 'knockout'),
+    ('Padel', 'knockout'), ('Running', 'race'), ('Swimming', 'race'), ('Kayak', 'race'),
+    ('Billiards', 'knockout'),
 ])
 def test_live_catalogue_cup_policy_and_format_capacity_guards(client, factory, db, sport_name, expected_format):
     organizer, sport = factory.user(), factory.sport(sport_name)

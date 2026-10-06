@@ -17,18 +17,14 @@ def build_sports():
                 {"key": "5v5", "capacity": 10},
             ],
         ),
-        SportModel(
-            name="Tennis",
-            formats=[
-                {"key": "singles", "capacity": 2},
-                {"key": "doubles", "capacity": 4},
-            ],
-        ),
+        SportModel(name="Padel"),
         SportModel(name="Swimming"),
         SportModel(name="Walking"),
-        SportModel(name="Marathon"),
+        SportModel(name="Running"),
         SportModel(name="Cycling"),
         SportModel(name="Handball"),
+        SportModel(name="Billiards"),
+        SportModel(name="Kayak"),
     ]
 
 

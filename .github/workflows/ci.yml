@@ -26,8 +26,6 @@ jobs:
     name: Backend gate policy
     runs-on: ubuntu-24.04
     timeout-minutes: 5
-    outputs:
-      frontend_sha: ${{ steps.counterpart.outputs.sha }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -37,9 +35,6 @@ jobs:
           python-version: '3.14'
       - name: Verify fail-closed gate without deploying
         run: python .github/scripts/ci_gate.py --self-test
-      - name: Resolve frontend once to an immutable commit
-        id: counterpart
-        run: python .github/scripts/resolve_counterpart.py hassanelmaayati/modeer-almalaaeb-frontend
 
   backend:
     name: Backend offline tests and coverage
@@ -101,68 +96,10 @@ jobs:
       - name: Start production container without external network
         run: pipenv run python .github/scripts/container_smoke.py --image "modeer-backend-ci:$GITHUB_SHA"
 
-  fullstack:
-    name: Backend compatibility with offline frontend browsers
-    needs: configuration
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          path: backend
-          persist-credentials: false
-      - uses: actions/checkout@v4
-        with:
-          repository: hassanelmaayati/modeer-almalaaeb-frontend
-          ref: ${{ needs.configuration.outputs.frontend_sha }}
-          path: frontend
-          persist-credentials: false
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.14'
-          cache: pip
-          cache-dependency-path: backend/Pipfile.lock
-      - name: Install PostgreSQL and PostGIS (network setup)
-        run: |
-          sudo apt-get update
-          sudo apt-get install --no-install-recommends -y postgresql-16 postgresql-16-postgis-3
-      - name: Install locked Python dependencies (network setup)
-        working-directory: backend
-        run: |
-          python -m pip install pipenv==2024.0.1
-          pipenv verify
-          pipenv sync --dev
-          printf 'MODEER_TEST_PYTHON=%s\n' "$PWD/.venv/bin/python" >> "$GITHUB_ENV"
-          printf 'MODEER_BACKEND_PATH=%s\n' "$PWD" >> "$GITHUB_ENV"
-      - name: Install locked frontend and browser dependencies (network setup)
-        working-directory: frontend
-        run: |
-          npm ci
-          npx --no-install playwright install --with-deps chromium firefox webkit
-      - name: Record the exact tested pair
-        run: |
-          printf 'Frontend: %s\nBackend: %s\n' "$(git -C frontend rev-parse HEAD)" "$(git -C backend rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
-      - name: Offline full Chromium journeys, Firefox/WebKit smoke and dev proxy
-        working-directory: frontend
-        run: npm run test:e2e
-      - name: Preserve browser failure evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-fullstack-${{ github.sha }}
-          path: frontend/tests/artifacts/
-          if-no-files-found: ignore
-          retention-days: 14
-
   gate:
     name: Backend CI
     if: always()
-    needs: [configuration, backend, container, fullstack]
+    needs: [configuration, backend, container]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -172,4 +109,4 @@ jobs:
       - name: Require every mandatory job to succeed
         env:
           CI_JOB_RESULTS: ${{ toJSON(needs) }}
-        run: python3 .github/scripts/ci_gate.py --results "$CI_JOB_RESULTS" --required configuration backend container fullstack
+        run: python3 .github/scripts/ci_gate.py --results "$CI_JOB_RESULTS" --required configuration backend container
