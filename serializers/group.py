@@ -1,10 +1,12 @@
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from .fields import PhotoUrl
+
 
 class GroupFields(BaseModel):
     name: str = Field(min_length=1, max_length=120)
     description: str | None = None
-    photo_url: str | None = None
+    photo_url: PhotoUrl = None
 
     @field_validator("name")
     @classmethod

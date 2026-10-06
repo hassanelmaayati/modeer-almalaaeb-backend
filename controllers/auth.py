@@ -42,7 +42,7 @@ def login(user: UserLoginSchema, db: Session = Depends(get_db)):
 
     # Check if the user exists and if the password is correct
     if not db_user or not db_user.verify_password(user.password):
-        raise HTTPException(status_code=400, detail="Invalid credentials")
+        raise HTTPException(status_code=401, detail="Invalid credentials")
 
     token = db_user.generate_jwt()
     return {"token": token, "msg": "Login successful", "user": db_user}

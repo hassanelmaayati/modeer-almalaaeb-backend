@@ -137,7 +137,7 @@ def link_google(
     owner = db.query(UserModel).filter(UserModel.google_subject == subject).first()
     if owner and owner.id != current_user.id:
         raise HTTPException(
-            status_code=400, detail="This Google account is linked to another user"
+            status_code=409, detail="This Google account is linked to another user"
         )
 
     if current_user.google_subject:
@@ -146,6 +146,6 @@ def link_google(
         )
 
     current_user.google_subject = subject
-    commit_account(db, google_status=400)
+    commit_account(db)
     db.refresh(current_user)
     return current_user

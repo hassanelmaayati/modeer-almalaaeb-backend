@@ -60,7 +60,7 @@ def test_signup_rejects_duplicates_without_creating_users(client, db, factory, f
 
 def test_login_and_profile_errors_do_not_mutate_existing_user(client, factory, db):
     user = factory.user()
-    api(client,'POST','/auth/login',body={'email':user['email'],'password':'wrongpassword'},expected=400)
+    api(client,'POST','/auth/login',body={'email':user['email'],'password':'wrongpassword'},expected=401)
     api(client,'GET','/users/987654',expected=404)
     api(client,'PUT','/users/me',user=user,body={'user_name':user['user_name'],'district':'mars'},expected=422)
     with db() as session:
@@ -94,7 +94,7 @@ def test_google_create_signin_link_and_collision_have_real_database_outcomes(cli
     assert linked['id'] == password_user['id']
     api(client,'POST','/auth/google/link',user=password_user,body={'credential':'fixture'},expected=409)
     other = factory.user()
-    api(client,'POST','/auth/google/link',user=other,body={'credential':'fixture'},expected=400)
+    api(client,'POST','/auth/google/link',user=other,body={'credential':'fixture'},expected=409)
     with db() as session:
         assert session.get(UserModel,password_user['id']).google_subject == 'google-subject-two'
         assert session.query(UserModel).filter(UserModel.google_subject=='google-subject-one').count() == 1
@@ -116,3 +116,27 @@ def test_google_verification_failures_create_no_account(client, db, monkeypatch,
     api(client,'POST','/auth/google',body={'credential':'fixture'},expected=status)
     with db() as session:
         assert session.query(UserModel).count()==0
+
+
+def test_user_list_pages_in_id_order(client,factory):
+    ids=sorted(factory.user()['id'] for _ in range(3))
+    assert [user['id'] for user in api(client,'GET','/users?limit=2')]==ids[:2]
+    assert [user['id'] for user in api(client,'GET','/users?limit=2&offset=2')]==ids[2:]
+    for query in ('limit=0','limit=101','offset=-1'):
+        api(client,'GET',f'/users?{query}',expected=422)
+
+
+@pytest.mark.parametrize('photo_url',['javascript:alert(1)','ftp://example.test/a.png','/relative.png','https://'])
+def test_photo_urls_must_be_web_urls(client,factory,db,photo_url):
+    user=factory.user()
+    api(client,'PUT','/users/me',user=user,body={'user_name':user['user_name'],'photo_url':photo_url},expected=422)
+    api(client,'POST','/groups',user=user,body={'name':'Team','sports_id':factory.sport()['id'],'photo_url':photo_url},expected=422)
+    api(client,'POST','/auth/signup',body={'user_name':'new_player','email':'new@example.test','password':'password123','photo_url':photo_url},expected=422)
+    with db() as session:
+        assert session.get(UserModel,user['id']).photo_url != photo_url
+
+
+def test_empty_photo_url_clears_the_photo(client,factory):
+    user=factory.user(photo_url='https://example.test/old.png')
+    updated=api(client,'PUT','/users/me',user=user,body={'user_name':user['user_name'],'photo_url':''})
+    assert updated['photo_url'] is None

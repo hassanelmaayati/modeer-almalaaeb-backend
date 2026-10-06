@@ -5,6 +5,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+from config.environment import require_settings
+
+# Before importing the controllers: database.py builds the engine at import time
+require_settings()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -46,7 +51,7 @@ tags = [
     },
     {
         "name": "Cups Management",
-        "description": "Football cups, team entries and knockout brackets",
+        "description": "Cups for every competitive sport: entries, knockout brackets and races",
     },
     {
         "name": "Rooms Management",
@@ -71,6 +76,14 @@ tags = [
     {
         "name": "Cup Roster Management",
         "description": "Cup roster invitations",
+    },
+    {
+        "name": "Realtime",
+        "description": "Socket tickets for the signed-in user's live updates",
+    },
+    {
+        "name": "Notifications",
+        "description": "The signed-in user's notifications and read state",
     },
 ]
 
