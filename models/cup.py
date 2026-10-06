@@ -27,7 +27,6 @@ CUP_FORMATS = {
     "padel": "knockout",
     "handball": "knockout",
     "badminton": "knockout",
-    "handball": "knockout",
     "billiards": "knockout",
     # Timed sports: everyone starts together and is ranked by finishing time
     "running": "race",

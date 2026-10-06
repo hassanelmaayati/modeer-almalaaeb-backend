@@ -13,23 +13,28 @@ def cup_body(sport, **changes):
                 roster_limit=8, registration_closes_at=future().isoformat(), **changes)
 
 
+def revision(client, cup, user=None):
+    # Cup writes must send the current revision; read it fresh between steps
+    return api(client, 'GET', f"/cups/{cup['id']}", user=user)['revision']
+
+
 def registration(client, factory, sport_name='Football', **changes):
     organizer, captain, sport = factory.user(), factory.user(), factory.sport(sport_name)
     body = cup_body(sport)
     body.update(changes)
     cup = api(client, 'POST', '/cups', user=organizer, body=body, expected=201)
-    cup = api(client, 'PATCH', f"/cups/{cup['id']}", user=organizer, body={'status': 'registration'})
+    cup = api(client, 'PATCH', f"/cups/{cup['id']}", user=organizer, body={'status': 'registration', 'revision': cup['revision']})
     return cup, organizer, captain, sport
 
 
 def enter(client, cup, group, captain):
     return api(client, 'POST', f"/cups/{cup['id']}/entries", user=captain,
-               body={'group_id': group['id']}, expected=201)
+               body={'group_id': group['id'], 'revision': revision(client, cup)}, expected=201)
 
 
 def accept_entry(client, cup, group, organizer):
     return api(client, 'PUT', f"/cups/{cup['id']}/entries/{group['id']}", user=organizer,
-               body={'status': 'accepted'})
+               body={'status': 'accepted', 'revision': revision(client, cup)})
 
 
 def test_cup_create_privacy_edit_and_delete_persist(client, factory, db):
@@ -40,7 +45,7 @@ def test_cup_create_privacy_edit_and_delete_persist(client, factory, db):
     assert api(client, 'GET', '/cups') == []
     assert [item['id'] for item in api(client, 'GET', '/cups', user=organizer)] == [cup['id']]
     api(client, 'GET', f"/cups/{cup['id']}", user=outsider, expected=404)
-    api(client, 'PATCH', f"/cups/{cup['id']}", user=outsider, body={'name': 'Hijacked'}, expected=404)
+    api(client, 'PATCH', f"/cups/{cup['id']}", user=outsider, body={'name': 'Hijacked', 'revision': 0}, expected=404)
     updated = api(client, 'PATCH', f"/cups/{cup['id']}", user=organizer,
                   body={'name': 'Renamed', 'revision': 0})
     assert updated['revision'] == 1
@@ -82,24 +87,28 @@ def test_registration_and_entry_permissions_preserve_rejected_state(client, fact
     outsider = factory.user()
     group = factory.group(captain, sport)
     wrong_sport = factory.group(captain, factory.sport('Basketball'))
-    api(client, 'POST', f"/cups/{cup['id']}/entries", user=outsider, body={'group_id': group['id']}, expected=403)
-    api(client, 'POST', f"/cups/{cup['id']}/entries", user=captain, body={'group_id': wrong_sport['id']}, expected=400)
-    api(client, 'POST', f"/cups/{cup['id']}/entries", user=captain, body={'group_id': 999999}, expected=404)
-    api(client, 'PATCH', f"/cups/{cup['id']}", user=outsider, body={'name': 'Hijacked'}, expected=403)
+    current = cup['revision']
+    api(client, 'POST', f"/cups/{cup['id']}/entries", user=outsider, body={'group_id': group['id'], 'revision': current}, expected=403)
+    api(client, 'POST', f"/cups/{cup['id']}/entries", user=captain, body={'group_id': wrong_sport['id'], 'revision': current}, expected=400)
+    api(client, 'POST', f"/cups/{cup['id']}/entries", user=captain, body={'group_id': 999999, 'revision': current}, expected=404)
+    api(client, 'PATCH', f"/cups/{cup['id']}", user=outsider, body={'name': 'Hijacked', 'revision': current}, expected=403)
     assert api(client, 'GET', f"/cups/{cup['id']}")['status'] == 'registration'
     with db() as session:
         assert session.get(CupModel, cup['id']).entries == []
         assert session.query(NotificationModel).count() == 0
     entered = enter(client, cup, group, captain)
     assert entered['entries'][0]['group_name'] == group['name']
-    api(client, 'POST', f"/cups/{cup['id']}/entries", user=captain, body={'group_id': group['id']}, expected=400)
-    api(client, 'PUT', f"/cups/{cup['id']}/entries/{group['id']}", user=captain, body={'status': 'accepted'}, expected=403)
+    api(client, 'POST', f"/cups/{cup['id']}/entries", user=captain,
+        body={'group_id': group['id'], 'revision': revision(client, cup)}, expected=409)
+    api(client, 'PUT', f"/cups/{cup['id']}/entries/{group['id']}", user=captain,
+        body={'status': 'accepted', 'revision': revision(client, cup)}, expected=403)
     accept_entry(client, cup, group, organizer)
-    withdrawn = api(client, 'PUT', f"/cups/{cup['id']}/entries/{group['id']}", user=captain, body={'status': 'withdrawn'})
+    withdrawn = api(client, 'PUT', f"/cups/{cup['id']}/entries/{group['id']}", user=captain,
+                    body={'status': 'withdrawn', 'revision': revision(client, cup)})
     assert withdrawn['entries'][0]['status'] == 'withdrawn'
     with db() as session:
         assert session.get(CupModel, cup['id']).entries[0]['status'] == 'withdrawn'
-    api(client, 'DELETE', f"/cups/{cup['id']}", user=organizer, expected=400)
+    api(client, 'DELETE', f"/cups/{cup['id']}", user=organizer, expected=409)
 
 
 def test_knockout_draw_winners_advance_and_final_completes(client, factory, db):
@@ -108,15 +117,17 @@ def test_knockout_draw_winners_advance_and_final_completes(client, factory, db):
     for group in groups:
         enter(client, cup, group, captain)
         accept_entry(client, cup, group, organizer)
-    cup = api(client, 'PATCH', f"/cups/{cup['id']}", user=organizer, body={'status': 'published'})
+    cup = api(client, 'PATCH', f"/cups/{cup['id']}", user=organizer, body={'status': 'published', 'revision': revision(client, cup)})
     assert cup['rosters_locked_at'] and len(cup['fixtures']) == 3
     assert {match[side] for match in cup['fixtures'][:2] for side in ('home_group_id', 'away_group_id')} == {group['id'] for group in groups}
     before = cup['revision']
-    for result in [{'fixture_id': 'R2-M1', 'home_score': 1, 'away_score': 0},
-                   {'fixture_id': 'R1-M1', 'home_score': 1, 'away_score': 1}]:
-        api(client, 'PATCH', f"/cups/{cup['id']}", user=organizer, body={'result': result}, expected=400)
-    api(client, 'PATCH', f"/cups/{cup['id']}", user=organizer, body={'name': 'Too late'}, expected=400)
-    api(client, 'PATCH', f"/cups/{cup['id']}", user=organizer, body={'race_results': [{'group_id': groups[0]['id'], 'position': 1}]}, expected=400)
+    # The final's teams are not known yet (state, 409); a draw without a winner is bad input (400)
+    for result, status in [({'fixture_id': 'R2-M1', 'home_score': 1, 'away_score': 0}, 409),
+                           ({'fixture_id': 'R1-M1', 'home_score': 1, 'away_score': 1}, 400)]:
+        api(client, 'PATCH', f"/cups/{cup['id']}", user=organizer, body={'result': result, 'revision': before}, expected=status)
+    api(client, 'PATCH', f"/cups/{cup['id']}", user=organizer, body={'name': 'Too late', 'revision': before}, expected=409)
+    api(client, 'PATCH', f"/cups/{cup['id']}", user=organizer,
+        body={'race_results': [{'group_id': groups[0]['id'], 'position': 1}], 'revision': before}, expected=400)
     with db() as session:
         row = session.get(CupModel, cup['id'])
         assert row.revision == before and all(match['winner_group_id'] is None for match in row.fixtures)
@@ -124,10 +135,12 @@ def test_knockout_draw_winners_advance_and_final_completes(client, factory, db):
     for match in cup['fixtures'][:2]:
         winners.append(match['home_group_id'])
         cup = api(client, 'PATCH', f"/cups/{cup['id']}", user=organizer,
-                  body={'result': {'fixture_id': match['id'], 'home_score': 2, 'away_score': 0}})
+                  body={'result': {'fixture_id': match['id'], 'home_score': 2, 'away_score': 0},
+                        'revision': cup['revision']})
     assert (cup['fixtures'][2]['home_group_id'], cup['fixtures'][2]['away_group_id']) == tuple(winners)
     cup = api(client, 'PATCH', f"/cups/{cup['id']}", user=organizer,
-              body={'result': {'fixture_id': 'R2-M1', 'home_score': 0, 'away_score': 1}})
+              body={'result': {'fixture_id': 'R2-M1', 'home_score': 0, 'away_score': 1},
+                    'revision': cup['revision']})
     assert cup['status'] == 'completed' and cup['fixtures'][2]['winner_group_id'] == winners[1]
     with db() as session:
         assert session.get(CupModel, cup['id']).fixtures == cup['fixtures']
@@ -140,15 +153,15 @@ def test_race_ties_and_dnf_persist_competition_rankings(client, factory, db):
     for group in groups:
         enter(client, cup, group, captain)
         accept_entry(client, cup, group, organizer)
-    cup = api(client, 'PATCH', f"/cups/{cup['id']}", user=organizer, body={'status': 'published'})
+    cup = api(client, 'PATCH', f"/cups/{cup['id']}", user=organizer, body={'status': 'published', 'revision': revision(client, cup)})
     assert cup['format'] == 'race' and cup['fixtures'] == []
     mixed = [{'group_id': groups[0]['id'], 'position': 1}, {'group_id': groups[1]['id'], 'finish_time_seconds': 60}]
-    api(client, 'PATCH', f"/cups/{cup['id']}", user=organizer, body={'race_results': mixed}, expected=400)
+    api(client, 'PATCH', f"/cups/{cup['id']}", user=organizer, body={'race_results': mixed, 'revision': cup['revision']}, expected=400)
     duplicate = [{'group_id': groups[0]['id'], 'position': 1}] * 2
-    api(client, 'PATCH', f"/cups/{cup['id']}", user=organizer, body={'race_results': duplicate}, expected=400)
+    api(client, 'PATCH', f"/cups/{cup['id']}", user=organizer, body={'race_results': duplicate, 'revision': cup['revision']}, expected=400)
     results = [{'group_id': group['id'], 'finish_time_seconds': seconds} for group, seconds in zip(groups[:3], [1800, 1800, 1900])]
     results.append({'group_id': groups[3]['id'], 'did_not_finish': True})
-    cup = api(client, 'PATCH', f"/cups/{cup['id']}", user=organizer, body={'race_results': results})
+    cup = api(client, 'PATCH', f"/cups/{cup['id']}", user=organizer, body={'race_results': results, 'revision': cup['revision']})
     assert cup['status'] == 'completed'
     assert [entry['position'] for entry in cup['entries']] == [1, 1, 3, None]
     with db() as session:
@@ -260,3 +273,60 @@ def test_concurrent_cup_edits_reject_stale_revision(client, factory, db):
     with db() as session:
         row = session.get(CupModel, cup['id'])
         assert row.revision == 1 and row.name in ('First edit', 'Second edit')
+
+
+def test_open_registration_cannot_clear_its_close_time(client, factory, db):
+    organizer, captain, sport = factory.user(), factory.user(), factory.sport('Football')
+    cup = factory.cup(organizer, sport, status='registration', registration_closes_at=future().replace(tzinfo=None))
+    api(client, 'PATCH', f"/cups/{cup['id']}", user=organizer,
+        body={'registration_closes_at': None, 'revision': 0}, expected=400)
+    draft = factory.cup(organizer, sport, registration_closes_at=future().replace(tzinfo=None))
+    cleared = api(client, 'PATCH', f"/cups/{draft['id']}", user=organizer,
+                  body={'registration_closes_at': None, 'revision': 0})
+    assert cleared['registration_closes_at'] is None
+    # A legacy registration row without a close time is treated as closed instead of a 500
+    legacy = factory.cup(organizer, sport, status='registration', registration_closes_at=None)
+    group = factory.group(captain, sport)
+    api(client, 'POST', f"/cups/{legacy['id']}/entries", user=captain,
+        body={'group_id': group['id'], 'revision': 0}, expected=409)
+    with db() as session:
+        assert session.get(CupModel, cup['id']).registration_closes_at is not None
+
+
+def test_cup_writes_require_a_revision(client, factory, db):
+    organizer, captain, sport = factory.user(), factory.user(), factory.sport('Football')
+    group = factory.group(captain, sport)
+    cup = factory.cup(organizer, sport, status='registration', registration_closes_at=future().replace(tzinfo=None),
+        entries=[{'group_id': group['id'], 'group_name': group['name'], 'owner_user_id': captain['id'],
+                  'status': 'pending', 'entered_at': future().isoformat()}])
+    api(client, 'PATCH', f"/cups/{cup['id']}", user=organizer, body={'name': 'No revision'}, expected=422)
+    api(client, 'POST', f"/cups/{cup['id']}/entries", user=captain, body={'group_id': group['id']}, expected=422)
+    api(client, 'PUT', f"/cups/{cup['id']}/entries/{group['id']}", user=organizer, body={'status': 'accepted'}, expected=422)
+    with db() as session:
+        row = session.get(CupModel, cup['id'])
+        assert (row.revision, row.name, row.entries[0]['status']) == (0, 'Fixture cup', 'pending')
+
+
+def test_cup_list_pages_with_limit_and_offset(client, factory):
+    organizer = factory.user()
+    ids = [factory.cup(organizer, status='registration')['id'] for _ in range(3)]
+    newest_first = list(reversed(ids))
+    assert [cup['id'] for cup in api(client, 'GET', '/cups?limit=2')] == newest_first[:2]
+    assert [cup['id'] for cup in api(client, 'GET', '/cups?limit=2&offset=2')] == newest_first[2:]
+    for query in ('limit=0', 'limit=101', 'offset=-1'):
+        api(client, 'GET', f'/cups?{query}', expected=422)
+
+
+def test_roster_list_hides_drafts_and_pending_invites_from_others(client, factory):
+    cup, group, captain, (player, invitee) = roster_setup(factory)
+    factory.member(player, group=group, cup=cup)
+    factory.member(invitee, group=group, cup=cup, status='pending')
+    outsider = factory.user()
+    def roster_users(user=None):
+        return sorted(row['user_id'] for row in api(client, 'GET', f"/cups/{cup['id']}/roster", user=user))
+    assert roster_users() == roster_users(outsider) == [player['id']]
+    assert roster_users(invitee) == roster_users(captain) == sorted([player['id'], invitee['id']])
+    draft = factory.cup(factory.user())
+    api(client, 'GET', f"/cups/{draft['id']}/roster", expected=404)
+    api(client, 'GET', f"/cups/{draft['id']}/roster", user=outsider, expected=404)
+    api(client, 'GET', '/cups/999999/roster', expected=404)
