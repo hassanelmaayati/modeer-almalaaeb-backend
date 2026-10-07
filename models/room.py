@@ -92,6 +92,8 @@ class RoomModel(BaseModel):
 
     # Reject stale host commands and concurrent edits
     host_generation = Column(Integer, nullable=False, default=0, server_default="0")
+    # Since when a started room has had no connected host (UTC); cleared when they return
+    host_away_since = Column(DateTime, nullable=True)
     revision = Column(Integer, nullable=False, default=0, server_default="0")
 
     __table_args__ = (
@@ -125,6 +127,8 @@ class RoomModel(BaseModel):
         Index("ix_rooms_district_status_starts_at", "district", "status", "starts_at"),
         # Matches the host's own room list: one host, ordered or filtered by start time
         Index("ix_rooms_host_id_starts_at", "host_id", "starts_at"),
+        # Group room lists
+        Index("ix_rooms_group_id", "group_id"),
         # Spatial index for distance queries (ignored on SQLite)
         Index("ix_rooms_venue_point", "venue_point", postgresql_using="gist"),
     )

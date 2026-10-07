@@ -4,6 +4,7 @@ from sqlalchemy import (
     Column,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -57,6 +58,9 @@ class CupModel(BaseModel):
             "status IN ('draft', 'registration', 'published', 'completed')",
             name="ck_cups_status",
         ),
+        # Matches the cup list: filtered by status, newest first
+        Index("ix_cups_status_created_at", "status", "created_at"),
+        Index("ix_cups_organizer_user_id", "organizer_user_id"),
     )
 
     id = Column(Integer, primary_key=True, index=True)

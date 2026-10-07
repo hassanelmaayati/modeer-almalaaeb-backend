@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, ForeignKey, Index, Integer, String, UniqueConstraint, case
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Index, Integer, String, UniqueConstraint, case
 from sqlalchemy.sql.expression import Grouping
 
 from sqlalchemy.orm import relationship
@@ -32,6 +32,8 @@ class MembershipModel(BaseModel):
 
     requested = Column(Boolean, nullable=True)
     accepted = Column(Boolean, nullable=True)
+    # When a room request or invitation was accepted (UTC); orders who joined first
+    accepted_at = Column(DateTime, nullable=True)
 
     user_blocked_other = Column(String, nullable=True)
     other_blocked_user = Column(String, nullable=True)
@@ -49,6 +51,12 @@ class MembershipModel(BaseModel):
         Index("uq_memberships_room_position", room_id, position, unique=True,
               postgresql_where=(status == "accepted") & position.is_not(None),
               sqlite_where=(status == "accepted") & position.is_not(None)),
+        # The user-first indexes above cannot serve "who is in this room/group/cup"
+        Index("ix_memberships_room_id_status", room_id, status),
+        Index("ix_memberships_group_id_status", group_id, status),
+        Index("ix_memberships_cup_id_status", cup_id, status),
+        # Friend lookups from the other side of the pair
+        Index("ix_memberships_other_user_id", other_user_id, postgresql_where=other_user_id.is_not(None)),
     )
 
     # Relationships to other models:

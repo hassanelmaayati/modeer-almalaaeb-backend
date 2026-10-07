@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from models.membership import MembershipModel
@@ -42,3 +43,22 @@ def count_slots_left(db: Session, room: RoomModel) -> int:
     }
     taken.add(room.host_id)
     return max(0, room.capacity - len(taken))
+
+
+def slots_left_map(db: Session, rooms) -> dict[int, int]:
+    """slots_left for many rooms in one query (same rule as count_slots_left)."""
+    if not rooms:
+        return {}
+    accepted = dict(
+        db.query(MembershipModel.room_id, func.count(MembershipModel.id))
+        .join(RoomModel, RoomModel.id == MembershipModel.room_id)
+        .filter(
+            MembershipModel.room_id.in_([room.id for room in rooms]),
+            MembershipModel.status == "accepted",
+            # The host takes one place however many rows they have
+            MembershipModel.user_id != RoomModel.host_id,
+        )
+        .group_by(MembershipModel.room_id)
+        .all()
+    )
+    return {room.id: max(0, room.capacity - accepted.get(room.id, 0) - 1) for room in rooms}

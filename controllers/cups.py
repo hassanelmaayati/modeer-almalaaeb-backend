@@ -3,7 +3,7 @@ import random
 from datetime import datetime, timezone
 from typing import List, Literal
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Response
 
 # DB
 from sqlalchemy import or_
@@ -259,9 +259,10 @@ def record_race_results(cup: CupModel, results: List[RaceResultSchema]):
 
 @router.get("/cups", response_model=List[CupSchema])
 def get_cups(
+    response: Response,
     status: Literal["draft", "registration", "published", "completed"] | None = None,
     limit: int = Query(50, ge=1, le=100),
-    offset: int = Query(0, ge=0),
+    offset: int = Query(0, ge=0, le=1_000_000),
     db: Session = Depends(get_db),
     current_user: UserModel | None = Depends(get_optional_user),
 ):
@@ -284,6 +285,7 @@ def get_cups(
     if status:
         query = query.filter(CupModel.status == status)
 
+    response.headers["X-Total-Count"] = str(query.count())
     return (
         query.order_by(CupModel.created_at.desc(), CupModel.id.desc())
         .offset(offset)
