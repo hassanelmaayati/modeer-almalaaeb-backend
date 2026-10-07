@@ -21,7 +21,7 @@ def socket_identity(token: str):
 @router.post("/socket-ticket")
 def socket_ticket(response: Response, current_user: UserModel = Depends(get_current_user), token: HTTPAuthorizationCredentials = Depends(http_bearer)):
     response.headers["Cache-Control"] = "no-store"
-    return {"ticket": realtime.tickets.issue(token.credentials), "expires_in": realtime.TICKET_TTL_SECONDS}
+    return {"ticket": realtime.tickets.issue(token.credentials, current_user.id), "expires_in": realtime.TICKET_TTL_SECONDS}
 
 
 @router.websocket("/ws")

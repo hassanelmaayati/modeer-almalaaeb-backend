@@ -122,8 +122,8 @@ def test_ticket_is_single_use_bad_origins_fail_and_protocol_is_bounded(network,f
 def test_ticket_expiry_and_revocation_before_connect_are_rejected(network,factory,db,monkeypatch):
     user=factory.user()
     expired=api(network.client,'POST','/socket-ticket',user=user,body={})['ticket']
-    token,_=realtime.tickets.values[expired]
-    realtime.tickets.values[expired]=(token,0)
+    token,_,owner=realtime.tickets.values[expired]
+    realtime.tickets.values[expired]=(token,0,owner)
     with pytest.raises(InvalidStatus): connect(network.ws+'/api/v1/ws?ticket='+expired)
     revoked=api(network.client,'POST','/socket-ticket',user=user,body={})['ticket']
     api(network.client,'POST','/auth/logout',user=user,expected=204)

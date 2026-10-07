@@ -1,4 +1,4 @@
-from sqlalchemy import CheckConstraint, Column, Integer, String, Text
+from sqlalchemy import CheckConstraint, Column, Index, Integer, String, Text, func
 from .base import BaseModel
 from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
@@ -31,6 +31,8 @@ class UserModel(BaseModel):
     token_version = Column(Integer, nullable=False, default=0, server_default="0")
 
     __table_args__ = (
+        # "Sam" and "sam" are the same name, so nobody can pose as someone else
+        Index("uq_users_user_name_lower", func.lower(user_name), unique=True),
         CheckConstraint(
             "district IS NULL OR district IN ('capital', 'muharraq', 'northern', 'southern')",
             name="ck_users_district",
@@ -63,7 +65,11 @@ class UserModel(BaseModel):
     def verify_password(self, password: str) -> bool:
         if not self.password:
             return False
-        return pwd_context.verify(password, self.password)
+        try:
+            return pwd_context.verify(password, self.password)
+        except ValueError:
+            # passlib refuses very long passwords; that is just a wrong password
+            return False
 
     def generate_jwt(self):
         payload = {

@@ -69,11 +69,16 @@ def invite_cup_roster_member(cup_id: int, member: CreateCupMemberSchema,
     require_entry(cup, group.id)
     load(db, UserModel, member.user_id)
     require_team_member(db, group, member.user_id)
-    if roster(db, cup_id).filter(MembershipModel.user_id == member.user_id).first():
+    row = roster(db, cup_id).filter(MembershipModel.user_id == member.user_id).first()
+    # Someone who declined, left or was removed can be invited again
+    if row and row.status not in ("declined", "left", "removed"):
         raise HTTPException(409, "Already on the roster")
-    row = MembershipModel(user_id=member.user_id, group_id=group.id, cup_id=cup_id,
-                          status="pending", requested=False, accepted=False)
-    db.add(row)
+    if row:
+        row.group_id, row.status, row.requested, row.accepted = group.id, "pending", False, False
+    else:
+        row = MembershipModel(user_id=member.user_id, group_id=group.id, cup_id=cup_id,
+                              status="pending", requested=False, accepted=False)
+        db.add(row)
     events = change_events(db, {"type": "cup", "id": cup_id}, "cup.invitation",
                           "You were invited to a cup roster", current_user.id,
                           recipient_ids={current_user.id, member.user_id})

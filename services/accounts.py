@@ -18,7 +18,7 @@ def commit_account(db, *, email_status=400, google_status=409):
         constraint = unique_constraint(error)
         if constraint is None:
             raise
-        if constraint == 'users_user_name_key':
+        if constraint in ('users_user_name_key', 'uq_users_user_name_lower'):
             raise HTTPException(400, 'user name is already taken') from error
         if constraint == 'users_email_key':
             raise HTTPException(email_status, 'Email is already registered') from error

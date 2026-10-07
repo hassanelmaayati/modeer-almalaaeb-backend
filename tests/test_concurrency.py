@@ -39,12 +39,12 @@ def test_concurrent_slot_selection_has_one_winner_and_no_lost_rows(client,factor
     host,first,second=factory.user(),factory.user(),factory.user()
     room=factory.room(host)
     for user in (first,second):factory.member(user,room=room)
-    def select(user): return lambda: client.patch(f"/api/v1/rooms/{room['id']}/members/{user['id']}",headers=user['headers'],json={'position':'lane-1'})
+    def select(user): return lambda: client.patch(f"/api/v1/rooms/{room['id']}/members/{user['id']}",headers=user['headers'],json={'position':'1'})
     responses=race([select(first),select(second)])
     assert sorted(response.status_code for response in responses)==[200,409]
     with db() as session:
         rows=session.query(MembershipModel).filter_by(room_id=room['id']).all()
-        assert sum(row.position=='lane-1' for row in rows)==1 and len(rows)==2
+        assert sum(row.position=='1' for row in rows)==1 and len(rows)==2
 
 
 def test_duplicate_room_requests_and_inverse_friend_requests_create_one_row(client,factory,db):

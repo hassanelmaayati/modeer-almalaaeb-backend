@@ -1,6 +1,7 @@
 from sqlalchemy import (
     CheckConstraint,
     Column,
+    DateTime,
     ForeignKey,
     Index,
     Integer,
@@ -15,8 +16,6 @@ from .base import BaseModel
 from .room import RoomModel
 from .user import UserModel
 
-# Allowed values for type, used by the serializers later
-MESSAGE_TYPES = ("room", "direct", "group", "system")
 MAX_BODY_LENGTH = 2000
 
 
@@ -37,6 +36,10 @@ class MessageModel(BaseModel):
 
     # Sent by the client, so a retried request does not create a duplicate
     client_request_id = Column(Uuid, nullable=True)
+
+    # Set when the sender edits or deletes the message (UTC); a deleted message keeps its row
+    edited_at = Column(DateTime, nullable=True)
+    deleted_at = Column(DateTime, nullable=True)
 
     __table_args__ = (
         CheckConstraint(

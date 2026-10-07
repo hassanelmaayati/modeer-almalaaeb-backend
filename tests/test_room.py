@@ -141,9 +141,12 @@ def test_request_approve_position_attendance_rating_leave_are_persisted(client,f
     api(client,'PATCH',f"/rooms/{room['id']}/members/{player['id']}",user=outsider,body={'status':'accepted'},expected=403)
     accepted=api(client,'PATCH',f"/rooms/{room['id']}/members/{player['id']}",user=host,body={'status':'accepted'})
     assert accepted['accepted'] is True
-    api(client,'PATCH',f"/rooms/{room['id']}/members/{player['id']}",user=player,body={'position':'lane-1'})
+    api(client,'PATCH',f"/rooms/{room['id']}/members/{player['id']}",user=player,body={'position':'1'})
     api(client,'PATCH',f"/rooms/{room['id']}/members/{player['id']}",user=player,body={'attendance':'present'},expected=403)
     api(client,'PATCH',f"/rooms/{room['id']}/members/{player['id']}",user=host,body={'rating':4},expected=409)
+    with db() as session:
+        session.get(RoomModel,room['id']).status='completed'
+        session.commit()
     rated=api(client,'PATCH',f"/rooms/{room['id']}/members/{player['id']}",user=host,body={'attendance':'present','rating':4})
     assert rated['rating']==4
     before=api(client,'GET',f"/rooms/{room['id']}")
@@ -173,15 +176,15 @@ def test_host_invitation_acceptance_capacity_and_slot_collision(client,factory,d
     invited=api(client,'POST',f"/rooms/{room['id']}/members",user=host,body={'user_id':first['id']},expected=201)
     assert invited['requested'] is False
     second_row=factory.member(second,room=room,status='pending',requested=True)
-    api(client,'PATCH',f"/rooms/{room['id']}/members/{first['id']}",user=first,body={'status':'accepted','position':'slot-a'})
+    api(client,'PATCH',f"/rooms/{room['id']}/members/{first['id']}",user=first,body={'status':'accepted','position':'1'})
     api(client,'PATCH',f"/rooms/{room['id']}/members/{second['id']}",user=host,body={'status':'accepted'},expected=409)
     listing=api(client,'GET','/rooms')
     assert len(listing)==1 and listing[0]['id']==room['id'] and listing[0]['slots_left']==0
     with db() as session: assert session.get(MembershipModel,second_row['id']).status=='pending'
     roomy=factory.room(host,capacity=4)
-    a=factory.member(first,room=roomy,position='slot-a')
+    a=factory.member(first,room=roomy,position='1')
     b=factory.member(second,room=roomy)
-    api(client,'PATCH',f"/rooms/{roomy['id']}/members/{second['id']}",user=second,body={'position':'slot-a'},expected=409)
+    api(client,'PATCH',f"/rooms/{roomy['id']}/members/{second['id']}",user=second,body={'position':'1'},expected=409)
     with db() as session: assert session.get(MembershipModel,b['id']).position is None
 
 
@@ -366,8 +369,8 @@ def test_member_updates_return_the_host_rating_only_to_the_host(client,factory,d
     room=factory.room(host)
     factory.member(player,room=room,attendance='present',rating=3)
     url=f"/rooms/{room['id']}/members/{player['id']}"
-    own=api(client,'PATCH',url,user=player,body={'position':'lane-1'})
-    assert own['position']=='lane-1' and own['rating'] is None
+    own=api(client,'PATCH',url,user=player,body={'position':'1'})
+    assert own['position']=='1' and own['rating'] is None
     assert api(client,'PATCH',url,user=host,body={'attendance':'present'})['rating']==3
     assert api(client,'PATCH',url,user=player,body={'status':'left'})['rating'] is None
     with db() as session:

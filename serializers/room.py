@@ -4,6 +4,9 @@ from typing import Annotated
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic_extra_types.coordinate import Coordinate
 
+from .fields import Id, SlotLayout, slot_names
+from .times import UtcOutput
+
 from models.areas import is_area_in_district
 from models.room import (
     DIFFICULTY,
@@ -78,15 +81,15 @@ class RoomSchema(BaseModel):
     description: str | None = None
     notes: str | None = None
     difficulty: str
-    starts_at: datetime
-    ends_at: datetime
+    starts_at: UtcOutput
+    ends_at: UtcOutput
     capacity: int
     slot_layout: dict
     status: str
     visibility: str
     admission_policy: str
     cancellation_reason: str | None = None
-    cancelled_at: datetime | None = None
+    cancelled_at: UtcOutput | None = None
     district: str
     area: str
     distance_km: float | None = None
@@ -95,6 +98,8 @@ class RoomSchema(BaseModel):
     host_generation: int
     revision: int
     slots_left: int = 0
+    # Only with ?near_lat=&near_lng=: whole kilometres to the venue's coarse area (never the pin)
+    km_away: int | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -139,25 +144,26 @@ class JoinedRoomsPageSchema(BaseModel):
 
 # POST body: host_id, status and the counters are set by the server
 class CreateRoomSchema(BaseModel):
-    sport_id: int
-    group_id: int | None = None
-    title: NonBlank = Field(min_length=1)
-    description: str | None = None
-    notes: str | None = None
+    sport_id: Id
+    group_id: Id | None = None
+    title: NonBlank = Field(min_length=1, max_length=120)
+    description: str | None = Field(default=None, max_length=2000)
+    notes: str | None = Field(default=None, max_length=1000)
     difficulty: str = "beginners"
     starts_at: datetime
     ends_at: datetime
-    capacity: int = Field(gt=0)
-    slot_layout: dict = Field(default_factory=dict)
+    capacity: int = Field(gt=0, le=1000)
+    # Bounded shape (see serializers/fields.py); None is rejected below
+    slot_layout: SlotLayout = Field(default_factory=dict)
     visibility: str = "public"
     admission_policy: str = "approval"
     district: str
-    area: NonBlank = Field(min_length=1)
+    area: NonBlank = Field(min_length=1, max_length=100)
     venue_location: Coordinate | None = None
-    venue_notes: str | None = None
-    distance_km: float | None = Field(default=None, gt=0, allow_inf_nan=False)
-    pace_notes: str | None = None
-    route_notes: str | None = None
+    venue_notes: str | None = Field(default=None, max_length=1000)
+    distance_km: float | None = Field(default=None, gt=0, le=1000, allow_inf_nan=False)
+    pace_notes: str | None = Field(default=None, max_length=500)
+    route_notes: str | None = Field(default=None, max_length=1000)
 
     # Convert both times to UTC (the database stores UTC)
     @field_validator("starts_at", "ends_at")
@@ -206,6 +212,10 @@ class CreateRoomSchema(BaseModel):
             raise ValueError(f"area '{self.area}' is not in the {self.district} district")
         if self.visibility == "group" and self.group_id is None:
             raise ValueError("group_id is required when visibility is 'group'")
+        if self.slot_layout is None:
+            raise ValueError("slot_layout cannot be null")
+        if len(slot_names(self.slot_layout)) > self.capacity:
+            raise ValueError("slot_layout cannot have more slots than capacity")
         return self
 
 
@@ -214,25 +224,25 @@ class CreateRoomSchema(BaseModel):
 # never accepted from the client.
 class UpdateRoomSchema(BaseModel):
     revision: int
-    sport_id: int | None = None
-    group_id: int | None = None
-    title: NonBlank | None = Field(default=None, min_length=1)
-    description: str | None = None
-    notes: str | None = None
+    sport_id: Id | None = None
+    group_id: Id | None = None
+    title: NonBlank | None = Field(default=None, min_length=1, max_length=120)
+    description: str | None = Field(default=None, max_length=2000)
+    notes: str | None = Field(default=None, max_length=1000)
     difficulty: str | None = None
     starts_at: datetime | None = None
     ends_at: datetime | None = None
-    capacity: int | None = Field(default=None, gt=0)
-    slot_layout: dict | None = None
+    capacity: int | None = Field(default=None, gt=0, le=1000)
+    slot_layout: SlotLayout = None
     visibility: str | None = None
     admission_policy: str | None = None
     district: str | None = None
-    area: NonBlank | None = Field(default=None, min_length=1)
+    area: NonBlank | None = Field(default=None, min_length=1, max_length=100)
     venue_location: Coordinate | None = None
-    venue_notes: str | None = None
-    distance_km: float | None = Field(default=None, gt=0, allow_inf_nan=False)
-    pace_notes: str | None = None
-    route_notes: str | None = None
+    venue_notes: str | None = Field(default=None, max_length=1000)
+    distance_km: float | None = Field(default=None, gt=0, le=1000, allow_inf_nan=False)
+    pace_notes: str | None = Field(default=None, max_length=500)
+    route_notes: str | None = Field(default=None, max_length=1000)
 
     # Same validators as create, but a missing (None) value is skipped
     @field_validator("starts_at", "ends_at")
@@ -279,9 +289,17 @@ class UpdateRoomSchema(BaseModel):
         # against the stored value; here only the case where both are sent
         if self.district and self.area and not is_area_in_district(self.area, self.district):
             raise ValueError(f"area '{self.area}' is not in the {self.district} district")
+        # When only one of layout/capacity is sent, the controller compares it with the stored one
+        if self.slot_layout and self.capacity and len(slot_names(self.slot_layout)) > self.capacity:
+            raise ValueError("slot_layout cannot have more slots than capacity")
         return self
+
+
+# Body of the transfer-host request
+class TransferHostSchema(BaseModel):
+    user_id: Id
 
 
 # Body of the cancel request; a reason is always required
 class CancelRoomSchema(BaseModel):
-    reason: NonBlank = Field(min_length=1)
+    reason: NonBlank = Field(min_length=1, max_length=500)

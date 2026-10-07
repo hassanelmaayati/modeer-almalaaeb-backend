@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 from google.auth.exceptions import GoogleAuthError
 from google.auth.transport.requests import Request
 from google.oauth2 import id_token
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
@@ -54,7 +55,7 @@ def unique_user_name(db: Session, email: str) -> str:
 
     user_name = base
     number = 2
-    while db.query(UserModel).filter(UserModel.user_name == user_name).first():
+    while db.query(UserModel).filter(func.lower(UserModel.user_name) == user_name.lower()).first():
         user_name = f"{base}{number}"
         number += 1
     return user_name

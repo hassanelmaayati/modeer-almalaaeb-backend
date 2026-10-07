@@ -2,16 +2,17 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from database import get_db
+from models.base import utc_now
 from dependencies.get_current_user import get_current_user
 from dependencies.get_optional_user import get_optional_user
 from models.membership import MembershipModel
-from models.room import RoomModel
 from models.user import UserModel
 from serializers.membership import CreateRoomMemberSchema, RoomMemberSchema, UpdateRoomMemberSchema
 from services.changes import change_events
 from services.lobby_events import lobby_state, queue_room_events
 from services.memberships import commit, load
 from services.realtime import queue_events
+from services.room_access import load_visible_room, valid_positions
 from services.room_rules import count_slots_left, is_past_cutoff, as_utc
 from datetime import datetime, timezone
 
@@ -46,14 +47,11 @@ def finish(db, background_tasks, room, before, actor_id, member, text):
 @router.get("/rooms/{room_id}/members", response_model=list[RoomMemberSchema])
 def get_room_members(room_id: int, db: Session = Depends(get_db),
                      current_user: UserModel | None = Depends(get_optional_user)):
-    room = load(db, RoomModel, room_id)
+    room = load_visible_room(db, room_id, current_user)
     query = members(db, room_id)
     own = query.filter(MembershipModel.user_id == current_user.id).first() if current_user else None
     is_host = current_user is not None and current_user.id == room.host_id
     admitted = own is not None and own.status == "accepted"
-    invited = own is not None and own.status == "pending" and not own.requested
-    if room.visibility != "public" and not (is_host or admitted or invited):
-        raise HTTPException(404, "Room not found")
     if is_host:
         return query.all()
     visible = query.filter(MembershipModel.status == "accepted").all() if admitted else [own] if own else []
@@ -64,14 +62,13 @@ def get_room_members(room_id: int, db: Session = Depends(get_db),
 def create_room_member(room_id: int, membership: CreateRoomMemberSchema,
                        background_tasks: BackgroundTasks, db: Session = Depends(get_db),
                        current_user: UserModel = Depends(get_current_user)):
-    room = load(db, RoomModel, room_id, lock=True)
+    # Hidden rooms are 404 before anything else, so a closed private room never answers 409
+    room = load_visible_room(db, room_id, current_user, lock=True)
     require_admission(room)
     target_id = membership.user_id if membership.user_id is not None else current_user.id
     is_self = target_id == current_user.id
     if not is_self and current_user.id != room.host_id:
         raise HTTPException(403, "Only the host can invite")
-    if is_self and room.visibility != "public" and current_user.id != room.host_id:
-        raise HTTPException(404, "Room not found")
     if target_id == room.host_id:
         raise HTTPException(409, "The host already has a place")
     load(db, UserModel, target_id)
@@ -79,9 +76,16 @@ def create_room_member(room_id: int, membership: CreateRoomMemberSchema,
         raise HTTPException(409, "Already requested or a member")
     if count_slots_left(db, room) == 0:
         raise HTTPException(409, "The room is full")
-    member = MembershipModel(user_id=target_id, room_id=room_id, status="pending",
-                             requested=is_self, accepted=False)
+    # An open room accepts a player's own request at once (the free place was checked
+    # above, under the room lock); invitations always wait for the invitee
+    instant = is_self and room.admission_policy == "open"
+    before = lobby_state(db, room) if instant else None
+    member = MembershipModel(user_id=target_id, room_id=room_id, status="accepted" if instant else "pending",
+                             requested=is_self, accepted=instant, accepted_at=utc_now() if instant else None)
     db.add(member)
+    if instant:
+        db.flush()
+        return finish(db, background_tasks, room, before, current_user.id, member, "A player joined a room")
     events = change_events(db, {"type": "room", "id": room_id},
                           "room.request" if is_self else "room.invitation",
                           "A player requested a place" if is_self else "You were invited to a room",
@@ -96,7 +100,7 @@ def create_room_member(room_id: int, membership: CreateRoomMemberSchema,
 def update_room_member(room_id: int, user_id: int, membership: UpdateRoomMemberSchema,
                        background_tasks: BackgroundTasks, db: Session = Depends(get_db),
                        current_user: UserModel = Depends(get_current_user)):
-    room = load(db, RoomModel, room_id, lock=True)
+    room = load_visible_room(db, room_id, current_user, lock=True)
     member = members(db, room_id).filter(MembershipModel.user_id == user_id).first()
     if not member:
         raise HTTPException(404, "Room member not found")
@@ -121,6 +125,8 @@ def update_room_member(room_id: int, user_id: int, membership: UpdateRoomMemberS
             if count_slots_left(db, room) == 0:
                 raise HTTPException(409, "The room is full")
         member.status, member.accepted = status, status == "accepted"
+        if status == "accepted":
+            member.accepted_at = utc_now()
         if status != "accepted":
             member.position = None
     if "position" in data:
@@ -128,10 +134,11 @@ def update_room_member(room_id: int, user_id: int, membership: UpdateRoomMemberS
             raise HTTPException(409, "Only accepted players have a slot")
         if room.status != "open" or datetime.now(timezone.utc) >= as_utc(room.starts_at):
             raise HTTPException(409, "Slot selection is closed")
-        position = data["position"]
+        position = data["position"].strip() if data["position"] is not None else None
         if position is not None:
-            if not position.strip() or len(position) > 50:
-                raise HTTPException(422, "Invalid position")
+            # Only the room's own slots can be claimed (numbered places when it has no layout)
+            if position not in valid_positions(room):
+                raise HTTPException(422, "Unknown position, choose one of the room's slots")
             if members(db, room_id).filter(MembershipModel.status == "accepted",
                     MembershipModel.position == position, MembershipModel.id != member.id).first():
                 raise HTTPException(409, "Slot already taken")
@@ -143,8 +150,15 @@ def update_room_member(room_id: int, user_id: int, membership: UpdateRoomMemberS
     if data.get("rating") is not None:
         if not is_host or is_self:
             raise HTTPException(403, "Only the host can rate other players")
+        # The host's rating is one final rating per player, after the room is over
+        if room.status != "completed":
+            raise HTTPException(409, "Ratings open when the room is completed")
+        if member.status != "accepted":
+            raise HTTPException(409, "Only accepted players can be rated")
         if member.attendance != "present":
             raise HTTPException(409, "Rate only present players")
+        if member.rating is not None:
+            raise HTTPException(409, "This player is already rated")
         member.rating = data["rating"]
     return finish(db, background_tasks, room, before, current_user.id, member,
                   "A room membership was updated")
@@ -153,7 +167,7 @@ def update_room_member(room_id: int, user_id: int, membership: UpdateRoomMemberS
 @router.delete("/rooms/{room_id}/members/me", status_code=204)
 def leave_room(room_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db),
                current_user: UserModel = Depends(get_current_user)):
-    room = load(db, RoomModel, room_id, lock=True)
+    room = load_visible_room(db, room_id, current_user, lock=True)
     if room.host_id == current_user.id:
         raise HTTPException(409, "The host cannot leave their room")
     member = members(db, room_id).filter(MembershipModel.user_id == current_user.id).first()

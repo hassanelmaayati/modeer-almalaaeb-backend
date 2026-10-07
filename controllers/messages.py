@@ -1,6 +1,6 @@
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Response
 from sqlalchemy import case, func, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from database import get_db
 from dependencies.get_current_user import get_current_user
 from models.group import GroupModel
@@ -8,10 +8,10 @@ from models.membership import MembershipModel
 from models.message import MessageModel
 from models.room import RoomModel
 from models.user import UserModel
-from serializers.message import ConversationSchema, CreateMessageSchema, MessageSchema
+from serializers.message import ConversationSchema, CreateMessageSchema, MessageSchema, UpdateMessageSchema
 from services.chat_access import require_chat_access
 from services.memberships import load
-from services.messages import save_message
+from services.messages import delete_message, edit_message, save_message
 from services.realtime import queue_events
 
 router = APIRouter(tags=["Messages Management"])
@@ -33,7 +33,14 @@ def get_conversations(limit: int = Query(50, ge=1, le=100), include_empty: bool 
     groups = latest_ids(MessageModel.group_id, or_(MessageModel.group_id.in_(owned_groups), MessageModel.group_id.in_(joined_groups)))
     partner = case((MessageModel.sender_id == me, MessageModel.recipient_id), else_=MessageModel.sender_id)
     direct = latest_ids(partner, (MessageModel.type == "direct") & or_(MessageModel.sender_id == me, MessageModel.recipient_id == me))
-    messages = db.query(MessageModel).filter(or_(MessageModel.id.in_(rooms), MessageModel.id.in_(groups), MessageModel.id.in_(direct))).order_by(MessageModel.id.desc()).limit(limit).all()
+    # Load each message's room, group and people with it, instead of one query per row
+    messages = (
+        db.query(MessageModel)
+        .options(joinedload(MessageModel.room), joinedload(MessageModel.group),
+                 joinedload(MessageModel.sender), joinedload(MessageModel.recipient))
+        .filter(or_(MessageModel.id.in_(rooms), MessageModel.id.in_(groups), MessageModel.id.in_(direct)))
+        .order_by(MessageModel.id.desc()).limit(limit).all()
+    )
     conversations = []
     for message in messages:
         if message.room_id is not None:
@@ -46,11 +53,11 @@ def get_conversations(limit: int = Query(50, ge=1, le=100), include_empty: bool 
         conversations.append(ConversationSchema(**target, last_message=MessageSchema.model_validate(message)))
     if include_empty:
         seen = {(item.type, item.room_id or item.group_id or item.user_id) for item in conversations}
-        targets = [("room", row.id, row.title) for row in db.query(RoomModel).filter(or_(RoomModel.id.in_(hosted), RoomModel.id.in_(joined_rooms))).order_by(RoomModel.id)]
-        targets += [("group", row.id, row.name) for row in db.query(GroupModel).filter(or_(GroupModel.id.in_(owned_groups), GroupModel.id.in_(joined_groups))).order_by(GroupModel.id)]
+        targets = [("room", row.id, row.title) for row in db.query(RoomModel).filter(or_(RoomModel.id.in_(hosted), RoomModel.id.in_(joined_rooms))).order_by(RoomModel.id).limit(limit)]
+        targets += [("group", row.id, row.name) for row in db.query(GroupModel).filter(or_(GroupModel.id.in_(owned_groups), GroupModel.id.in_(joined_groups))).order_by(GroupModel.id).limit(limit)]
         friends = db.query(MembershipModel).filter(MembershipModel.room_id.is_(None), MembershipModel.group_id.is_(None), MembershipModel.cup_id.is_(None), MembershipModel.status == "accepted", or_(MembershipModel.user_id == me, MembershipModel.other_user_id == me))
         friend_ids = {row.other_user_id if row.user_id == me else row.user_id for row in friends}
-        targets += [("direct", row.id, row.user_name) for row in db.query(UserModel).filter(UserModel.id.in_(friend_ids)).order_by(UserModel.id)]
+        targets += [("direct", row.id, row.user_name) for row in db.query(UserModel).filter(UserModel.id.in_(friend_ids)).order_by(UserModel.id).limit(limit)]
         for kind, target_id, title in targets:
             if (kind, target_id) not in seen:
                 field = {"room": "room_id", "group": "group_id", "direct": "user_id"}[kind]
@@ -88,5 +95,22 @@ def create_message(message: CreateMessageSchema, response: Response, background_
                    db: Session = Depends(get_db), current_user: UserModel = Depends(get_current_user)):
     saved, created, events = save_message(db, current_user, message)
     response.status_code = 201 if created else 200
+    queue_events(background_tasks, events)
+    return saved
+
+
+# Sender only, and only where sending would still be allowed (same errors as sending)
+@router.patch("/messages/{message_id}", response_model=MessageSchema)
+def update_message(message_id: int, body: UpdateMessageSchema, background_tasks: BackgroundTasks,
+                   db: Session = Depends(get_db), current_user: UserModel = Depends(get_current_user)):
+    saved, events = edit_message(db, current_user, message_id, body.body)
+    queue_events(background_tasks, events)
+    return saved
+
+
+@router.delete("/messages/{message_id}", response_model=MessageSchema)
+def remove_message(message_id: int, background_tasks: BackgroundTasks,
+                   db: Session = Depends(get_db), current_user: UserModel = Depends(get_current_user)):
+    saved, events = delete_message(db, current_user, message_id)
     queue_events(background_tasks, events)
     return saved

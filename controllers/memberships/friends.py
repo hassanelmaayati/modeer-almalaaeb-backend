@@ -8,6 +8,7 @@ from models.membership import MembershipModel
 from models.user import UserModel
 from serializers.membership import CreateFriendSchema, FriendSchema, UpdateFriendSchema
 from services.changes import change_events
+from services.chat_access import flag_is_blocked
 from services.memberships import commit, load
 from services.realtime import queue_events
 
@@ -34,11 +35,23 @@ def create_friend_request(friend: CreateFriendSchema, background_tasks: Backgrou
     if friend.other_user_id == current_user.id:
         raise HTTPException(400, "Cannot befriend yourself")
     load(db, UserModel, friend.other_user_id)
-    if friendship(db, current_user.id, friend.other_user_id):
-        raise HTTPException(409, "Friendship already exists")
-    row = MembershipModel(user_id=current_user.id, other_user_id=friend.other_user_id,
-                          status="pending", requested=True, accepted=False)
-    db.add(row)
+    row = friendship(db, current_user.id, friend.other_user_id)
+    if row is None:
+        row = MembershipModel(user_id=current_user.id, other_user_id=friend.other_user_id,
+                              status="pending", requested=True, accepted=False)
+        db.add(row)
+    else:
+        # A declined or ended friendship can start again, but never while either side
+        # blocks (the same answer as for any existing friendship, so a block stays private)
+        if (row.status not in ("declined", "left")
+                or flag_is_blocked(row.user_blocked_other) or flag_is_blocked(row.other_blocked_user)):
+            raise HTTPException(409, "Friendship already exists")
+        if row.user_id != current_user.id:
+            # The requester is the one who sent the latest request, so flip the pair
+            # and the block flags that belong to each side
+            row.user_id, row.other_user_id = row.other_user_id, row.user_id
+            row.user_blocked_other, row.other_blocked_user = row.other_blocked_user, row.user_blocked_other
+        row.status, row.requested, row.accepted = "pending", True, False
     events = change_events(db, {"type": "direct", "id": friend.other_user_id},
                           "friend.request", "You received a friend request", current_user.id)
     commit(db)

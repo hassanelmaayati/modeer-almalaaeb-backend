@@ -1,7 +1,8 @@
-from datetime import datetime
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field
+
+from .times import UtcOutput
 
 # Why a room left a district lobby (room_removed)
 RemovedReason = Literal["cancelled", "started", "full", "past_cutoff", "moved", "not_public"]
@@ -17,7 +18,7 @@ class LobbyRoomSchema(BaseModel):
     sport_name: str
     district: str
     area: str
-    starts_at: datetime
+    starts_at: UtcOutput
     capacity: int
     slots_left: int
     difficulty: str

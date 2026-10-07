@@ -15,15 +15,24 @@ def extension_relations(connection):
     )).all())
 
 
+# Expression indexes PostgreSQL reads back in a different (but equal) spelling
+EXPRESSION_INDEXES = {
+    "uq_memberships_friend_pair": "memberships",
+    "uq_users_user_name_lower": "users",
+}
+
+
 def _friend_index_signature(index, dialect):
     # PostgreSQL pretty-prints CASE expressions with extra whitespace and
-    # parentheses. This index uses identifiers only, so those changes are safe
-    # to normalize without masking changed expressions or predicates.
+    # parentheses, and adds ::text casts. These indexes use identifiers only, so
+    # those changes are safe to normalize without masking changed expressions
+    # or predicates.
     def canonical(expression):
         sql = expression if isinstance(expression, str) else str(
             expression.compile(dialect=dialect,
                                compile_kwargs={"literal_binds": True,
                                                "include_table": False}))
+        sql = re.sub(r"::(?:text|character varying)", "", sql)
         return re.sub(r"[\s()]", "", sql).lower()
 
     predicate = index.dialect_options["postgresql"].get("where")
@@ -39,8 +48,7 @@ def migration_options(connection=None):
         if kind == "table" and (obj.schema or default_schema, name) in owned:
             return False
         if (connection is not None and kind == "index"
-                and name == "uq_memberships_friend_pair"
-                and obj.table.name == "memberships"
+                and EXPRESSION_INDEXES.get(name) == obj.table.name
                 and (obj.table.schema or default_schema) == "public"
                 and compare_to is not None):
             if (_friend_index_signature(obj, connection.dialect)

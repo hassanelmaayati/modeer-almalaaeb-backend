@@ -40,6 +40,14 @@ def fail_on_unexpected_external_network():
         pytest.fail(f'Unexpected external networking was blocked: {unexpected}')
 
 
+@pytest.fixture(autouse=True)
+def fresh_rate_limits():
+    # The limiters are process-wide and every test client shares one address
+    from services import rate_limit
+    rate_limit.reset_all()
+    yield
+
+
 @pytest.fixture(scope='session')
 def pg_cluster():
     return _cluster

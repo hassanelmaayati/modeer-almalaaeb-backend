@@ -26,4 +26,4 @@ COPY scripts/import_sports.py ./scripts/import_sports.py
 
 USER 10001:10001
 EXPOSE 8000
-CMD ["sh", "-c", "exec python -m uvicorn main:app --host 0.0.0.0 --port \"${PORT:-8000}\" --workers 1"]
+CMD ["sh", "-c", "exec python -m uvicorn main:app --host 0.0.0.0 --port \"${PORT:-8000}\" --workers 1 --proxy-headers --forwarded-allow-ips=\"*\""]

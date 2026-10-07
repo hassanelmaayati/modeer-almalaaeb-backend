@@ -38,12 +38,17 @@ def invite_group_member(group_id: int, member: CreateGroupMemberSchema,
     if group.owner_id != current_user.id:
         raise HTTPException(403, "Only the owner can invite")
     load(db, UserModel, member.user_id)
-    if member.user_id == group.owner_id or members(db, group_id).filter(
-            MembershipModel.user_id == member.user_id).first():
+    existing = members(db, group_id).filter(MembershipModel.user_id == member.user_id).first()
+    # Someone who declined, left or was removed can be invited again
+    if member.user_id == group.owner_id or (existing and existing.status not in ("declined", "left", "removed")):
         raise HTTPException(409, "Already a member or invited")
-    new_member = MembershipModel(user_id=member.user_id, group_id=group_id,
-                                 status="pending", requested=False, accepted=False)
-    db.add(new_member)
+    if existing:
+        new_member = existing
+        new_member.status, new_member.requested, new_member.accepted = "pending", False, False
+    else:
+        new_member = MembershipModel(user_id=member.user_id, group_id=group_id,
+                                     status="pending", requested=False, accepted=False)
+        db.add(new_member)
     events = change_events(db, {"type": "group", "id": group_id}, "group.invitation",
                           "You were invited to a group", current_user.id,
                           recipient_ids={group.owner_id, member.user_id})

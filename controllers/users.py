@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, Response
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -17,12 +18,27 @@ router = APIRouter(tags=["Users Management"])
 
 @router.get("/users", response_model=List[UserSchema])
 def get_users(
+    response: Response,
+    ids: str | None = Query(None, max_length=1000, description="Comma-separated ids, at most 100; paging is ignored"),
     limit: int = Query(50, ge=1, le=100),
-    offset: int = Query(0, ge=0),
+    offset: int = Query(0, ge=0, le=1_000_000),
     db: Session = Depends(get_db),
 ):
+    if ids is not None:
+        # Batch lookup of public profiles; ids that do not exist are simply left out
+        try:
+            wanted = sorted({int(part) for part in ids.split(",")})
+        except ValueError:
+            raise HTTPException(status_code=422, detail="ids must be comma-separated integers")
+        if len(wanted) > 100 or any(not 0 < user_id <= 2_147_483_647 for user_id in wanted):
+            raise HTTPException(status_code=422, detail="send between 1 and 100 valid ids")
+        users = db.query(UserModel).filter(UserModel.id.in_(wanted)).order_by(UserModel.id).all()
+        response.headers["X-Total-Count"] = str(len(users))
+        return users
+    query = db.query(UserModel)
+    response.headers["X-Total-Count"] = str(query.count())
     # Ordered by id so pages stay stable as users sign up
-    return db.query(UserModel).order_by(UserModel.id).offset(offset).limit(limit).all()
+    return query.order_by(UserModel.id).offset(offset).limit(limit).all()
 
 
 @router.get("/users/me", response_model=UserPrivateSchema)
@@ -44,8 +60,9 @@ def update_me(
     user_data = user.model_dump(exclude_unset=True)
 
     new_user_name = user_data.get("user_name")
-    if new_user_name and new_user_name != db_user.user_name:
-        taken = db.query(UserModel).filter(UserModel.user_name == new_user_name)
+    # Names are unique ignoring case; changing only the case of your own name is fine
+    if new_user_name and new_user_name.lower() != db_user.user_name.lower():
+        taken = db.query(UserModel.id).filter(func.lower(UserModel.user_name) == new_user_name.lower())
         if taken.first():
             raise HTTPException(status_code=400, detail="user name is already taken")
 

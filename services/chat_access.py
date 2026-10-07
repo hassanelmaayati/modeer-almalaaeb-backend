@@ -27,8 +27,14 @@ def group_user_ids(db: Session, group_id: int) -> set[int]:
 def require_chat_access(db: Session, user_id: int, target: dict):
     kind, target_id = target["type"], target["id"]
     if kind == "room":
-        load(db, RoomModel, target_id)
+        room = load(db, RoomModel, target_id)
         permitted = user_id in room_user_ids(db, target_id)
+        if not permitted:
+            from services.room_access import can_view_room
+
+            # A room the user cannot even see does not exist for them
+            if not can_view_room(db, room, user_id):
+                raise HTTPException(status_code=404, detail="Room not found")
     elif kind == "group":
         load(db, GroupModel, target_id)
         permitted = user_id in group_user_ids(db, target_id)
@@ -50,6 +56,10 @@ def friendship(db: Session, a: int, b: int, *, lock=False):
     return (query.with_for_update().populate_existing() if lock else query).first()
 
 
+def flag_is_blocked(flag) -> bool:
+    return flag is not None and flag.strip().lower() not in ("", "false", "0", "no", "none")
+
+
 def require_direct_send(db: Session, sender_id: int, recipient_id: int):
     if sender_id == recipient_id:
         raise HTTPException(status_code=400, detail="Cannot message yourself")
@@ -57,7 +67,5 @@ def require_direct_send(db: Session, sender_id: int, recipient_id: int):
     connection = friendship(db, sender_id, recipient_id, lock=True)
     if not connection or connection.status != "accepted":
         raise HTTPException(status_code=403, detail="You can only message accepted friends")
-    def blocked(flag):
-        return flag is not None and flag.strip().lower() not in ("", "false", "0", "no", "none")
-    if blocked(connection.user_blocked_other) or blocked(connection.other_blocked_user):
+    if flag_is_blocked(connection.user_blocked_other) or flag_is_blocked(connection.other_blocked_user):
         raise HTTPException(status_code=403, detail="Messaging is blocked")

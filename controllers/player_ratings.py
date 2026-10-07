@@ -18,24 +18,11 @@ from serializers.player_rating import (
 )
 from services.accounts import unique_constraint
 from services.memberships import load
+from services.room_access import load_visible_room as find_room
 
 router = APIRouter(tags=["Player Ratings"])
 
 ONCE_PER_PAIR = "uq_player_ratings_rater_ratee_room"
-
-
-def find_room(db: Session, room_id: int, user: UserModel) -> RoomModel:
-    room = load(db, RoomModel, room_id)
-    if room.visibility != "public":
-        # Same rule as the members list: other rooms do not exist for outsiders
-        own = db.query(MembershipModel).filter(
-            MembershipModel.room_id == room.id, MembershipModel.user_id == user.id
-        ).first()
-        admitted = user.id == room.host_id or (own is not None and own.status == "accepted")
-        invited = own is not None and own.status == "pending" and not own.requested
-        if not (admitted or invited):
-            raise HTTPException(status_code=404, detail="Room not found")
-    return room
 
 
 def took_part(db: Session, room: RoomModel, user_id: int) -> bool:
