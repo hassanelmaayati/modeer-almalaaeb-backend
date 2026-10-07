@@ -1,10 +1,27 @@
 # Modeer Almalaaeb
 
+Modeer El Malaaeb is a team-built community platform for people in Bahrain to discover and organize sports and outdoor activities, coordinate participants, and keep in touch through rooms, groups and messaging.
+
+- [Live application](https://modeer-almalaaeb-frontend.vercel.app/)
+- [API documentation](https://modeer-almalaaeb-backend.onrender.com/docs)
+- [Backend repository](https://github.com/hassanelmaayati/modeer-almalaaeb-backend) · [Frontend repository](https://github.com/hassanelmaayati/modeer-almalaaeb-frontend)
+
+## Team
+
+Built collaboratively by [Ahmed Tarek](https://github.com/ctarek2015-wq), [Hassan Elmaayati](https://github.com/hassanelmaayati) and [Fatima Hubail](https://github.com/FatimaHubail). The Git history records each teammate's contributions across the application.
+
+## Backend architecture
+
+- FastAPI exposes REST endpoints under `/api/v1`; JWT bearer authentication protects account and participation actions. SQLAlchemy models and Alembic migrations target PostgreSQL with PostGIS for venue geometry.
+- The signed-in client requests a single-use, 30-second ticket with `POST /api/v1/socket-ticket`, then opens `/api/v1/ws?ticket=...`. The server validates the JWT, checks browser origins and sends scoped room, message and notification events. Clients use REST for writes; authenticated sockets accept heartbeat pings.
+- `/api/v1/ws/lobby` is the public discovery channel. It supports district subscriptions and heartbeat pings without requiring an account.
+- Socket hubs and tickets live in process memory. Room lifecycle, host-presence and notification-retention tasks run inside FastAPI's lifespan when `LIFECYCLE_WORKER` is enabled. There is no Redis service or separate worker service in the current deployment; use one backend instance with one Uvicorn worker.
+
 ## Deployment
 
 In Render, connect this repository with **New → Blueprint**. `render.yaml`
-builds the Dockerfile on the Free plan in Frankfurt and deploys commits to
-`main`. Keep the Docker command unchanged: it binds Render's `PORT` and starts
+builds the Dockerfile on the Free plan in Frankfurt and releases commits to
+`main` after required checks pass (`autoDeployTrigger: checksPass`). Keep the Docker command unchanged: it binds Render's `PORT` and starts
 `main:app` with one worker. Use one backend instance for the in-memory socket hubs.
 
 Supply `DATABASE_URL` (Supabase session pooler, port 5432, `sslmode=require`),
@@ -28,14 +45,14 @@ Check `/health`, `/health/ready` and `/api/v1/sports` after deployment.
 
 ## Local database setup
 
-Install PostgreSQL with PostGIS, create an empty database, copy `.env.example`
-to `.env` and point `DATABASE_URL` at it. Then:
+Use Python 3.14 and Pipenv. Install PostgreSQL with PostGIS, create an empty database, copy `.env.example` to `.env` and set its `DATABASE_URL`, `JWT_SECRET` and local `CORS_ORIGINS` (for example, `http://localhost:5173`). Also export the same database URL in your shell: the initialization command requires an explicit `--database-url` and does not read `.env` itself. Then:
 
 ```bash
 PIPENV_DONT_LOAD_ENV=1 pipenv sync --dev
 pipenv run python -m migrations.initialize --database-url "$DATABASE_URL"  # schema + PostGIS
 pipenv run python -m scripts.import_sports                                 # sports catalogue
 pipenv run python seed.py                                                  # optional demo data
+pipenv run uvicorn main:app --reload --host 127.0.0.1 --port 8000
 ```
 
 `migrations.initialize` only accepts an empty schema (`--reset-existing` drops the
@@ -43,7 +60,16 @@ app tables first). `seed.py` imports the sports, then adds demo users, groups, c
 and rooms only when there are no users yet; it exits with status 1 on any failure.
 Demo accounts are `user1@example.com` to `user4@example.com` with password `password123`.
 
-Run the tests the way CI does: `PIPENV_DONT_LOAD_ENV=1 pipenv run python -m tests.run_offline`.
+## Testing and CI
+
+```bash
+PIPENV_DONT_LOAD_ENV=1 pipenv run python -m tests.run_offline --check
+PIPENV_DONT_LOAD_ENV=1 pipenv run python -m tests.run_offline
+```
+
+The offline runner creates isolated PostgreSQL/PostGIS fixtures; it does not use the deployed database. PostgreSQL binaries must be installed and discoverable; set `MODEER_TEST_PG_BIN` to their directory when needed. Coverage and results are written to `tests/artifacts/`.
+
+[GitHub Actions](.github/workflows/ci.yml) checks the gate policy, runs the offline tests with coverage, and builds and smoke-tests the production Docker container. The final `Backend CI` job requires every mandatory job to succeed before a release. Tests cover authentication, migrations, room admission and privacy, invitations, messages, notifications, ratings, cups, lifecycle and realtime limits/regressions.
 
 ## Project idea
 
@@ -148,15 +174,15 @@ Each model shares a small set of pages and scoped endpoints. Use `/api/v1` befor
 | Model / feature | Main frontend routes | Main API endpoints |
 | --- | --- | --- |
 | User | `/sign-in`, `/sign-up`, `/users/:userId`, `/settings` | `POST /auth/signup`, `/auth/login`, `/auth/logout`<br>`POST /auth/google`, `/auth/google/link`<br>`GET /users?limit=&offset=` or `?ids=1,2,3`, `GET /users/{user_id}`, `GET /users/{user_id}/rating`<br>`GET/PUT /users/me` |
-| Sport | `/`, `/rooms` | `GET /sports`, `GET /sports/{sport_id}` |
-| Room | `/rooms`, `/rooms/new`, `/rooms/:roomId`, `/my-rooms` | `GET /rooms?limit=&offset=&group_id=&near_lat=&near_lng=&radius_km=`, `POST /rooms`<br>`GET /rooms/mine`, `GET /rooms/joined`<br>`GET/PUT /rooms/{room_id}`<br>`POST /rooms/{room_id}/cancel`, `POST /rooms/{room_id}/transfer-host` |
+| Sport | `/`, `/sports` | `GET /sports`, `GET /sports/{sport_id}` |
+| Room | `/`, `/rooms/new`, `/rooms/:roomId`, `/rooms/:roomId/edit`, `/my-rooms`, `/joined-rooms` | `GET /rooms?limit=&offset=&group_id=&near_lat=&near_lng=&radius_km=`, `POST /rooms`<br>`GET /rooms/mine`, `GET /rooms/joined`<br>`GET/PUT /rooms/{room_id}`<br>`POST /rooms/{room_id}/cancel`, `POST /rooms/{room_id}/transfer-host` |
 | Membership | Room/after-game pages, `/friends`, group/cup pages | `GET/POST /rooms/{room_id}/members`, `PATCH /rooms/{room_id}/members/{user_id}`, `DELETE /rooms/{room_id}/members/me`<br>`GET/POST /friends`, `PATCH /friends/{user_id}`<br>`GET/POST /groups/{group_id}/members`, `PATCH /groups/{group_id}/members/{user_id}`<br>`GET/POST /cups/{cup_id}/roster`, `PATCH /cups/{cup_id}/roster/{user_id}` |
-| Message | Room chat, `/messages`, `/messages/:userId` | `GET/POST /messages`, `PATCH/DELETE /messages/{message_id}`, `GET /messages/conversations` |
-| Group | `/groups`, `/groups/new`, `/groups/:groupId` | `GET /groups?limit=&offset=`, `POST /groups`<br>`GET /groups/mine`<br>`GET/PUT /groups/{group_id}` |
+| Message | Room chat, `/messages`, `/messages/:type/:id` | `GET/POST /messages`, `PATCH/DELETE /messages/{message_id}`, `GET /messages/conversations` |
+| Group | Dialogs on `/groups` | `GET /groups?limit=&offset=`, `POST /groups`<br>`GET /groups/mine`<br>`GET/PUT /groups/{group_id}` |
 | Cup | `/cups`, `/cups/new`, `/cups/:cupId` | `GET /cups?status=&limit=&offset=`, `POST /cups`<br>`GET/PATCH/DELETE /cups/{cup_id}`<br>`POST /cups/{cup_id}/entries`, `PUT /cups/{cup_id}/entries/{group_id}` |
-| Notification | Header bell | `GET /notifications`, `PATCH /notifications`, `PATCH /notifications/{notification_id}` |
+| Notification | Header bell and `/notifications` | `GET /notifications`, `PATCH /notifications`, `PATCH /notifications/{notification_id}` |
 | Player rating | After-game page, profiles | `POST /rooms/{room_id}/ratings`, `GET /rooms/{room_id}/ratings/mine`<br>`GET /users/{user_id}/rating` (public) |
-| Realtime | Shared provider | `POST /socket-ticket`, then `WS /ws?ticket=`; public `WS /ws/lobby` |
+| Realtime | Shared WebSocket service | `POST /socket-ticket`, then `WS /ws?ticket=`; public `WS /ws/lobby` |
 
 ### Behaviour notes
 
@@ -174,8 +200,12 @@ Each model shares a small set of pages and scoped endpoints. Use `/api/v1` befor
 
 ## Component hierarchy
 
-Shared account/live providers support room pages, friends, groups, messaging and cups.
+Shared account/session helpers and the WebSocket service support room pages, friends, groups, messaging, cups and notifications. The diagram is a planning overview; the frontend source describes the current component structure.
 
 ![Compact React component hierarchy](assets/previews/component-hierarchy.png)
 
 [Editable hierarchy](assets/diagrams/component-hierarchy.svg)
+
+## Current limits
+
+The application is English-first. Automatic slot assignment, waiting lists, calendar export, email/WhatsApp notices, Arabic, browser push and league/group-stage cups are not implemented. External sports news and administrative user roles are outside the current build. Clients refetch REST data after reconnecting; socket events are not a durable event log. See [the implementation plan](plan.md) for the current rules and remaining ideas.
