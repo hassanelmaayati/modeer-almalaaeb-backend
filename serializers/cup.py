@@ -3,6 +3,8 @@ from typing import Annotated, List, Literal
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from .fields import Id
+from .times import UtcOutput
 from .user import UserSchema
 
 
@@ -13,15 +15,7 @@ def to_naive_utc(value: datetime) -> datetime:
     return value
 
 
-def to_aware_utc(value: datetime) -> datetime:
-    # Responses always say they are UTC so the frontend can show Bahrain time
-    if value.tzinfo is None:
-        return value.replace(tzinfo=timezone.utc)
-    return value
-
-
 UtcInput = Annotated[datetime, AfterValidator(to_naive_utc)]
-UtcOutput = Annotated[datetime, AfterValidator(to_aware_utc)]
 
 
 # Response Schemas
@@ -79,27 +73,27 @@ class CupTextFields(BaseModel):
 
 
 class CreateCupSchema(CupTextFields):
-    sport_id: int
+    sport_id: Id
     name: str = Field(min_length=1, max_length=100)
-    rules: str = Field(min_length=1)
+    rules: str = Field(min_length=1, max_length=5000)
     # 4, 8 or 16 is enforced for knockout cups in the controller
     team_count: int = Field(ge=2, le=100)
-    roster_limit: int = Field(gt=0)
+    roster_limit: int = Field(gt=0, le=100)
     registration_closes_at: UtcInput | None = None
 
 
 class FixtureResultSchema(BaseModel):
     fixture_id: str
-    home_score: int = Field(ge=0)
-    away_score: int = Field(ge=0)
+    home_score: int = Field(ge=0, le=1000)
+    away_score: int = Field(ge=0, le=1000)
     # Required when the scores are level (decided on penalties)
-    winner_group_id: int | None = None
+    winner_group_id: Id | None = None
 
 
 class RaceResultSchema(BaseModel):
-    group_id: int
-    finish_time_seconds: float | None = Field(default=None, gt=0, allow_inf_nan=False)
-    position: int | None = Field(default=None, ge=1)
+    group_id: Id
+    finish_time_seconds: float | None = Field(default=None, gt=0, le=10_000_000, allow_inf_nan=False)
+    position: int | None = Field(default=None, ge=1, le=10_000)
     did_not_finish: bool = False
 
     @model_validator(mode="after")
@@ -119,9 +113,9 @@ class RaceResultSchema(BaseModel):
 
 class UpdateCupSchema(CupTextFields):
     name: str | None = Field(default=None, min_length=1, max_length=100)
-    rules: str | None = Field(default=None, min_length=1)
+    rules: str | None = Field(default=None, min_length=1, max_length=5000)
     team_count: int | None = Field(default=None, ge=2, le=100)
-    roster_limit: int | None = Field(default=None, gt=0)
+    roster_limit: int | None = Field(default=None, gt=0, le=100)
     registration_closes_at: UtcInput | None = None
     # Completion happens automatically once all results are recorded
     status: Literal["registration", "published"] | None = None
@@ -133,7 +127,7 @@ class UpdateCupSchema(CupTextFields):
 
 
 class CreateEntrySchema(BaseModel):
-    group_id: int
+    group_id: Id
     revision: int
 
 

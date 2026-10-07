@@ -1,6 +1,7 @@
-from datetime import datetime, timezone
 from typing import Literal
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field
+
+from .times import UtcOutput
 
 
 class NotificationTargetSchema(BaseModel):
@@ -13,14 +14,9 @@ class NotificationSchema(BaseModel):
     kind: str
     target: NotificationTargetSchema
     text: str
-    read_at: datetime | None = None
-    created_at: datetime | None = None
+    read_at: UtcOutput | None = None
+    created_at: UtcOutput | None = None
     model_config = ConfigDict(from_attributes=True)
-
-    @field_validator("read_at", "created_at")
-    @classmethod
-    def utc_time(cls, value):
-        return value.replace(tzinfo=timezone.utc) if value and value.tzinfo is None else value
 
 
 class NotificationListSchema(BaseModel):
