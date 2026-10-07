@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from fastapi import BackgroundTasks, HTTPException, WebSocket
 from database import SessionLocal
 from dependencies.get_current_user import decode_access_token, user_from_token
-from services.chat_access import group_user_ids, require_chat_access, room_user_ids
+from services.chat_access import require_chat_access
 
 logger = logging.getLogger(__name__)
 session_factory = SessionLocal
@@ -18,6 +18,8 @@ MAX_CONNECTIONS = 500
 MAX_CONNECTIONS_PER_IP = 100
 MAX_MESSAGE_BYTES = 1024
 MAX_TICKETS = 1000
+# One user cannot use up the shared pool: a normal client holds one or two
+MAX_TICKETS_PER_USER = 5
 
 
 class SocketTickets:
@@ -27,18 +29,22 @@ class SocketTickets:
         self.values = {}
         self.lock = threading.Lock()
 
-    def issue(self, token: str) -> str:
+    def issue(self, token: str, user_id: int | None = None) -> str:
         with self.lock:
             now = time.monotonic()
             self.values = {
                 key: value for key, value in self.values.items() if value[1] > now
             }
+            if user_id is not None and sum(value[2] == user_id for value in self.values.values()) >= MAX_TICKETS_PER_USER:
+                raise HTTPException(
+                    status_code=429, detail="Too many pending socket tickets, try again shortly"
+                )
             if len(self.values) >= MAX_TICKETS:
                 raise HTTPException(
                     status_code=503, detail="Too many pending socket connections"
                 )
             ticket = secrets.token_urlsafe(32)
-            self.values[ticket] = (token, now + TICKET_TTL_SECONDS)
+            self.values[ticket] = (token, now + TICKET_TTL_SECONDS, user_id)
             return ticket
 
     def consume(self, ticket: str) -> str | None:
@@ -69,6 +75,10 @@ class RealtimeHub:
     def __init__(self):
         self.connections = {}
         self.by_ip = {}
+
+    def online_user_ids(self) -> set[int]:
+        # list() copies in one step, so another thread changing the dict cannot break it
+        return {connection.user_id for connection in list(self.connections.values())}
 
     def reserve(self, ip: str) -> bool:
         if (
@@ -143,8 +153,13 @@ def user_event(user_ids, payload: dict, scope: dict | None = None) -> dict:
 
 def _allowed_deliveries(events: list[dict], connections: list[Connection]):
     deliveries, revoked = [], set()
+    # Only sockets whose user is in an event's audience are checked: a message in
+    # one room must not cost a database query for every other connected user
+    audience = set().union(*(event["user_ids"] for event in events))
     with session_factory() as db:
         for connection in connections:
+            if connection.user_id not in audience:
+                continue
             try:
                 user_from_token(db, connection.token)
             except HTTPException:
