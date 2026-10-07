@@ -10,8 +10,11 @@ from config.environment import require_settings
 # Before importing the controllers: database.py builds the engine at import time
 require_settings()
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 
 from controllers.groups import router as GroupsRouter
 from controllers.auth import router as AuthRouter
@@ -21,7 +24,11 @@ from controllers.sports import router as SportsRouter
 from controllers.cups import router as CupsRouter
 from controllers.rooms import router as RoomsRouter
 from config.environment import CORS_ORIGINS, LIFECYCLE_WORKER_ENABLED
+from database import get_db
+from services.body_limit import BodyLimitMiddleware
+from services.host_presence import host_presence_loop
 from services.lifecycle import lifecycle_loop
+from services.notifications import retention_loop
 from controllers.messages import router as MessagesRouter
 from controllers.lobby_ws import router as LobbyWsRouter
 from controllers.realtime_ws import router as RealtimeRouter
@@ -96,11 +103,16 @@ tags = [
 # Starts the worker that starts and finishes rooms, and stops it on shutdown
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    worker = asyncio.create_task(lifecycle_loop()) if LIFECYCLE_WORKER_ENABLED else None
+    # One instance runs both loops (they keep state in memory)
+    workers = (
+        [asyncio.create_task(lifecycle_loop()), asyncio.create_task(host_presence_loop()),
+         asyncio.create_task(retention_loop())]
+        if LIFECYCLE_WORKER_ENABLED else []
+    )
     try:
         yield
     finally:
-        if worker:
+        for worker in workers:
             worker.cancel()
             with suppress(asyncio.CancelledError):
                 await worker
@@ -131,17 +143,34 @@ app.include_router(GroupMembersRouter, prefix="/api/v1")
 app.include_router(CupRosterRouter, prefix="/api/v1")
 
 
+# Added after CORS so it wraps it: oversized bodies are refused before any parsing
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
+    # Lets the browser read the paging total
+    expose_headers=["X-Total-Count"],
 )
+
+
+app.add_middleware(BodyLimitMiddleware)
 
 
 @app.get("/health")
 def health_check():
+    # Stays fast and never touches the database, so the platform's check cannot pile up
     return {"ok": True}
+
+
+@app.get("/health/ready")
+def readiness_check(db: Session = Depends(get_db)):
+    try:
+        db.execute(text("SET LOCAL statement_timeout = '2s'"))
+        db.execute(text("SELECT 1"))
+    except Exception:
+        return JSONResponse(status_code=503, content={"ok": False, "database": "down"})
+    return {"ok": True, "database": "up"}
 
 
 @app.get("/")
