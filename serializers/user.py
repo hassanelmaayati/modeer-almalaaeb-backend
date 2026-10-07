@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import Annotated
 
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, field_validator
@@ -6,6 +5,7 @@ from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, field_valida
 from models.districts import DISTRICTS
 
 from .fields import PhotoUrl
+from .times import UtcOutput
 
 EMAIL_PATTERN = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
 
@@ -25,7 +25,7 @@ class UserSchema(BaseModel):
     photo_url: str | None = None
     bio: str | None = None
     district: str | None = None
-    created_at: datetime | None = None
+    created_at: UtcOutput | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -48,8 +48,9 @@ class UserTokenSchema(BaseModel):
 # Form Schemas
 class UserSignupSchema(BaseModel):
     user_name: str = Field(min_length=3, max_length=60)
-    email: str = Field(pattern=EMAIL_PATTERN)
-    password: str = Field(min_length=8)
+    email: str = Field(pattern=EMAIL_PATTERN, max_length=254)
+    # bcrypt hashing cost grows with length, so cap it; login has no cap and just fails
+    password: str = Field(min_length=8, max_length=128)
     photo_url: PhotoUrl = None
     bio: str | None = Field(default=None, max_length=500)
     district: str | None = None

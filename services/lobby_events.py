@@ -153,14 +153,3 @@ def queue_room_events(
     events = prepare_room_events(db, room, before)
     if events:
         background_tasks.add_task(send_events, events)
-
-
-# Prepare and send in one go, for code that is already async (not a controller)
-async def publish_room_event(
-    db: Session,
-    room: RoomModel,
-    before: LobbyState | None = None,
-    *,
-    hub: LobbyHub | None = None,
-) -> None:
-    await send_events(prepare_room_events(db, room, before), hub)

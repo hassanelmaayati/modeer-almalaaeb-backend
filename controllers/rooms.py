@@ -1,8 +1,7 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import List
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Response
 
 # DB
 from sqlalchemy import and_, or_
@@ -19,6 +18,7 @@ from models.user import UserModel
 from models.membership import MembershipModel
 
 # Serializers
+from serializers.fields import slot_names
 from serializers.room import (
     RoomSchema,
     RoomDetailSchema,
@@ -30,16 +30,21 @@ from serializers.room import (
     CreateRoomSchema,
     UpdateRoomSchema,
     CancelRoomSchema,
+    TransferHostSchema,
 )
 
 from dependencies.get_current_user import get_current_user
+from dependencies.get_optional_user import get_optional_user
 from services.lobby_events import lobby_state, queue_room_events
 from services.messages import create_system_message
+from services.room_access import can_view_room, load_visible_room, valid_positions, viewer_group_ids
 from services.room_rules import CUTOFF, as_utc, is_past_cutoff
 from services.room_queries import RoomListParams, joined_statuses, page_payload, page_rooms, room_list_params
-from services.room_rules import count_slots_left
-from services.memberships import commit, load
+from services.room_rules import count_slots_left, slots_left_map
+from services.room_search import near_filters
+from services.memberships import commit
 from services.changes import change_events
+from services.host_presence import eligible_players, transfer_host
 from services.realtime import queue_events
 
 router = APIRouter(
@@ -76,19 +81,6 @@ REQUIRED_FIELDS = {
     "area",
 }
 
-optional_bearer = HTTPBearer(auto_error=False)
-
-
-def get_optional_user(
-    db: Session = Depends(get_db),
-    credentials: HTTPAuthorizationCredentials | None = Depends(optional_bearer),
-):
-    # Browsing is public, so a missing token means "visitor", not an error
-    if credentials is None:
-        return None
-    return get_current_user(db=db, token=credentials)
-
-
 def get_room_or_404(db: Session, room_id: int) -> RoomModel:
     room = db.query(RoomModel).filter(RoomModel.id == room_id).first()
     if not room:
@@ -97,7 +89,8 @@ def get_room_or_404(db: Session, room_id: int) -> RoomModel:
 
 
 def get_host_room(db: Session, room_id: int, current_user: UserModel) -> RoomModel:
-    room = load(db, RoomModel, room_id, lock=True)
+    # A room the user cannot see is 404; only a visible room can answer 403
+    room = load_visible_room(db, room_id, current_user, lock=True)
     if room.host_id != current_user.id:
         raise HTTPException(status_code=403, detail="Only host allowed to do this!")
     return room
@@ -133,12 +126,20 @@ def check_group(db: Session, group_id: int, current_user: UserModel):
 
 @router.get("/rooms", response_model=List[RoomSchema])
 def get_rooms(
+    response: Response,
     sport_id: int | None = None,
     difficulty: str | None = None,
     district: str | None = None,
     starts_from: datetime | None = None,
     starts_to: datetime | None = None,
+    group_id: int | None = None,
+    near_lat: float | None = Query(None, ge=-90, le=90),
+    near_lng: float | None = Query(None, ge=-180, le=180),
+    radius_km: float = Query(10, ge=1, le=50),
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0, le=1_000_000),
     db: Session = Depends(get_db),
+    current_user: UserModel | None = Depends(get_optional_user),
 ):
     # No district means all districts; an unknown one is a client mistake
     if district is not None and district not in DISTRICTS:
@@ -146,15 +147,28 @@ def get_rooms(
             status_code=422,
             detail=f"district must be one of: {', '.join(DISTRICTS)}",
         )
+    if (near_lat is None) != (near_lng is None):
+        raise HTTPException(status_code=422, detail="near_lat and near_lng must be sent together")
 
-    # Discovery shows public, open rooms that are not yet past the cutoff
+    # Discovery shows public, open rooms that are not yet past the cutoff, plus
+    # the group-only rooms of the viewer's own groups
     cutoff_time = datetime.now(timezone.utc) + CUTOFF
-    query = db.query(RoomModel).filter(
-        RoomModel.status == "open",
-        RoomModel.visibility == "public",
-        RoomModel.starts_at > cutoff_time,
-    )
+    listed = RoomModel.visibility == "public"
+    if current_user is not None:
+        listed = or_(listed, and_(RoomModel.visibility == "group",
+                                  RoomModel.group_id.in_(viewer_group_ids(db, current_user.id))))
 
+    near = near_lat is not None
+    if near:
+        # Distance to a coarse area point, never the private pin (see services/room_search.py)
+        metres, near_conditions = near_filters(near_lat, near_lng, radius_km)
+        query = db.query(RoomModel, metres.label("away_m")).filter(*near_conditions)
+    else:
+        query = db.query(RoomModel)
+    query = query.filter(RoomModel.status == "open", listed, RoomModel.starts_at > cutoff_time)
+
+    if group_id is not None:
+        query = query.filter(RoomModel.group_id == group_id)
     if sport_id is not None:
         query = query.filter(RoomModel.sport_id == sport_id)
     if difficulty is not None:
@@ -166,12 +180,29 @@ def get_rooms(
     if starts_to is not None:
         query = query.filter(RoomModel.starts_at <= as_utc(starts_to))
 
-    return [room_snapshot(db, room) for room in query.order_by(RoomModel.starts_at)]
+    response.headers["X-Total-Count"] = str(query.count())
+    order = [metres, RoomModel.starts_at, RoomModel.id] if near else [RoomModel.starts_at, RoomModel.id]
+    rows = query.order_by(*order).offset(offset).limit(limit).all()
+    rooms = [row[0] for row in rows] if near else rows
+    items = room_snapshots(db, rooms)
+    if near:
+        # Rounded to whole kilometres, so the number says little about the exact spot
+        for item, row in zip(items, rows):
+            item.km_away = round(row[1] / 1000)
+    return items
 
 
-def room_snapshot(db, room, *, detailed=False):
+def room_snapshot(db, room, *, detailed=False, slots_left=None):
     schema = RoomDetailSchema if detailed else RoomSchema
-    return schema.model_validate(room).model_copy(update={"slots_left": count_slots_left(db, room)})
+    if slots_left is None:
+        slots_left = count_slots_left(db, room)
+    return schema.model_validate(room).model_copy(update={"slots_left": slots_left})
+
+
+def room_snapshots(db, rooms, *, detailed=False):
+    """Snapshots for a list, with every slots_left worked out in one query."""
+    slots = slots_left_map(db, rooms)
+    return [room_snapshot(db, room, detailed=detailed, slots_left=slots[room.id]) for room in rooms]
 
 
 @router.get("/rooms/mine", response_model=MyRoomsPageSchema)
@@ -182,15 +213,18 @@ def get_my_rooms(
 ):
     query = db.query(RoomModel).filter(RoomModel.host_id == current_user.id)
     rooms, total = page_rooms(query, params)
-    items = [room_snapshot(db, room, detailed=True) for room in rooms]
-    return page_payload(items, total, params)
+    return page_payload(room_snapshots(db, rooms, detailed=True), total, params)
 
 
-def joined_snapshot(db, room, member):
-    detailed = member.status == "accepted"
-    room_view = room_snapshot(db, room, detailed=detailed)
-    schema = JoinedRoomDetailSchema if detailed else JoinedRoomSchema
-    return schema(**room_view.model_dump(), membership=JoinedMembershipSchema.model_validate(member))
+def joined_snapshots(db, rows):
+    slots = slots_left_map(db, [room for room, _ in rows])
+    items = []
+    for room, member in rows:
+        detailed = member.status == "accepted"
+        room_view = room_snapshot(db, room, detailed=detailed, slots_left=slots[room.id])
+        schema = JoinedRoomDetailSchema if detailed else JoinedRoomSchema
+        items.append(schema(**room_view.model_dump(), membership=JoinedMembershipSchema.model_validate(member)))
+    return items
 
 
 @router.get("/rooms/joined", response_model=JoinedRoomsPageSchema)
@@ -203,6 +237,8 @@ def get_joined_rooms(
 ):
     statuses = joined_statuses(membership)
     invited = and_(MembershipModel.status == "pending", MembershipModel.requested.is_(False))
+    # A group member's own request in a group-only room is visible to them too
+    in_my_group = and_(RoomModel.visibility == "group", RoomModel.group_id.in_(viewer_group_ids(db, current_user.id)))
     query = (
         db.query(RoomModel, MembershipModel)
         .join(MembershipModel, MembershipModel.room_id == RoomModel.id)
@@ -210,14 +246,13 @@ def get_joined_rooms(
             MembershipModel.user_id == current_user.id,
             MembershipModel.status.in_(statuses),
             RoomModel.host_id != current_user.id,
-            or_(RoomModel.visibility == "public", MembershipModel.status == "accepted", invited),
+            or_(RoomModel.visibility == "public", MembershipModel.status == "accepted", invited, in_my_group),
         )
     )
     if requested is not None:
         query = query.filter(MembershipModel.requested == requested)
     rows, total = page_rooms(query, params)
-    items = [joined_snapshot(db, room, member) for room, member in rows]
-    return page_payload(items, total, params)
+    return page_payload(joined_snapshots(db, rows), total, params)
 
 
 @router.get("/rooms/{room_id}", response_model=None)
@@ -227,15 +262,14 @@ def get_room(
     current_user: UserModel | None = Depends(get_optional_user),
 ):
     room = get_room_or_404(db, room_id)
+    if not can_view_room(db, room, current_user.id if current_user else None):
+        raise HTTPException(status_code=404, detail="Room not found")
     is_host = current_user is not None and current_user.id == room.host_id
     member = db.query(MembershipModel).filter(
         MembershipModel.room_id == room.id,
         MembershipModel.user_id == current_user.id if current_user else False,
     ).first()
     admitted = is_host or (member is not None and member.status == "accepted")
-    invited = member is not None and member.status == "pending" and member.requested is False
-    if room.visibility != "public" and not (admitted or invited):
-        raise HTTPException(status_code=404, detail="Room not found")
     # Admitted players and the host get the venue location and notes
     return room_snapshot(db, room, detailed=admitted)
 
@@ -337,6 +371,10 @@ def update_room(
     for key, value in split_location(data).items():
         setattr(db_room, key, value)
 
+    # A new layout or capacity must still fit together with the stored other one
+    if {"slot_layout", "capacity"} & data.keys() and len(slot_names(db_room.slot_layout)) > db_room.capacity:
+        raise HTTPException(status_code=422, detail="slot_layout cannot have more slots than capacity")
+
     # The sport relationship must point at the new sport before checking capacity
     if "sport_id" in data:
         db_room.sport = sport
@@ -347,6 +385,15 @@ def update_room(
             | {db_room.host_id})
         if db_room.capacity < occupied:
             raise HTTPException(409, "Capacity cannot be lower than admitted players")
+
+    # Players holding a place that no longer exists lose it and can pick another
+    if {"slot_layout", "capacity"} & data.keys():
+        valid = valid_positions(db_room)
+        for held in db.query(MembershipModel).filter(
+            MembershipModel.room_id == room_id, MembershipModel.position.is_not(None)
+        ):
+            if held.position not in valid:
+                held.position = None
 
     db_room.revision += 1
     events = change_events(db, {"type": "room", "id": room_id}, "room.updated",
@@ -390,4 +437,30 @@ def cancel_room(
     queue_room_events(background_tasks, db, db_room, before)
     from services.messages import message_events
     queue_events(background_tasks, events + message_events(db, system_message))
+    return room_snapshot(db, db_room, detailed=True)
+
+
+@router.post("/rooms/{room_id}/transfer-host", response_model=RoomDetailSchema)
+def transfer_host_route(
+    room_id: int,
+    body: TransferHostSchema,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(get_current_user),
+):
+    db_room = get_host_room(db, room_id, current_user)
+    if db_room.status not in ("open", "started"):
+        raise HTTPException(status_code=409, detail="Only open or started rooms can change host")
+    if body.user_id == current_user.id:
+        raise HTTPException(status_code=409, detail="You are already the host")
+    # Same players an automatic promotion would pick from: accepted and not a no-show
+    if body.user_id not in {row.user_id for row in eligible_players(db, db_room)}:
+        raise HTTPException(status_code=409, detail="The new host must be an accepted player of this room")
+
+    before = lobby_state(db, db_room)
+    events = transfer_host(db, db_room, body.user_id, actor_id=current_user.id)
+    commit(db)
+    db.refresh(db_room)
+    queue_room_events(background_tasks, db, db_room, before)
+    queue_events(background_tasks, events)
     return room_snapshot(db, db_room, detailed=True)
