@@ -120,4 +120,4 @@ def test_prepared_message_event_rechecks_access_after_membership_revocation(netw
         network.run(realtime.send_events(prepared))
         assert receive(own, 'message.created')['message']['id'] == saved['id']
         assert_no_message(removed)
-        api(network.client, 'GET', '/messages', user=member, params={kind+'_id': target['id']}, expected=403)
+        api(network.client, 'GET', '/messages', user=member, params={kind+'_id': target['id']}, expected=404 if kind == 'room' else 403)

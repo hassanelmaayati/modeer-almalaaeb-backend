@@ -76,7 +76,8 @@ def race_case(factory, case):
         denied_status = 409
     else:
         change = ('PATCH', f"/{kind}s/{target['id']}/members/{member['id']}", {'status': 'removed'})
-        denied_status = 403
+        # A removed member of a private room cannot see it any more (404); group chat stays 403
+        denied_status = 404 if kind == 'room' else 403
     return owner, member, membership, {kind + '_id': target['id']}, change, denied_status
 
 
