@@ -2,6 +2,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from .fields import Id
+
 
 class RoomMemberSchema(BaseModel):
     id: int
@@ -18,12 +20,12 @@ class RoomMemberSchema(BaseModel):
 
 
 class CreateRoomMemberSchema(BaseModel):
-    user_id: int | None = None
+    user_id: Id | None = None
 
 
 class UpdateRoomMemberSchema(BaseModel):
     status: Literal["pending", "accepted", "declined", "left", "removed"] | None = None
-    position: str | None = None
+    position: str | None = Field(default=None, max_length=50)
     attendance: Literal["unknown", "present", "no_show", "excused"] | None = None
     rating: int | None = Field(default=None, ge=1, le=5)
 
@@ -52,7 +54,7 @@ class FriendSchema(MemberSchema):
 
 
 class CreateFriendSchema(BaseModel):
-    other_user_id: int
+    other_user_id: Id
 
 
 class UpdateFriendSchema(BaseModel):
@@ -66,7 +68,7 @@ class GroupMemberSchema(MemberSchema):
 
 
 class CreateGroupMemberSchema(BaseModel):
-    user_id: int
+    user_id: Id
 
 
 class UpdateGroupMemberSchema(BaseModel):
@@ -78,8 +80,8 @@ class CupMemberSchema(MemberSchema):
 
 
 class CreateCupMemberSchema(BaseModel):
-    user_id: int
-    group_id: int
+    user_id: Id
+    group_id: Id
 
 
 class UpdateCupMemberSchema(BaseModel):

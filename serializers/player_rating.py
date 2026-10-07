@@ -1,5 +1,7 @@
 from pydantic import BaseModel, Field
 
+from .fields import Id
+
 
 # Response Schemas
 class PlayerRatingSchema(BaseModel):
@@ -17,6 +19,6 @@ class UserRatingSchema(BaseModel):
 
 # Form Schemas
 class CreatePlayerRatingSchema(BaseModel):
-    user_id: int
+    user_id: Id
     # Strict: only whole JSON numbers, so "4", 4.5 and true are rejected
     stars: int = Field(strict=True, ge=1, le=5)

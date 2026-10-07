@@ -34,7 +34,7 @@ def room_list_params(
     starts_to: datetime | None = None,
     order: str = "asc",
     limit: int = Query(default=DEFAULT_PAGE_SIZE, ge=1, le=MAX_PAGE_SIZE),
-    offset: int = Query(default=0, ge=0),
+    offset: int = Query(default=0, ge=0, le=1_000_000),
 ) -> RoomListParams:
     for values, allowed, name in (
         (status or [], ROOM_STATUSES, "status"),

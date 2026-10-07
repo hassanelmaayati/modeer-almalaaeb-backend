@@ -89,7 +89,7 @@ def test_concurrent_profile_username_collision_preserves_losing_profile(client, 
         assert loser.bio == ''
 
 
-@pytest.mark.parametrize('password', ['a' * 73, 'ب' * 40, 'a' * 4096], ids=['ascii-tail', 'utf8-tail', 'long-password'])
+@pytest.mark.parametrize('password', ['a' * 73, 'ب' * 40, 'a' * 128], ids=['ascii-tail', 'utf8-tail', 'max-length-password'])
 def test_new_password_hashes_distinguish_the_entire_password(client, db, password):
     registered = api(client, 'POST', '/auth/signup', body={
         'user_name': 'long_password_player', 'email': 'long@example.test', 'password': password,
